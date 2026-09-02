@@ -54,5 +54,6 @@ nav:
   - Tutorials:
       - LandTrendr: tutorials/landtrendr.md
       - CCDC: tutorials/ccdc.md
+      - Tmask: tutorials/tmask.md
       - AI & Deep Learning: tutorials/ai.md
   - CLI Reference: cli.md
