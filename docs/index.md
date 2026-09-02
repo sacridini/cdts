@@ -11,7 +11,7 @@ Designed to overcome heavy dependencies on platforms like Google Earth Engine, C
 *   **Horizontal Scaling:** Leverage `xarray` and `dask` to lazily chunk data. Distribute tasks across multiple CPU threads or remote Dask workers to process large areas without memory exhaustion.
 *   **Deep Learning & Foundation Models (`cdts.ai`):** Built on PyTorch, providing modern neural network architectures tailored for earth observation, including U-TAE, TempCNN, Bi-Temporal Siamese CNNs, and wrappers for Geospatial Foundation Models (ViT).
 
-## State-of-the-Art Algorithms
+## Algorithms
 
 CDTS natively implements industry-standard change detection algorithms:
 
