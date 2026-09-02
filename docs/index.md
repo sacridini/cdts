@@ -1,4 +1,4 @@
-# CDTS: Change Detection Time-Series for Python
+# CDTS: Change Detection and Time-Series for Python
 
 **CDTS** is an ultra-fast, cloud-native Python framework for **Remote Sensing Time-Series Analysis and Change Detection**. 
 

@@ -1,4 +1,4 @@
-# CDTS: Change Detection Time-Series for Python
+# CDTS: Change Detection and Time-Series for Python
 
 [![Build and Publish Wheels](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml)
 
