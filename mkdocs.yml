@@ -1,0 +1,56 @@
+site_name: CDTS
+site_description: Continuous monitoring of land cover and land use using dense time series
+site_url: https://sacridini.github.io/cdts/
+repo_url: https://github.com/sacridini/cdts
+repo_name: sacridini/cdts
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - search.share
+  palette:
+    - scheme: default
+      primary: teal
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - attr_list
+  - md_in_html
+  - tables
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Docker: getting-started/docker.md
+      - Contributing: getting-started/contributing.md
+  - Tutorials:
+      - LandTrendr: tutorials/landtrendr.md
+      - CCDC: tutorials/ccdc.md
