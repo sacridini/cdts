@@ -1,5 +1,9 @@
 # CDTS: Change Detection and Time-Series for Python
 
+<p align="center">
+  <img src="assets/logo.jpg" alt="CDTS Logo" width="400">
+</p>
+
 [![Build and Publish Wheels](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml) [![Tests](https://github.com/sacridini/cdts/actions/workflows/tests.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/tests.yml)
 
 **CDTS** is an ultra-fast, cloud-native Python library for **Remote Sensing Time-Series Analysis and Change Detection**. 
