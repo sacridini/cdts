@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=42", "wheel", "pybind11>=2.10.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cdts"
+version = "0.1.0"
+description = "Change Detection Python Library (LandTrendr, CCDC, etc)"
+dependencies = [
+    "numpy",
+    "numba>=0.53.0",
+    "rasterio",
+    "scikit-learn",
+    "scipy",
+    "dask[array]",
+    "xarray",
+    "pystac-client",
+    "stackstac",
+    "geopandas",
+    "torch",
+    "einops",
+    "transformers",
+    "planetary-computer"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov"
+]
+
+[project.scripts]
+cdts = "cdts.cli:main"

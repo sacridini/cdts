@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  cdts:
+    build: .
+    container_name: cdts_runtime
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/app  # Maps your local code into the container for live editing
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
