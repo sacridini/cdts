@@ -7,11 +7,24 @@ import geopandas as gpd
 STAC_CATALOGS = {
     "earth_search": "https://earth-search.aws.element84.com/v1",
     "planetary_computer": "https://planetarycomputer.microsoft.com/api/stac/v1",
-    "brazil_data_cube": "https://brazildatacube.dpi.inpe.br/stac/"
+    "brazil_data_cube": "https://data.inpe.br/bdc/stac/v1/"
 }
 
 from typing import List, Optional, Union
 import xarray as xr
+
+import concurrent.futures
+import rasterio
+
+def _validate_stac_item(item, band):
+    """Helper function to test if a STAC item URL is physically readable."""
+    try:
+        url = item.assets[band].href
+        with rasterio.open(url) as src:
+            pass # Just opening is enough to test if header exists and is valid
+        return item
+    except Exception:
+        return None
 
 def build_time_series(
     source: str = "earth_search", 
@@ -22,8 +35,9 @@ def build_time_series(
     end_date: str = "2020-12-31", 
     cloud_cover_max: int = 30,
     bands: Optional[List[str]] = None,
-    resolution: Optional[int] = None,
-    epsg: int = 4326
+    resolution: Optional[float] = None,
+    epsg: int = 4326,
+    validate_items: bool = False
 ) -> xr.DataArray:
     """
     Builds a lazy Dask-backed xarray DataCube from a STAC catalog.
@@ -36,6 +50,7 @@ def build_time_series(
     cloud_cover_max: Maximum cloud cover percentage for image filtering.
     bands: List of band names to load (e.g., ["red", "green", "blue", "nir"]).
     resolution: Target spatial resolution in meters (if reprojection is needed).
+    validate_items: If True, tests each STAC item's URL before stacking to drop corrupted files.
     """
     
     # 1. Resolve Bounding Box
@@ -81,15 +96,38 @@ def build_time_series(
     if len(items) == 0:
         raise ValueError("No images found for the given criteria.")
         
+    items_list = list(items)
+    
+    # 3.6 Pre-flight Validation
+    if validate_items and bands:
+        print(f"Iniciando validação de {len(items_list)} cenas para bloquear arquivos corrompidos...")
+        valid_items = []
+        band_to_check = bands[0]  # Just check the first band as a proxy for the whole scene
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {executor.submit(_validate_stac_item, item, band_to_check): item for item in items_list}
+            for future in concurrent.futures.as_completed(futures):
+                res = future.result()
+                if res is not None:
+                    valid_items.append(res)
+                    
+        removed = len(items_list) - len(valid_items)
+        print(f"Cenas íntegras aprovadas: {len(valid_items)} (Removidas/Corrompidas: {removed})")
+        items_list = valid_items
+        
+        if len(items_list) == 0:
+            raise ValueError("All scenes were invalid or corrupted after validation.")
+        
     # 4. Build DataCube via stackstac
     # stackstac handles the reprojection, resampling, and alignment automatically!
     cube = stackstac.stack(
-        items,
+        items_list,
         assets=bands,
         bounds_latlon=bbox,
         resolution=resolution,
         epsg=epsg,
-        chunksize=512
+        chunksize=512,
+        errors_as_nodata=(Exception,)
     )
     
     return cube
