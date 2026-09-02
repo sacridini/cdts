@@ -57,7 +57,7 @@ These options control how specific change events are extracted from the temporal
 | `--output-scale` | `float`| `1.0` | Scale factor applied to the output. Useful for converting scaled integers back to floats (e.g., `0.0001`). |
 | `--prefix` | `str` | `lt_event` | Prefix added to all output file names. |
 
-### 💻 End-to-End Example
+### End-to-End Example
 Run LandTrendr on a 30-year NBR stack, extracting the greatest vegetation loss, using all CPU cores, and converting the output back to floating point (assuming NBR was scaled by 10000):
 ```bash
 cdts landtrendr ./data/nbr_stack_1990_2020.tif ./results \
@@ -99,7 +99,7 @@ cdts ccdc <input> <output_dir> [OPTIONS]
 | `--cold` | `flag` | `False` | Switches logic to the **COLD** algorithm variant, increasing the required consecutive anomalies for a break from 3 to 6. |
 | `--prefix` | `str` | `ccdc` | Prefix added to all output GeoTIFF files. |
 
-### 💻 End-to-End Example
+### End-to-End Example
 Run CCDC on an image with 6 spectral bands and 1 QA band (7 total bands per date). The 7th band (index 6) is the QA mask. The dates are provided in a text file:
 ```bash
 cdts ccdc ./data/dense_stack.tif ./results \
@@ -122,7 +122,7 @@ cdts ccdc ./data/dense_stack.tif ./results_cold \
 
 ---
 
-## 🤖 Note on AI Tools (Deep Learning)
+## Note on AI Tools (Deep Learning)
 
 Currently, the AI tools (`cdts.ai`) are **not** exposed via the CLI. 
 
