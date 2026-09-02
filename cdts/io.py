@@ -121,6 +121,39 @@ def save_raster(array: "np.ndarray", output_path: str, reference_cube: Any = Non
     with rasterio.open(output_path, 'w', **profile) as dst:
         dst.write(array_to_write)
 
+    # Auto-extract dates to CSV if a time coordinate is present
+    time_source = None
+    if hasattr(array, 'coords') and 'time' in array.coords:
+        time_source = array
+    elif reference_cube is not None and hasattr(reference_cube, 'coords') and 'time' in reference_cube.coords:
+        time_source = reference_cube
+
+    if time_source is not None:
+        try:
+            import pandas as pd
+            datetimes = pd.to_datetime(time_source.time.values)
+            fractional_years = []
+            for dt in datetimes:
+                year = dt.year
+                days_in_year = 366 if dt.is_leap_year else 365
+                frac = year + (dt.dayofyear - 1) / days_in_year
+                fractional_years.append(frac)
+            
+            df = pd.DataFrame({
+                'Date': datetimes,
+                'Fractional_Year': fractional_years,
+                'Ordinal_Day': [dt.toordinal() for dt in datetimes]
+            })
+            
+            base_path, _ = os.path.splitext(output_path)
+            csv_path = f"{base_path}_dates.csv"
+            df.to_csv(csv_path, index=False)
+            print(f"Time coordinate detected. Extracted dates saved to {csv_path}")
+        except ImportError:
+            print("Warning: 'pandas' is required to auto-extract dates to CSV, but it is not installed.")
+        except Exception as e:
+            print(f"Warning: Failed to extract dates to CSV: {e}")
+
 def load_raster(file_path: str, raster_check: Optional[str] = None) -> Tuple["np.ndarray", Dict[str, Any]]:
     """
     Loads a GeoTIFF into a NumPy array and returns the array along with its profile.
