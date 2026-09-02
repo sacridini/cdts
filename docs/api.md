@@ -389,3 +389,170 @@ model = UTAE(
 X = torch.randn(2, 12, 4, 128, 128)
 predictions = model(X) # Output shape: (2, 10, 128, 128)
 ```
+
+
+---
+
+## `cdts.cube.build_time_series`
+
+Dynamically builds a lazy, Dask-backed `xarray.DataArray` (DataCube) directly from cloud-native STAC catalogs (like AWS Earth Search, Microsoft Planetary Computer, or Brazil Data Cube). It automatically handles API pagination, reprojection, and spatial alignment without downloading the raw files first.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `source` | `str` | `'earth_search'`| STAC catalog alias or direct URL. |
+| `collection` | `str` | `'sentinel-2-l2a'`| The dataset collection ID. |
+| `bbox` | `list`| `None` | Bounding box `[minx, miny, maxx, maxy]` in EPSG:4326. |
+| `vector_path`| `str` | `None` | Path to a vector file (Shapefile/GeoJSON) to derive `bbox`. |
+| `start_date` | `str` | `'2020-01-01'`| Start date in `YYYY-MM-DD`. |
+| `end_date` | `str` | `'2020-12-31'`| End date in `YYYY-MM-DD`. |
+| `cloud_cover_max`| `int` | `30` | Maximum cloud cover percentage metadata filter. |
+| `bands` | `list`| `None` | Specific bands to load (e.g., `["red", "nir"]`). |
+| `resolution` | `int` | `None` | Spatial resolution (meters) for automatic reprojection. |
+| `epsg` | `int` | `4326` | Output projection EPSG code. |
+
+**Usage Example**
+
+```python
+from cdts.cube import build_time_series
+
+# Build a cloud-native xarray DataCube for an ROI
+cube = build_time_series(
+    source="earth_search",
+    collection="sentinel-2-l2a",
+    bbox=[-48.0, -16.0, -47.9, -15.9],
+    start_date="2021-01-01",
+    end_date="2021-12-31",
+    cloud_cover_max=20,
+    bands=["blue", "green", "red", "nir"],
+    resolution=10,
+    epsg=32722
+)
+
+print(cube) # Dask-backed xarray DataArray
+```
+
+---
+
+## `cdts.ai.STACCubeDataset`
+
+A specialized PyTorch `Dataset` that seamlessly bridges `xarray.DataArray` (or DataCubes) with deep learning workflows. It automatically slices massive satellite image stacks into smaller spatial patches (chips) suitable for neural network training and handles temporal padding.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `cube` | `xr.DataArray`| **Required** | The input DataCube. |
+| `labels` | `xr.DataArray`| `None` | The target mask/labels (for training). |
+| `patch_size` | `int` | `128` | Spatial size of the generated chips (e.g., 128x128). |
+| `stride` | `int` | `128` | Stride for extracting patches. |
+| `max_seq_len` | `int` | `None` | Maximum number of timesteps (pads with zeros if shorter). |
+
+**Usage Example**
+
+```python
+from torch.utils.data import DataLoader
+from cdts.ai import STACCubeDataset
+
+# cube is a pre-loaded xarray
+dataset = STACCubeDataset(
+    cube=cube, 
+    labels=ground_truth_mask, 
+    patch_size=128, 
+    stride=64, 
+    max_seq_len=24
+)
+
+# Ready for PyTorch training loops
+dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
+```
+
+---
+
+## `cdts.ai.TempCNN`
+
+A 1D Temporal Convolutional Neural Network designed specifically for classifying satellite time-series at the pixel level. It uses causal/dilated convolutions to capture seasonal phenology without requiring recurrent layers (like LSTMs).
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `input_dim` | `int` | **Required** | Number of spectral bands. |
+| `num_classes`| `int` | **Required** | Number of output classification categories. |
+| `sequence_len`|`int` | **Required** | Number of timesteps in the sequence. |
+| `hidden_dims`| `int` | `64` | Number of filters in the convolutional layers. |
+| `kernel_size`| `int` | `5` | Size of the 1D temporal convolution kernel. |
+| `dropout` | `float`| `0.5` | Dropout probability for regularization. |
+
+**Usage Example**
+
+```python
+import torch
+from cdts.ai import TempCNN
+
+model = TempCNN(input_dim=6, num_classes=5, sequence_len=36)
+
+# Pixel-level time-series tensor (Batch, Channels, Time)
+X = torch.randn(32, 6, 36) 
+logits = model(X) # Shape: (32, 5)
+```
+
+---
+
+## `cdts.ai.SiameseChangeDetector`
+
+A PyTorch module for bi-temporal Change Detection. It uses a Siamese CNN architecture (two identical subnetworks sharing weights) to extract features from an image "Time 1" and "Time 2", followed by a contrastive distance metric to highlight areas of change.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `input_dim` | `int` | **Required** | Number of input spectral bands. |
+| `backbone` | `str` | `'resnet18'` | The CNN backbone (`resnet18`, `resnet34`, or `unet`). |
+| `pretrained` | `bool` | `True` | Load pre-trained ImageNet weights (adapts first layer). |
+| `distance_metric`| `str`| `'euclidean'`| Metric used to compare features (`euclidean` or `cosine`). |
+
+**Usage Example**
+
+```python
+import torch
+from cdts.ai import SiameseChangeDetector
+
+model = SiameseChangeDetector(input_dim=4, backbone='resnet18')
+
+# Two temporal snapshots (Batch, Channels, H, W)
+img_t1 = torch.randn(8, 4, 256, 256)
+img_t2 = torch.randn(8, 4, 256, 256)
+
+# Returns a spatial change probability map
+change_map = model(img_t1, img_t2) # Shape: (8, 1, 256, 256)
+```
+
+---
+
+## `cdts.ai.GeoFoundationViT`
+
+A wrapper for Geospatial Foundation Models (like Prithvi or SatMAE) based on Vision Transformers (ViT). This class allows you to load pre-trained massive models and fine-tune them or use them for zero-shot feature extraction on your own rasters.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `model_name` | `str` | `'prithvi-100m'`| The name/ID of the foundation model to load. |
+| `checkpoint_path`| `str`| `None` | Local path to `.pth` weights (if not downloading automatically). |
+| `freeze_encoder`| `bool`| `False` | Freeze the transformer backbone for transfer learning. |
+| `task` | `str` | `'segmentation'`| Fine-tuning head (`segmentation` or `classification`). |
+
+**Usage Example**
+
+```python
+from cdts.ai import GeoFoundationViT
+
+# Load a foundation model and freeze the encoder for transfer learning
+model = GeoFoundationViT(
+    model_name="prithvi-100m", 
+    freeze_encoder=True, 
+    task="segmentation"
+)
+```
