@@ -62,5 +62,6 @@ nav:
       - Tmask: tutorials/tmask.md
       - AI & Deep Learning: tutorials/ai.md
       - STAC Downloads & Tips: tutorials/stac-downloads.md
+      - Parallel & Cloud Processing: tutorials/parallel-cloud-processing.md
   - CLI Reference: cli.md
   - API Reference: api.md
