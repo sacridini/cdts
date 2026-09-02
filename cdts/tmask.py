@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.linear_model import HuberRegressor
 import warnings
 
-def run_tmask_pixel(dates_julian, green_band, swir_band, scale_factor=10000.0):
+def run_tmask_pixel(dates_julian: np.ndarray, green_band: np.ndarray, swir_band: np.ndarray, scale_factor: float = 10000.0) -> np.ndarray:
     """
     Implements the Tmask (Time-series based cloud masking) algorithm for a single pixel.
     Reference: Zhu and Woodcock (2014) - Automated cloud, cloud shadow, and snow detection.
@@ -70,7 +70,7 @@ def run_tmask_pixel(dates_julian, green_band, swir_band, scale_factor=10000.0):
     
     return mask
 
-def apply_tmask_stack(dates, green_stack, swir_stack, scale_factor=10000.0):
+def apply_tmask_stack(dates: np.ndarray, green_stack: np.ndarray, swir_stack: np.ndarray, scale_factor: float = 10000.0) -> np.ndarray:
     """
     Vectorized wrapper to apply Tmask to a 3D numpy stack.
     """

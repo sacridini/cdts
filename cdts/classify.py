@@ -1,8 +1,9 @@
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 import rasterio
+from typing import Optional
 
-def train_ccdc_classifier(X_train, y_train, n_estimators=100, random_state=42):
+def train_ccdc_classifier(X_train: np.ndarray, y_train: np.ndarray, n_estimators: int = 100, random_state: int = 42) -> RandomForestClassifier:
     """
     Trains a Random Forest classifier for CCDC land cover classification.
     X_train: array-like of shape (n_samples, n_features). Features should be the harmonic coefficients and RMSE.
@@ -12,7 +13,7 @@ def train_ccdc_classifier(X_train, y_train, n_estimators=100, random_state=42):
     clf.fit(X_train, y_train)
     return clf
 
-def classify_ccdc_stack(clf, coef_stack_path: str, output_path: str, chunk_size: int = 512) -> None:
+def classify_ccdc_stack(clf: RandomForestClassifier, coef_stack_path: str, output_path: str, chunk_size: int = 512) -> None:
     """
     Applies the trained Random Forest classifier to a full CCDC coefficient GeoTIFF stack.
     Assumes the model was trained on the exact band configuration present in the TIFF.

@@ -1,6 +1,6 @@
 import numpy as np
 
-def extract_water_mask(ccdc_coefs_stack, green_band_idx, swir_band_idx):
+def extract_water_mask(ccdc_coefs_stack: np.ndarray, green_band_idx: int, swir_band_idx: int) -> np.ndarray:
     """
     Extracts a persistent water mask using the CCDC intercept coefficients.
     Water typically has a higher Green reflectance than SWIR reflectance.

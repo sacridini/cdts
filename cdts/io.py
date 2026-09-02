@@ -4,7 +4,7 @@ import rasterio
 from rasterio.transform import from_origin
 
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 
 def get_georef(reference_cube: Any) -> Dict[str, Any]:
     """
@@ -121,7 +121,7 @@ def save_raster(array: "np.ndarray", output_path: str, reference_cube: Any = Non
     with rasterio.open(output_path, 'w', **profile) as dst:
         dst.write(array_to_write)
 
-def load_raster(file_path: str, raster_check: Optional[str] = None):
+def load_raster(file_path: str, raster_check: Optional[str] = None) -> Tuple["np.ndarray", Dict[str, Any]]:
     """
     Loads a GeoTIFF into a NumPy array and returns the array along with its profile.
     

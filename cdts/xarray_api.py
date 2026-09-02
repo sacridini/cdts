@@ -1,14 +1,15 @@
 import xarray as xr
 import dask.array as da
 import numpy as np
+from typing import Optional, Any
 from cdts.raster import run_ccdc_array, run_landtrendr_array
 
 @xr.register_dataarray_accessor("cdts")
 class cdtsAccessor:
-    def __init__(self, xarray_obj):
+    def __init__(self, xarray_obj: xr.DataArray) -> None:
         self._obj = xarray_obj
 
-    def run_ccdc(self, dates, qa_stack=None, max_segments=6, return_coefs=True, conseq_anom=3):
+    def run_ccdc(self, dates: np.ndarray, qa_stack: Optional[Any] = None, max_segments: int = 6, return_coefs: bool = True, conseq_anom: int = 3) -> xr.DataArray:
         """
         Runs CCDC on an xarray DataArray using Dask for out-of-core and parallel execution.
         Assumes DataArray shape: (bands, time, y, x).

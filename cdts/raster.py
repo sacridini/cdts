@@ -7,8 +7,9 @@ from rasterio.windows import Window
 
 from .landtrendr import run_landtrendr
 from .metrics import extract_events
+from typing import Tuple, List, Dict, Any, Union
 
-def _process_pixel_lt(args, years, max_segments, pval_threshold):
+def _process_pixel_lt(args: Tuple[int, int, np.ndarray], years: Union[np.ndarray, List[int]], max_segments: int, pval_threshold: float) -> Tuple[int, int, List[Dict[str, Union[int, float]]]]:
     """Worker function for parallel processing of a single pixel with LandTrendr."""
     row, col, values = args
     
@@ -68,7 +69,7 @@ def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_se
 # ---------------------------------------------------------
 from .ccdc import run_ccdc
 
-def _process_pixel_ccdc(args, dates, max_segments, conseq_anom):
+def _process_pixel_ccdc(args: Tuple[int, int, np.ndarray, np.ndarray], dates: Union[np.ndarray, List[int]], max_segments: int, conseq_anom: int) -> Tuple[int, int, List[Dict[str, Any]]]:
     row, col, values, qa = args
     
     if np.all(values == 0) or np.all(np.isnan(values)):

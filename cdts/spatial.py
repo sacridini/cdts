@@ -2,7 +2,7 @@ import numpy as np
 from scipy import ndimage
 import rasterio
 
-def apply_mmu_filter(input_path, output_path, mmu_pixels=11):
+def apply_mmu_filter(input_path: str, output_path: str, mmu_pixels: int = 11) -> None:
     """
     Applies a Minimum Mapping Unit (MMU) spatial filter using scipy.ndimage.
     Removes isolated pixel groups smaller than mmu_pixels and fills the gaps with the dominant neighbor class.

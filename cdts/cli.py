@@ -1,9 +1,10 @@
 import argparse
 import sys
+from typing import Optional, List
 
 from .raster import run_landtrendr_image, run_ccdc_image
 
-def run_landtrendr(args):
+def run_landtrendr(args: argparse.Namespace) -> None:
     try:
         run_landtrendr_image(
             input_path=args.input,
@@ -25,14 +26,14 @@ def run_landtrendr(args):
         print(f"Error running LandTrendr: {e}")
         sys.exit(1)
 
-def run_ccdc_cli(args):
+def run_ccdc_cli(args: argparse.Namespace) -> None:
     try:
         # User needs to provide a list of dates. We'll read it from a text/csv file.
         # Alternatively, if not provided, we can simulate dates for testing (but throw warning)
         import os
         import numpy as np
         
-        dates = []
+        dates: List[int] = []
         if args.dates_file and os.path.exists(args.dates_file):
             with open(args.dates_file, 'r') as f:
                 dates = [int(line.strip()) for line in f if line.strip().isdigit()]
@@ -62,7 +63,7 @@ def run_ccdc_cli(args):
         print(f"Error running CCDC: {e}")
         sys.exit(1)
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="cdts: Change Detection Python Library")
     subparsers = parser.add_subparsers(dest="command", help="Available algorithms")
     

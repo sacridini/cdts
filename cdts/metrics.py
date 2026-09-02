@@ -1,7 +1,8 @@
 import numpy as np
+from typing import Dict
 
-def extract_events(vertices_stack, event_type="loss", sort_by="greatest", 
-                  min_magnitude=0.0, min_duration=1, pre_val_threshold=0.0):
+def extract_events(vertices_stack: np.ndarray, event_type: str = "loss", sort_by: str = "greatest", 
+                  min_magnitude: float = 0.0, min_duration: int = 1, pre_val_threshold: float = 0.0) -> Dict[str, np.ndarray]:
     """
     Extract change events (e.g., largest disturbance) from a stack of vertices.
     

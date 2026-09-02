@@ -1,7 +1,15 @@
 import numpy as np
+from typing import List, Dict, Any, Union
 from . import _core
 
-def run_ccdc(dates, values, qa, min_obs=12, conseq_anom=3, chi2_prob_threshold=0.99):
+def run_ccdc(
+    dates: Union[np.ndarray, List[float]], 
+    values: Union[np.ndarray, List[List[float]]], 
+    qa: Union[np.ndarray, List[int]], 
+    min_obs: int = 12, 
+    conseq_anom: int = 3, 
+    chi2_prob_threshold: float = 0.99
+) -> List[Dict[str, Any]]:
     """
     Continuous Change Detection and Classification (CCDC).
     
@@ -42,7 +50,7 @@ def run_ccdc(dates, values, qa, min_obs=12, conseq_anom=3, chi2_prob_threshold=0
         } for s in segments
     ]
 
-def predict_synthetic_image(ccdc_coefs_stack, target_julian_day, num_bands=6):
+def predict_synthetic_image(ccdc_coefs_stack: np.ndarray, target_julian_day: int, num_bands: int = 6) -> np.ndarray:
     """
     Generates a cloud-free synthetic image for a specific day using CCDC harmonic coefficients.
     ccdc_coefs_stack: 4D numpy array output from run_ccdc_array() or read from _coefs.tif.
@@ -52,7 +60,7 @@ def predict_synthetic_image(ccdc_coefs_stack, target_julian_day, num_bands=6):
     _, bands_dim, rows, cols = ccdc_coefs_stack.shape
     
     W = 2.0 * np.pi / 365.25
-    t = target_julian_day
+    t = float(target_julian_day)
     
     terms = np.array([
         1.0, t, np.cos(W * t), np.sin(W * t), np.cos(2.0 * W * t), np.sin(2.0 * W * t)

@@ -1,7 +1,8 @@
 import numpy as np
+from typing import List, Dict, Union
 from . import _core
 
-def desawtooth(values, stopat=0.9):
+def desawtooth(values: Union[np.ndarray, List[float]], stopat: float = 0.9) -> np.ndarray:
     """
     Remove spikes from a time series using LandTrendr's desawtooth algorithm.
     """
@@ -9,7 +10,7 @@ def desawtooth(values, stopat=0.9):
     filtered_list = _core.landtrendr.desawtooth(values_list, stopat)
     return np.array(filtered_list)
 
-def run_landtrendr(years, values, max_segments=6, pval_threshold=0.05):
+def run_landtrendr(years: Union[np.ndarray, List[int]], values: Union[np.ndarray, List[float]], max_segments: int = 6, pval_threshold: float = 0.05) -> List[Dict[str, Union[int, float]]]:
     """
     Run LandTrendr algorithm on a 1D time series of a single pixel.
     
@@ -34,7 +35,7 @@ def run_landtrendr(years, values, max_segments=6, pval_threshold=0.05):
     
     return [{"year": v.year, "value": v.value} for v in vertices]
 
-def apply_vertices(vertex_years, other_band_years, other_band_values):
+def apply_vertices(vertex_years: Union[np.ndarray, List[int]], other_band_years: Union[np.ndarray, List[int]], other_band_values: Union[np.ndarray, List[float]]) -> List[Dict[str, Union[int, float]]]:
     """
     Applies LandTrendr structural vertices (FTV - Fitted to Vertices) to another spectral band.
     This effectively uses the segmentation derived from the primary index to smooth and fit the secondary index.
