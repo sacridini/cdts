@@ -105,21 +105,29 @@ duration_map = events["duration"]   # Change Duration
 
 ### Step 2.5: Exporting Results
 
-You can export these 2D metrics back to GeoTIFFs using `rasterio` so they can be viewed in QGIS or ArcGIS.
+You can export these 2D metrics back to GeoTIFFs using the built-in `save_raster` function from `cdts.io`. It automatically handles the GeoTIFF profiles if you provide the original array or profile reference.
 
 ```python
-# Update the rasterio profile for a single-band 2D output
-out_profile = profile.copy()
-out_profile.update(count=1, dtype='uint16', nodata=0)
+from cdts.io import save_raster
 
+# Provide the original profile or xarray to inherit georeferencing
 # Save Year of Detection
-with rasterio.open("results/lt_yod.tif", "w", **out_profile) as dst:
-    dst.write(yod_map, 1)
+save_raster(
+    array=yod_map.astype('uint16'), 
+    output_path="results/lt_yod.tif", 
+    crs=profile['crs'],
+    transform=profile['transform'],
+    nodata=0
+)
 
-# Save Magnitude (updating profile to float32)
-out_profile.update(dtype='float32')
-with rasterio.open("results/lt_magnitude.tif", "w", **out_profile) as dst:
-    dst.write(magnitude_map, 1)
+# Save Magnitude
+save_raster(
+    array=magnitude_map.astype('float32'), 
+    output_path="results/lt_magnitude.tif",
+    crs=profile['crs'],
+    transform=profile['transform'],
+    nodata=0
+)
 ```
 
 ## 3. Visualizing a Single Pixel Trajectory

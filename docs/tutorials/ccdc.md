@@ -126,12 +126,16 @@ changed_pixels = first_break_dates > 0
 
 print(f"Number of changed pixels: {np.sum(changed_pixels)}")
 
-# Export the break dates to a GeoTIFF
-out_profile = profile.copy()
-out_profile.update(count=1, dtype='float32', nodata=0)
+# Export the break dates to a GeoTIFF using CDTS built-in save_raster
+from cdts.io import save_raster
 
-with rasterio.open("results/ccdc_first_break.tif", "w", **out_profile) as dst:
-    dst.write(first_break_dates, 1)
+save_raster(
+    array=first_break_dates,
+    output_path="results/ccdc_first_break.tif",
+    crs=profile['crs'],
+    transform=profile['transform'],
+    nodata=0
+)
 ```
 
 ## 5. Generating Synthetic Images (Advanced)
