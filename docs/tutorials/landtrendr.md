@@ -14,11 +14,21 @@ By integrating LandTrendr into **CDTS**, you gain the ability to run this powerf
 
 ---
 
-## 2. End-to-End Workflow
+## 2. API Entry Points
+
+The `cdts` library exposes LandTrendr at three different levels of abstraction, depending on your needs and data scale:
+
+1. **`run_landtrendr` (Pixel Level):** Found in `cdts.landtrendr`. Takes a simple 1D numpy array of values. Ideal for unit testing, plotting single pixels, or integrating into your own custom map-reduce pipelines.
+2. **`run_landtrendr_array` (In-Memory Array):** Found in `cdts.raster`. Takes a 3D numpy array `(Time, Rows, Cols)`. Automatically distributes the pixels across all your CPU cores using Python's multiprocessing. Ideal for small regions of interest (ROIs) that fit in your machine's RAM.
+3. **`run_landtrendr_image` (Out-of-Core Image):** Found in `cdts.raster`. Takes a direct file path to a massive multi-band GeoTIFF. It internally reads the image in spatial chunks (e.g., 512x512 blocks), processes them in parallel, and writes the output directly to disk. Ideal for processing entire states or countries on a laptop without encountering `MemoryError`.
+
+---
+
+## 3. End-to-End Workflow (Array-based)
 
 This tutorial will guide you through an end-to-end process: loading a real multi-band GeoTIFF, running the C++ optimized LandTrendr algorithm in Python, extracting change metrics, and visualizing the results.
 
-### Step 2.1: Loading the Data
+### Step 3.1: Loading the Data
 
 LandTrendr requires an annual time series of a single spectral index. The Normalized Burn Ratio (NBR) is the most commonly used index for forest disturbance because it is highly sensitive to canopy removal and moisture loss.
 
@@ -46,7 +56,7 @@ print(f"Loaded stack with shape: {raster_stack.shape}")
 # Example Output: Loaded stack with shape: (30, 2000, 2000)
 ```
 
-### Step 2.2: Despiking (Optional but Recommended)
+### Step 3.2: Despiking (Optional but Recommended)
 
 Satellite data often contains residual noise (e.g., missed cloud shadows) that appear as sharp, one-year dips in the time series. If not removed, LandTrendr might fit false segments to these spikes. The `cdts.smooth` module provides a despiking function to handle this.
 
@@ -58,7 +68,7 @@ from cdts.smooth import desawtooth
 smoothed_stack = desawtooth(raster_stack)
 ```
 
-### Step 2.3: Running the Algorithm
+### Step 3.3: Running the Algorithm
 
 We use the `run_landtrendr_array` function to apply the segmentation logic across all pixels in parallel.
 
@@ -81,7 +91,7 @@ The output is a 3D numpy array. If `max_segments=6`, the maximum number of verti
 - **Bands 0 to 6**: The *Years* of the identified vertices.
 - **Bands 7 to 13**: The *Fitted Values* corresponding to those years.
 
-### Step 2.4: Extracting Disturbance Events
+### Step 3.4: Extracting Disturbance Events
 
 Now that we have the simplified trajectories for every pixel, we want to extract the greatest disturbance event.
 
@@ -103,7 +113,7 @@ magnitude_map = events["magnitude"] # Change Magnitude
 duration_map = events["duration"]   # Change Duration
 ```
 
-### Step 2.5: Exporting Results
+### Step 3.5: Exporting Results
 
 You can export these 2D metrics back to GeoTIFFs using the built-in `save_raster` function from `cdts.io`. It automatically handles the GeoTIFF profiles if you provide the original array or profile reference.
 
