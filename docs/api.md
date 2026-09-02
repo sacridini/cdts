@@ -82,6 +82,36 @@ save_raster(
 )
 ```
 
+
+
+### `cdts.io.load_raster`
+
+Loads a GeoTIFF image into a NumPy array and retrieves its spatial profile. 
+It also provides a built-in safety checker (`raster_check`) to quickly validate if your raster conforms to the strict format and value requirements of specific CDTS algorithms (like LandTrendr or CCDC) before you start heavy processing.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `file_path` | `str` | **Required** | Path to the raster file (`.tif`). |
+| `raster_check` | `str` | `None` | The algorithm to validate against (`'landtrendr'`, `'ccdc'`, or `'cold'`). |
+
+**Usage Example**
+
+```python
+from cdts.io import load_raster
+
+# 1. Standard loading
+array, profile = load_raster("data/annual_nbr_stack.tif")
+
+# 2. Loading with Data Validation
+# This will raise warnings if the data is unscaled (floats) or lacks the required time depth
+lt_array, lt_profile = load_raster(
+    "data/annual_nbr_stack.tif", 
+    raster_check="landtrendr"
+)
+```
+
 ### `cdts.tmask.apply_tmask_stack`
 
 Applies the Time-series Cloud Masking (Tmask) algorithm to a 3D temporal stack to dynamically map missed clouds and shadows using robust harmonic regression (Huber).
