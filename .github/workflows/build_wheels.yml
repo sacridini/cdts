@@ -26,8 +26,8 @@ jobs:
         uses: pypa/cibuildwheel@v2.17.0
         env:
           # Opcional: Aqui você pode pular algumas versões específicas do Python se não suportar
-          # Ex: pular Python 3.6, 3.7 e arquiteturas 32-bits (i686/win32) e PyPy (pp)
-          CIBW_SKIP: "cp36-* cp37-* pp* *i686 *win32" 
+          # Ex: pular Python 3.6, 3.7, 3.8 e arquiteturas 32-bits (i686/win32) e PyPy (pp)
+          CIBW_SKIP: "cp36-* cp37-* cp38-* pp* *i686 *win32" 
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
