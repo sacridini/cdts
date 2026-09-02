@@ -8,7 +8,7 @@ This page provides the comprehensive documentation for the primary functions exp
 
 Executes the LandTrendr algorithm directly on a large multi-band GeoTIFF stored on disk. It handles reading the image in spatial chunks to prevent memory overload, processes the chunks in parallel across CPU cores, and writes the output directly back to disk.
 
-### Parameters
+**Parameters**
 
 | Argument | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
@@ -21,7 +21,7 @@ Executes the LandTrendr algorithm directly on a large multi-band GeoTIFF stored 
 | `save_vertices`| `bool`| `False` | Whether to save the raw fitted vertices stack to disk. |
 | `event_type` | `str` | `'loss'` | Type of event to extract (`'loss'` or `'gain'`). |
 
-### Usage Example
+**Usage Example**
 
 ```python
 from cdts.raster import run_landtrendr_image
@@ -44,7 +44,7 @@ run_landtrendr_image(
 
 Executes the Continuous Change Detection and Classification (CCDC) algorithm directly on a dense multi-band, multi-date GeoTIFF stack stored on disk. Like its LandTrendr counterpart, it handles memory safely via out-of-core chunking.
 
-### Parameters
+**Parameters**
 
 | Argument | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
@@ -57,7 +57,7 @@ Executes the Continuous Change Detection and Classification (CCDC) algorithm dir
 | `conseq_anom` | `int` | `3` | Number of consecutive anomalies required to trigger a break. |
 | `n_jobs` | `int` | `-1` | CPU cores to use for processing. |
 
-### Usage Example
+**Usage Example**
 
 ```python
 import numpy as np
@@ -87,7 +87,7 @@ run_ccdc_image(
 
 A highly robust, all-in-one utility to save NumPy arrays (2D, 3D, or 4D) and Xarray DataArrays to GeoTIFF format. It automatically handles `rasterio` profile generation, CRS/Transform extraction, deflate compression, and internal tiling.
 
-### Parameters
+**Parameters**
 
 | Argument | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
@@ -98,7 +98,7 @@ A highly robust, all-in-one utility to save NumPy arrays (2D, 3D, or 4D) and Xar
 | `transform` | `Affine`| `None` | A `rasterio.Affine` transform object. |
 | `nodata` | `float`| `None` | NoData value for the output raster. |
 
-### Usage Example
+**Usage Example**
 
 ```python
 import rasterio
@@ -127,7 +127,7 @@ save_raster(
 
 Applies a temporal smoothing algorithm (despiking) to a 3D raster stack `(Time, Rows, Cols)` to remove ephemeral 1-year spikes, which are typically caused by unmasked clouds, shadows, or smoke. This is a highly recommended pre-processing step before running LandTrendr.
 
-### Parameters
+**Parameters**
 
 | Argument | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
@@ -135,7 +135,7 @@ Applies a temporal smoothing algorithm (despiking) to a 3D raster stack `(Time, 
 | `threshold` | `float` | `0.1` | The value delta required to flag a spike. Varies by index scale. |
 | `window_size` | `int` | `3` | The size of the rolling window used to detect anomalies. |
 
-### Usage Example
+**Usage Example**
 
 ```python
 import rasterio
@@ -164,7 +164,7 @@ save_raster(
 
 Applies the Time-series Cloud Masking (Tmask) algorithm to a 3D temporal stack to dynamically map missed clouds and shadows using robust harmonic regression (Huber).
 
-### Parameters
+**Parameters**
 
 | Argument | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
@@ -173,7 +173,7 @@ Applies the Time-series Cloud Masking (Tmask) algorithm to a 3D temporal stack t
 | `swir_stack` | `np.ndarray`| **Required**| A 3D numpy array of the SWIR spectral band (usually SWIR1). |
 | `scale_factor` | `float` | `10000.0` | Multiplier to convert integer inputs to 0.0-1.0 surface reflectance. |
 
-### 💻 Usage Example
+**Usage Example**
 
 ```python
 import numpy as np
