@@ -78,6 +78,10 @@ def _process_pixel_ccdc(args: Tuple[int, int, np.ndarray, np.ndarray], dates: Un
     if np.all(values == 0) or np.all(np.isnan(values)):
         return row, col, []
         
+    # Mask out any dates where the pixel has NaN in any band
+    nan_mask = np.any(np.isnan(values), axis=0)
+    qa = np.where(nan_mask, 1, qa)
+    
     try:
         segments = run_ccdc(dates, values, qa, conseq_anom=conseq_anom)
         return row, col, segments

@@ -15,7 +15,7 @@ def run_ccdc(
     
     This function wraps the C++ implementation.
     """
-    dates_list = dates.tolist() if isinstance(dates, np.ndarray) else list(dates)
+    dates_list = [int(d) for d in (dates.tolist() if isinstance(dates, np.ndarray) else list(dates))]
     
     params = _core.ccdc.CCDCParams()
     params.min_obs = min_obs
