@@ -9,6 +9,27 @@ It provides state-of-the-art algorithms:
 *   **CCDC** (Continuous Change Detection and Classification)
 *   **COLD** (Continuous monitoring of Land Disturbance)
 
+## 🛠️ Installation
+
+The easiest way to install `cdts` is via `pip`. We provide pre-compiled binaries (wheels) for Windows, macOS, and Linux (Python 3.9+), which means **you do not need a C++ compiler** installed on your machine!
+
+```bash
+pip install cdts
+```
+*(This will automatically install Python dependencies like `xarray`, `dask`, `scikit-learn`, `rasterio`, `torch`, and `pystac-client`)*.
+
+### Development / From Source
+
+If you want to modify the C++ backend or install the bleeding-edge version directly from GitHub, you will need a C++ Compiler (GCC, Clang, or MSVC) and Python 3.9+:
+
+```bash
+git clone https://github.com/sacridini/cdts.git
+cd cdts
+pip install -e .
+```
+
+---
+
 ### 🐳 Enterprise / Production Deployment (Docker)
 Because `cdts` relies on heavy C++ compilation and GPU-accelerated PyTorch, the easiest way to deploy it to the cloud or share it with other researchers is via our official Docker container.
 
@@ -37,27 +58,6 @@ Because `cdts` relies on the open **SpatioTemporal Asset Catalog (STAC)** standa
 | **Microsoft Planetary Computer** | `"planetary_computer"` | Huge catalog (ALOS, MODIS, NAIP, Sentinel, Landsat). *Note: Requires a free token for heavy downloads.* |
 | **Brazil Data Cube (INPE)** | `"brazil_data_cube"` | High-quality ARD cubes for Brazil (CBERS-4/4A, Amazonia-1). *Note: Requires INPE token.* |
 | **Copernicus Data Space** | Custom URL | The official European Space Agency hub for Sentinel 1/2/3/5P. |
-
----
-
-## 🛠️ Installation
-
-The easiest way to install `cdts` is via `pip`. We provide pre-compiled binaries (wheels) for Windows, macOS, and Linux (Python 3.9+), which means **you do not need a C++ compiler** installed on your machine!
-
-```bash
-pip install cdts
-```
-*(This will automatically install Python dependencies like `xarray`, `dask`, `scikit-learn`, `rasterio`, `torch`, and `pystac-client`)*.
-
-### Development / From Source
-
-If you want to modify the C++ backend or install the bleeding-edge version directly from GitHub, you will need a C++ Compiler (GCC, Clang, or MSVC) and Python 3.9+:
-
-```bash
-git clone https://github.com/sacridini/cdts.git
-cd cdts
-pip install -e .
-```
 
 ---
 
