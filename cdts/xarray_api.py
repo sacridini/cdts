@@ -64,3 +64,43 @@ class cdtsAccessor:
             }
         )
 
+    def run_landtrendr(self, years: np.ndarray, max_segments: int = 6, pval_threshold: float = 0.05) -> xr.DataArray:
+        """
+        Runs LandTrendr on an xarray DataArray using Dask for out-of-core and parallel execution.
+        Assumes DataArray shape: (time, y, x).
+        """
+        arr = self._obj.data
+        time_steps, rows, cols = self._obj.shape
+        
+        max_vertices = max_segments + 1
+        
+        def _lt_block(block):
+            if block.size == 0:
+                return np.zeros((2 * max_vertices, block.shape[1], block.shape[2]), dtype=np.float32)
+            
+            # Chama a função em C++ para o bloco, limitando n_jobs=1 pois o Dask faz o paralelismo
+            return run_landtrendr_array(
+                years, block, 
+                max_segments=max_segments, 
+                pval_threshold=pval_threshold,
+                n_jobs=1
+            )
+            
+        out = da.map_blocks(
+            _lt_block,
+            arr,
+            dtype=np.float32,
+            drop_axis=[0], # remove time
+            new_axis=[0],  # adiciona os vertices
+            chunks=(2 * max_vertices, arr.chunks[1], arr.chunks[2])
+        )
+        
+        return xr.DataArray(
+            out,
+            dims=["vertex_info", "y", "x"], # vertex_info: (anos, valores ajustados)
+            coords={
+                "y": self._obj.coords.get("y"),
+                "x": self._obj.coords.get("x")
+            }
+        )
+
