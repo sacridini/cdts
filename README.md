@@ -42,14 +42,22 @@ Because `cdts` relies on the open **SpatioTemporal Asset Catalog (STAC)** standa
 
 ## 🛠️ Installation
 
-**Prerequisites:** Python 3.8+ and a C++ Compiler (GCC, Clang, or MSVC).
+The easiest way to install `cdts` is via `pip`. We provide pre-compiled binaries (wheels) for Windows, macOS, and Linux (Python 3.9+), which means **you do not need a C++ compiler** installed on your machine!
 
 ```bash
-git clone https://github.com/your-username/cdts.git
+pip install cdts
+```
+*(This will automatically install Python dependencies like `xarray`, `dask`, `scikit-learn`, `rasterio`, `torch`, and `pystac-client`)*.
+
+### Development / From Source
+
+If you want to modify the C++ backend or install the bleeding-edge version directly from GitHub, you will need a C++ Compiler (GCC, Clang, or MSVC) and Python 3.9+:
+
+```bash
+git clone https://github.com/sacridini/cdts.git
 cd cdts
 pip install -e .
 ```
-*(This will automatically compile the C++ backend and install Python dependencies like `xarray`, `dask`, `scikit-learn`, `rasterio`, and `pystac-client`)*.
 
 ---
 
