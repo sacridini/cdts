@@ -1,6 +1,6 @@
 # CDTS: Change Detection and Time-Series for Python
 
-**CDTS** is an ultra-fast, cloud-native Python framework for **Remote Sensing Time-Series Analysis and Change Detection**. 
+**CDTS** is an ultra-fast, cloud-native Python library for **Remote Sensing Time-Series Analysis and Change Detection**. 
 
 Designed to overcome heavy dependencies on platforms like Google Earth Engine, CDTS handles the entire geospatial pipeline locally or on cloud clusters. It scales seamlessly from directly streaming satellite imagery via STAC APIs, to scaling memory lazily with Dask and Xarray, down to executing heavy statistical regression in native C++.
 
