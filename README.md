@@ -9,7 +9,7 @@ It provides state-of-the-art algorithms:
 *   **CCDC** (Continuous Change Detection and Classification)
 *   **COLD** (Continuous monitoring of Land Disturbance)
 
-## 🛠️ Installation
+## Installation
 
 The easiest way to install `cdts` is via `pip`. We provide pre-compiled binaries (wheels) for Windows, macOS, and Linux (Python 3.9+), which means **you do not need a C++ compiler** installed on your machine!
 
