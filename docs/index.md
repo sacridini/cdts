@@ -13,12 +13,13 @@ Designed to overcome heavy dependencies on platforms like Google Earth Engine, C
 
 ## Algorithms
 
-CDTS natively implements industry-standard change detection algorithms:
+CDTS natively implements industry-standard algorithms for **Time-Series Analysis**, **Change Detection**, and **Deep Learning**:
 
 *   **LandTrendr**: Landsat-based detection of Trends in Disturbance and Recovery.
 *   **CCDC**: Continuous Change Detection and Classification.
 *   **COLD**: Continuous monitoring of Land Disturbance.
 *   **Tmask**: Time-Series Cloud Masking to dynamically find undetected clouds and shadows.
+*   **Deep Learning (AI)**: Specialized PyTorch architectures for earth observation, including Siamese Networks for bi-temporal change detection, TempCNNs for time-series classification, and integration with Geospatial Foundation Models (Vision Transformers).
 
 ## Supported Cloud Data Services
 
