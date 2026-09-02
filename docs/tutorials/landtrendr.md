@@ -1,98 +1,168 @@
 # LandTrendr in CDTS: End-to-End Tutorial
 
-LandTrendr (Landsat-based detection of Trends in Disturbance and Recovery) is a trajectory-based algorithm designed to identify both abrupt and gradual changes in time series of pixel values. This tutorial will guide you through preparing your data, executing the algorithm, extracting meaningful metrics, and interpreting the results using the Continuous Disturbance Time Series (`cdts`) package.
+## 1. Introduction to LandTrendr
 
-## 1. Preparing the Input Data
+**LandTrendr** (Landsat-based detection of Trends in Disturbance and Recovery) is a highly influential trajectory-based algorithm designed to extract both abrupt changes (like deforestation or fire) and gradual changes (like forest degradation, disease, or recovery) from annual satellite imagery.
 
-To run LandTrendr across multiple pixels, the `cdts` package requires your input time series data to be formatted as standard NumPy arrays.
+### Background and References
+Originally developed by Robert Kennedy et al., LandTrendr works by reducing complex, noisy, annual time series data into a sequence of simplified straight-line segments. It minimizes the residual error between the actual satellite observations and the simplified straight-line model, essentially "filtering out" inter-annual noise (like slight phenological differences or minor atmospheric effects) to reveal the true underlying landscape dynamics.
 
-You will need:
-- A 1D array of **years** (or time steps).
-- A 3D array of **spectral values** (or indices, like NBR, NDVI) with the shape `(time_steps, rows, cols)`.
+- **Original Paper**: [Kennedy, R.E., Yang, Z. and Cohen, W.B., 2010. Detecting trends in forest disturbance and recovery using yearly Landsat time series: 1. LandTrendr—Temporal segmentation algorithms. Remote Sensing of Environment, 114(12), pp.2897-2910.](https://doi.org/10.1016/j.rse.2010.07.008)
+- **Google Earth Engine Implementation**: The algorithm is also natively available in GEE. Learn more at the [eMapR Lab GitHub](https://github.com/eMapR/LT-GEE).
+
+By integrating LandTrendr into **CDTS**, you gain the ability to run this powerful algorithm locally, on HPC clusters, or natively on massive GeoTIFF stacks without being constrained by cloud-platform quotas.
+
+---
+
+## 2. End-to-End Workflow
+
+This tutorial will guide you through an end-to-end process: loading a real multi-band GeoTIFF, running the C++ optimized LandTrendr algorithm in Python, extracting change metrics, and visualizing the results.
+
+### Step 2.1: Loading the Data
+
+LandTrendr requires an annual time series of a single spectral index. The Normalized Burn Ratio (NBR) is the most commonly used index for forest disturbance because it is highly sensitive to canopy removal and moisture loss.
+
+In LandTrendr conventions, indices are often inverted (e.g., `-NBR` or `10000 - NBR`) so that a **disturbance** is represented by a **positive increase** in value.
 
 ```python
 import numpy as np
+import rasterio
+import matplotlib.pyplot as plt
 
-# Example: 10 years of data (2000-2009)
-years = np.arange(2000, 2010)
+# 1. Define the years corresponding to our data stack
+# Let's assume we have a 30-year Landsat stack from 1990 to 2019
+start_year = 1990
+end_year = 2019
+years = np.arange(start_year, end_year + 1)
 
-# Simulate a 3D raster stack (10 time steps, 100 rows, 100 columns)
-# For LandTrendr, vegetation indices are often inverted so disturbance = increase in value, 
-# or kept as is if tracking loss.
-rows, cols = 100, 100
-raster_stack = np.random.uniform(0.5, 0.9, size=(10, rows, cols))
+# 2. Load the GeoTIFF using rasterio
+input_path = "data/annual_nbr_stack_1990_2019.tif"
+with rasterio.open(input_path) as src:
+    # Read the entire 3D array (Bands, Rows, Cols)
+    raster_stack = src.read()
+    profile = src.profile
 
-# Inject a disturbance event at year 2003 (index 3) for a specific pixel
-raster_stack[3:, 50, 50] = raster_stack[3:, 50, 50] - 0.4
+print(f"Loaded stack with shape: {raster_stack.shape}")
+# Example Output: Loaded stack with shape: (30, 2000, 2000)
 ```
 
-> **Note:** Completely empty pixels or pixels containing only NoData (`np.nan` or `0`) will be automatically skipped by the internal engine to optimize processing time.
+### Step 2.2: Despiking (Optional but Recommended)
 
-## 2. Running LandTrendr on an Array
+Satellite data often contains residual noise (e.g., missed cloud shadows) that appear as sharp, one-year dips in the time series. If not removed, LandTrendr might fit false segments to these spikes. The `cdts.smooth` module provides a despiking function to handle this.
 
-To process a 3D numpy array, use the `run_landtrendr_array` function from `cdts.raster`. This function utilizes Python's multiprocessing to efficiently process pixels in parallel.
+```python
+from cdts.smooth import desawtooth
+
+# Despike the time series to remove 1-year anomalous drops
+# This is a critical pre-processing step for LandTrendr
+smoothed_stack = desawtooth(raster_stack)
+```
+
+### Step 2.3: Running the Algorithm
+
+We use the `run_landtrendr_array` function to apply the segmentation logic across all pixels in parallel.
 
 ```python
 from cdts.raster import run_landtrendr_array
 
-# Execute the LandTrendr algorithm
+print("Running LandTrendr segmentation...")
 vertices_stack = run_landtrendr_array(
     years=years,
-    raster_stack=raster_stack,
-    max_segments=6,
-    pval_threshold=0.05,
-    n_jobs=-1  # Use -1 to use all available CPU cores
+    raster_stack=smoothed_stack,
+    max_segments=6,        # Allow up to 6 distinct trend segments
+    pval_threshold=0.05,   # Statistical significance threshold for segments
+    n_jobs=-1              # Distribute work across all CPU cores
 )
+print("Segmentation complete!")
 ```
 
-### Understanding the Parameters:
-- `years` (np.ndarray): The 1D array representing the temporal axis.
-- `raster_stack` (np.ndarray): The 3D data array `(time_steps, rows, cols)`.
-- `max_segments` (int): The maximum number of line segments to fit to the time series. Default is `6`.
-- `pval_threshold` (float): The p-value threshold used for determining if a fitted segment is statistically significant. Default is `0.05`.
-- `n_jobs` (int): Number of parallel workers. `-1` uses all CPU cores.
+**Understanding the Output (`vertices_stack`)**:
+The output is a 3D numpy array. If `max_segments=6`, the maximum number of vertices is 7. The output will have `14` bands (2 * 7).
+- **Bands 0 to 6**: The *Years* of the identified vertices.
+- **Bands 7 to 13**: The *Fitted Values* corresponding to those years.
 
-### Interpreting the Output (`vertices_stack`):
-The output is a 3D numpy array of shape `(2 * max_vertices, rows, cols)`, where `max_vertices = max_segments + 1`. 
-- **The first half** of the first dimension contains the **Years** of the identified vertices.
-- **The second half** contains the **Fitted Values** for those vertices.
+### Step 2.4: Extracting Disturbance Events
 
-## 3. Extracting and Interpreting Events
-
-Once you have the fitted vertices, you often want to extract specific events (e.g., the greatest vegetation loss, the fastest recovery). The `cdts.metrics.extract_events` function parses the `vertices_stack` and extracts a 2D map of spatial metrics.
+Now that we have the simplified trajectories for every pixel, we want to extract the greatest disturbance event.
 
 ```python
 from cdts.metrics import extract_events
 
+# Extract the greatest loss event (disturbance)
 events = extract_events(
     vertices_stack=vertices_stack,
-    event_type="loss",           # "loss" (value decreases) or "gain" (value increases)
-    sort_by="greatest",          # "greatest" (magnitude), "newest" (year), "fastest" (rate), "longest" (duration)
-    min_magnitude=0.1,           # Filter out minor changes
-    min_duration=1,              # Minimum duration in years
-    pre_val_threshold=0.5        # Exclude pixels that were already degraded before the event
+    event_type="loss",           # "loss" corresponds to a drop in the original NBR
+    sort_by="greatest",          # Select the segment with the largest absolute change
+    min_magnitude=150.0,         # Minimum change magnitude to be considered an event
+    min_duration=1               # Minimum duration (1 = abrupt change, >1 = gradual)
 )
+
+# The result is a dictionary of 2D maps
+yod_map = events["yod"]           # Year of Detection
+magnitude_map = events["magnitude"] # Change Magnitude
+duration_map = events["duration"]   # Change Duration
 ```
 
-### Event Metrics:
-The `extract_events` function returns a dictionary of 2D numpy arrays `(rows, cols)`:
-- `yod`: Year of Detection (the starting year of the segment).
-- `magnitude`: The absolute change in value over the segment.
-- `duration`: The length of the segment in years.
-- `pre_val`: The fitted value *before* the event started.
-- `post_val`: The fitted value *after* the event ended.
-- `rate`: Magnitude divided by duration (change per year).
+### Step 2.5: Exporting Results
+
+You can export these 2D metrics back to GeoTIFFs using `rasterio` so they can be viewed in QGIS or ArcGIS.
 
 ```python
-# Access the Year of Detection (YOD) map
-yod_map = events["yod"]
+# Update the rasterio profile for a single-band 2D output
+out_profile = profile.copy()
+out_profile.update(count=1, dtype='uint16', nodata=0)
 
-# Check the year the disturbance happened at our injected pixel
-print(f"Disturbance year: {yod_map[50, 50]}") 
+# Save Year of Detection
+with rasterio.open("results/lt_yod.tif", "w", **out_profile) as dst:
+    dst.write(yod_map, 1)
+
+# Save Magnitude (updating profile to float32)
+out_profile.update(dtype='float32')
+with rasterio.open("results/lt_magnitude.tif", "w", **out_profile) as dst:
+    dst.write(magnitude_map, 1)
 ```
 
-## 4. Best Practices
+## 3. Visualizing a Single Pixel Trajectory
 
-1. **Despike your data first**: The `cdts` library provides a `desawtooth` function that removes temporal spikes (e.g., from unmasked clouds) which can heavily skew LandTrendr trajectory fitting. Consider applying this before running the algorithm.
-2. **Chunking for Large Rasters**: A full GeoTIFF stack might exceed your RAM. Use `cdts.raster.run_landtrendr_image` to process large GeoTIFF files natively in spatial chunks rather than loading the entire array into memory.
-3. **Choosing `max_segments`**: A `max_segments` value of 6 is standard. Increasing it can lead to overfitting noise, while decreasing it might cause the algorithm to miss subtle, gradual trends (like slow degradation or long-term recovery).
+To truly understand LandTrendr, it helps to plot the original data alongside the fitted vertices for a single pixel.
+
+```python
+import matplotlib.pyplot as plt
+
+# Pick a pixel that experienced a disturbance
+row, col = 500, 500
+
+# 1. Get original time series
+original_ts = smoothed_stack[:, row, col]
+
+# 2. Get the fitted vertices for this pixel
+pixel_vertices = vertices_stack[:, row, col]
+
+# The first half of the array are the years, the second half are the values
+max_v = vertices_stack.shape[0] // 2
+vertex_years = pixel_vertices[:max_v]
+vertex_values = pixel_vertices[max_v:]
+
+# Filter out empty vertices (where year == 0)
+valid_idx = vertex_years > 0
+vertex_years = vertex_years[valid_idx]
+vertex_values = vertex_values[valid_idx]
+
+# Plotting
+plt.figure(figsize=(10, 5))
+plt.plot(years, original_ts, marker='o', label='Original Data (Smoothed)', color='gray', linestyle='--')
+plt.plot(vertex_years, vertex_values, marker='s', label='LandTrendr Fitted Trajectory', color='red', linewidth=2)
+
+plt.title("LandTrendr Pixel Trajectory")
+plt.xlabel("Year")
+plt.ylabel("Spectral Index Value")
+plt.legend()
+plt.grid(True)
+plt.show()
+```
+
+## 4. Best Practices and Tips
+
+1. **Index Selection**: While NBR is the standard for forest disturbance, Tasseled Cap Wetness (TCW) or Tasseled Cap Angle (TCA) are extremely effective. NDVI is generally less sensitive to structural forest changes but good for agricultural monitoring.
+2. **Out-of-Core Processing**: If your input GeoTIFF is larger than your available RAM, use `cdts.raster.run_landtrendr_image` instead of `run_landtrendr_array`. The image-based function automatically chunks the raster and processes it in blocks, keeping memory usage strictly bounded.
+3. **Overfitting**: A `max_segments` value of 6 is empirically proven to be optimal for a 30-year time series. Increasing it to 8 or 10 on a 30-year stack will lead to the algorithm overfitting noise, resulting in false positive disturbances.
