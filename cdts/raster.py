@@ -47,8 +47,11 @@ def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_se
         import os as _os
         n_jobs = _os.cpu_count() or 4
         
-    with Pool(processes=n_jobs) as pool:
-        results = pool.map(worker, pixel_args)
+    if n_jobs == 1:
+        results = list(map(worker, pixel_args))
+    else:
+        with Pool(processes=n_jobs) as pool:
+            results = pool.map(worker, pixel_args)
         
     for row, col, vertices in results:
         n_verts = len(vertices)
@@ -105,8 +108,11 @@ def run_ccdc_array(dates: "np.ndarray", raster_stack: "np.ndarray", qa_stack: "n
         import os as _os
         n_jobs = _os.cpu_count() or 4
         
-    with Pool(processes=n_jobs) as pool:
-        results = pool.map(worker, pixel_args)
+    if n_jobs == 1:
+        results = list(map(worker, pixel_args))
+    else:
+        with Pool(processes=n_jobs) as pool:
+            results = pool.map(worker, pixel_args)
         
     for row, col, segments in results:
         n_segs = len(segments)
@@ -163,7 +169,7 @@ def run_ccdc_image(input_path: str, output_dir: str, dates: "np.ndarray", num_ba
         params_per_seg = (3 + num_bands * 7) if return_coefs else 1
         total_bands = max_segments * params_per_seg
         
-        p.update(count=total_bands, dtype='float32', nodata=0)
+        p.update(count=total_bands, dtype='float32', nodata=0, driver='GTiff')
         
         dst_breaks = rasterio.open(out_path, 'w', **p)
         
@@ -226,10 +232,10 @@ def run_landtrendr_image(input_path: str, output_dir: str, start_year: int = 200
         out_path = os.path.join(output_dir, "lt_vertices.tif")
         p = profile.copy()
         max_vertices = max_segments + 1
-        p.update(count=max_vertices * 2, dtype='float32', nodata=0)
+        p.update(count=max_vertices * 2, dtype='float32', nodata=0, driver='GTiff')
         
         p_2d = profile.copy()
-        p_2d.update(count=1)
+        p_2d.update(count=1, driver='GTiff')
         dtypes = {
             "yod": "uint16", "magnitude": "float32", "duration": "uint16",
             "pre_val": "float32", "post_val": "float32", "rate": "float32"

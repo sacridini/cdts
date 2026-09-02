@@ -2,15 +2,36 @@ from .landtrendr import run_landtrendr, desawtooth, apply_vertices
 from .raster import run_landtrendr_array, run_landtrendr_image, run_ccdc_array, run_ccdc_image
 from .metrics import extract_events
 from .ccdc import predict_synthetic_image
-from .classify import train_ccdc_classifier, classify_ccdc_stack
+try:
+    from .classify import train_ccdc_classifier, classify_ccdc_stack
+except ImportError:
+    pass
+
 from .spatial import apply_mmu_filter, apply_majority_filter
 from .smooth import apply_savgol_filter
 from .masks import extract_water_mask
-from .tmask import run_tmask_pixel, apply_tmask_stack
-from .cube import build_time_series
+
+try:
+    from .tmask import run_tmask_pixel, apply_tmask_stack
+except ImportError:
+    pass
+
+try:
+    from .cube import build_time_series
+except ImportError:
+    pass
+
 from .io import save_raster, get_georef
-import cdts.xarray_api # This registers the xarray accessor automatically
-import cdts.ai
+
+try:
+    import cdts.xarray_api # This registers the xarray accessor automatically
+except ImportError:
+    pass
+
+try:
+    import cdts.ai
+except ImportError:
+    pass
 
 __all__ = [
     "run_landtrendr", "desawtooth", "apply_vertices", 
