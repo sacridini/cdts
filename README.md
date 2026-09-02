@@ -1,4 +1,4 @@
-# cdts - Change Detection Python Library 🌍🛰️
+# cdts - Change Detection Python Library 
 
 `cdts` is an ultra-fast, cloud-native Python framework for **Remote Sensing Time-Series Analysis and Change Detection**. 
 
@@ -30,7 +30,7 @@ pip install -e .
 
 ---
 
-### 🐳 Enterprise / Production Deployment (Docker)
+### Docker
 Because `cdts` relies on heavy C++ compilation and GPU-accelerated PyTorch, the easiest way to deploy it to the cloud or share it with other researchers is via our official Docker container.
 
 ```bash
@@ -40,7 +40,7 @@ docker-compose up --build
 
 ---
 
-## ⚡ Core Architecture
+## Core Architecture
 
 1.  **C++ Engine (`pybind11` & `Eigen3`)**: The core statistical fitting (OLS, Robust Iteratively Reweighted Least Squares, Exact F-Statistics, Chi-Square CDFs) is fully written in C++ for maximum single-core speed.
 2.  **Cloud-Native Data Fetching (`STAC` & `stackstac`)**: Download-free pipelines! Query AWS or Microsoft servers for imagery and stream only the exact pixels you need.
@@ -48,7 +48,7 @@ docker-compose up --build
 
 ---
 
-## 📡 Supported Cloud Data Services (STAC)
+## Supported Cloud Data Services (STAC)
 
 Because `cdts` relies on the open **SpatioTemporal Asset Catalog (STAC)** standard, it can pull time-series data from virtually any modern satellite provider.
 
@@ -61,7 +61,7 @@ Because `cdts` relies on the open **SpatioTemporal Asset Catalog (STAC)** standa
 
 ---
 
-## 🚀 Advanced Tutorial: End-to-End Pipeline
+## Advanced Tutorial: End-to-End Pipeline
 
 Here is a complete workflow demonstrating how to go from zero data to a classified map of persistent water using `cdts`.
 
@@ -120,7 +120,7 @@ clf = train_ccdc_classifier(X_train_data, y_train_labels)
 classify_ccdc_stack(clf, coef_stack_path="output/coefs.tif", output_path="landcover.tif")
 ```
 
-### 🧹 Pre & Post-Processing (Smoothing & Spatial Filters)
+### Pre & Post-Processing (Smoothing & Spatial Filters)
 Before classifying, it is highly recommended to smooth the temporal trajectories to remove atmospheric noise. After classifying, pixel-based maps often suffer from "salt and pepper" noise. `cdts` provides fast functions to regularize your data in both dimensions:
 
 ```python
@@ -140,7 +140,7 @@ final_map = apply_mmu_filter(regularized_map, min_pixels=10)
 
 ---
 
-## 🌲 LandTrendr Specifics (FTV)
+## LandTrendr Specifics (FTV)
 If your focus is on forest recovery, `cdts` natively supports LandTrendr. A key feature is **FTV (Fitted to Vertices)**, which allows you to find structural breakpoints in an index (like NBR) and apply them to smooth out noisy raw bands (like SWIR).
 
 ```python
@@ -156,7 +156,7 @@ swir_fitted = apply_vertices(vertex_years, years, raw_swir_time_series)
 
 ---
 
-## 🧠 Deep Learning & Foundation Models (`cdts.ai`)
+## Deep Learning & Foundation Models (`cdts.ai`)
 Beyond statistical algorithms like CCDC, `cdts` embraces the next generation of Spatio-Temporal Artificial Intelligence. Built on **PyTorch**, the new `cdts.ai` module provides modern neural network architectures tailored for earth observation:
 
 ### 1. U-TAE and TempCNN (Time-Series Neural Networks)
@@ -204,7 +204,7 @@ criterion2 = TverskyLoss(alpha=0.3, beta=0.7)
 
 ---
 
-## ☁️ Tmask: Time-Series Cloud Masking
+## Tmask: Time-Series Cloud Masking
 Before running CCDC or deep learning models, you must have clean data. While STAC APIs provide QA bands (like Fmask), `cdts` natively implements **Tmask** (Zhu & Woodcock 2014) to dynamically find undetected clouds and shadows.
 
 Tmask runs a robust harmonic regression on Green and SWIR bands. If a pixel suddenly flashes bright green or dark SWIR without altering the long-term structural trajectory, it is flagged as noise.
@@ -219,7 +219,7 @@ clear_sky_mask = apply_tmask_stack(dates_julian, green_cube, swir_cube)
 
 ---
 
-## 💾 Exporting & Saving Data (IO)
+## Exporting & Saving Data (IO)
 Instead of dealing with complex `rasterio` profiles, `cdts` includes a powerful `save_raster` utility that automatically extracts the geotransform and CRS from the downloaded STAC Datacube and exports your PyTorch/Numpy predictions into professional, ready-to-use GeoTIFFs.
 
 ```python
@@ -236,7 +236,7 @@ save_raster(prediction_array, "output/final_map.tif", reference_cube=cube, nodat
 
 ---
 
-## 📚 End-to-End Examples
+## End-to-End Examples
 We provide **6 complete example scripts** in the `examples/` directory. They cover everything from downloading STAC data to temporal smoothing and classification using both statistical and AI models. Running these scripts will automatically output georeferenced GeoTIFFs into `examples/data/`.
 
 - `example_01_landtrendr.py` (LandTrendr Disturbance Year)
@@ -253,7 +253,7 @@ python examples/example_05_ai_tempcnn.py
 
 ---
 
-## 💻 Command Line Interface (CLI)
+## Command Line Interface (CLI)
 
 Prefer the terminal? If you already have a massive GeoTIFF locally, you can process it chunk-by-chunk using the CLI.
 
