@@ -1,5 +1,7 @@
 # cdts - Change Detection Python Library 
 
+[![Build and Publish Wheels](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml)
+
 `cdts` is an ultra-fast, cloud-native Python framework for **Remote Sensing Time-Series Analysis and Change Detection**. 
 
 Designed to replace heavy dependencies on Google Earth Engine, `cdts` handles the entire geospatial pipeline locally or on cloud clusters: from directly streaming satellite imagery via **STAC** APIs, to scaling memory lazily with **Dask/Xarray**, down to executing heavy statistical regression in native **C++**.
