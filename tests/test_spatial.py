@@ -25,7 +25,8 @@ def test_apply_mmu_filter(tmp_path):
         "width": 10,
         "count": 1,
         "dtype": "uint8",
-        "nodata": 0
+        "nodata": 0,
+        "transform": rasterio.transform.from_origin(0, 0, 10, 10)
     }
     
     with rasterio.open(input_path, "w", **profile) as dst:

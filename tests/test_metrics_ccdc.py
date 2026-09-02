@@ -16,13 +16,13 @@ def test_extract_events():
     
     # Test loss extraction
     loss_events = extract_events(stack, event_type="loss", sort_by="greatest")
-    assert loss_events["year"][0, 0] == 2000
+    assert loss_events["yod"][0, 0] == 2000
     assert np.isclose(loss_events["magnitude"][0, 0], 0.6)
     assert loss_events["duration"][0, 0] == 5
     
     # Test gain extraction
     gain_events = extract_events(stack, event_type="gain", sort_by="greatest")
-    assert gain_events["year"][0, 0] == 2005
+    assert gain_events["yod"][0, 0] == 2005
     assert np.isclose(gain_events["magnitude"][0, 0], 0.7)
     
 def test_ccdc_basic():
