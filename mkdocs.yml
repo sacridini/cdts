@@ -61,5 +61,6 @@ nav:
       - CCDC: tutorials/ccdc.md
       - Tmask: tutorials/tmask.md
       - AI & Deep Learning: tutorials/ai.md
+      - STAC Downloads & Tips: tutorials/stac-downloads.md
   - CLI Reference: cli.md
   - API Reference: api.md
