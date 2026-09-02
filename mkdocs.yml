@@ -6,8 +6,8 @@ repo_name: sacridini/cdts
 
 theme:
   name: material
-  logo: assets/logo.jpg
-  favicon: assets/logo.jpg
+  logo: assets/logo.png
+  favicon: assets/logo.png
   features:
     - navigation.tabs
     - navigation.sections

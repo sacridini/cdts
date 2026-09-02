@@ -1,7 +1,7 @@
 # CDTS: Change Detection and Time-Series for Python
 
 <p align="center">
-  <img src="assets/logo.jpg" alt="CDTS Logo" width="400">
+  <img src="assets/logo.png" alt="CDTS Logo" width="400">
 </p>
 
 [![Build and Publish Wheels](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml) [![Tests](https://github.com/sacridini/cdts/actions/workflows/tests.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/tests.yml)
