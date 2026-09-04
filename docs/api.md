@@ -57,7 +57,7 @@ Downloads analysis-ready time series data directly from Google Earth Engine (GEE
 | `end_date` | `str` | **Required**| End date in `YYYY-MM-DD`. |
 | `out_dir` | `str` | **Required**| Directory to save the output `.tif` files. |
 | `method` | `str` | `'direct'` | Download method. Use `'direct'` for immediate tiled local download, or `'drive'` for batch export to Google Drive. |
-| `composite_type`| `str` | `'annual'` | The type of temporal composition to apply. Currently supports `'annual'` (LandTrendr-style Medoid). |
+| `composite_type`| `str` | `'annual'` | The type of temporal composition to apply. Options include `'annual'` (LandTrendr-style Medoid composites) and `'dense'` (all valid observations for CCDC). |
 | `project` | `str` | `None` | Google Cloud Project ID for GEE authentication. Highly recommended to prevent access errors. |
 
 **Usage Example**
