@@ -59,10 +59,15 @@ def download_gee_image(image: ee.Image, roi: ee.Geometry, out_filename: str, met
     """
     if method == 'drive':
         filename_no_ext = os.path.splitext(os.path.basename(out_filename))[0]
+        
+        # Use the base name of the output directory as the Drive folder name
+        out_dir = os.path.dirname(out_filename)
+        drive_folder = os.path.basename(out_dir) if out_dir and os.path.basename(out_dir) else 'CDTS_Downloads'
+        
         task = ee.batch.Export.image.toDrive(
             image=image,
             description=filename_no_ext,
-            folder='CDTS_Downloads',
+            folder=drive_folder,
             scale=scale,
             region=roi.bounds(),
             maxPixels=1e13
