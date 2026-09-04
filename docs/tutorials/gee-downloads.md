@@ -14,6 +14,8 @@ If you have a small to medium-sized area (e.g., a municipality or a specific pol
 
 The `cdts` package will automatically slice your region into smaller grids (tiles), open dozens of concurrent threads to Google's servers, download the pieces, and seamlessly mosaic them together (using `rasterio.merge`).
 
+> **Warning on API Limits:** Google's REST API has a strict 50 MB payload limit per request. While the tiling system mitigates this for standard annual composites, attempting to download a `'dense'` time series (which flattens dozens of images and hundreds of bands into a single stack) for a large region using `method='direct'` will likely trigger a *Payload Too Large* error. For dense time series or state-level areas, always use `method='drive'`.
+
 ```python
 from cdts.gee import download_gee_timeseries
 
