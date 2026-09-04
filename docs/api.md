@@ -44,6 +44,49 @@ cube = build_time_series(
 print(cube) # Dask-backed xarray DataArray
 ```
 
+### `cdts.gee.download_gee_timeseries`
+
+Downloads analysis-ready time series data directly from Google Earth Engine (GEE). It handles Landsat sensor harmonization (Landsat 5/7/8/9), cloud masking (using QA_PIXEL), and annual compositing (Medoid) on Google's servers before downloading. It supports both direct local downloads via multithreaded tiling and asynchronous batch exports to Google Drive.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `roi` | `list` or `ee.Geometry`| **Required**| Bounding box `[min_lon, min_lat, max_lon, max_lat]` or an `ee.Geometry`. |
+| `start_date` | `str` | **Required**| Start date in `YYYY-MM-DD`. |
+| `end_date` | `str` | **Required**| End date in `YYYY-MM-DD`. |
+| `out_dir` | `str` | **Required**| Directory to save the output `.tif` files. |
+| `method` | `str` | `'direct'` | Download method. Use `'direct'` for immediate tiled local download, or `'drive'` for batch export to Google Drive. |
+| `composite_type`| `str` | `'annual'` | The type of temporal composition to apply. Currently supports `'annual'` (LandTrendr-style Medoid). |
+| `project` | `str` | `None` | Google Cloud Project ID for GEE authentication. Highly recommended to prevent access errors. |
+
+**Usage Example**
+
+```python
+from cdts.gee import download_gee_timeseries
+
+# 1. Direct local tiled download for a small/medium region
+download_gee_timeseries(
+    roi=[-47.95, -15.85, -47.85, -15.75], 
+    start_date='2010-01-01',
+    end_date='2020-12-31', 
+    out_dir='./gee_data',
+    method='direct',
+    composite_type='annual',
+    project='my-gcp-project-id'
+)
+
+# 2. Export a massive region to Google Drive
+download_gee_timeseries(
+    roi=[-53.11, -25.31, -44.15, -19.78], 
+    start_date='1985-01-01',
+    end_date='2022-12-31', 
+    out_dir='./data',
+    method='drive',
+    project='my-gcp-project-id'
+)
+```
+
 ### `cdts.io.save_raster`
 
 A highly robust, all-in-one utility to save NumPy arrays (2D, 3D, or 4D) and Xarray DataArrays to GeoTIFF format. It automatically handles `rasterio` profile generation, CRS/Transform extraction, deflate compression, and internal tiling.
