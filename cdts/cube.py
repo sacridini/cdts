@@ -37,13 +37,14 @@ def build_time_series(
     bands: Optional[List[str]] = None,
     resolution: Optional[float] = None,
     epsg: int = 4326,
-    validate_items: bool = False
+    validate_items: bool = False,
+    access_token: Optional[str] = None
 ) -> xr.DataArray:
     """
     Builds a lazy Dask-backed xarray DataCube from a STAC catalog.
     
     source: A string from STAC_CATALOGS or a custom STAC API URL.
-    collection: The dataset collection ID (e.g., "sentinel-2-l2a", "landsat-c2-l2").
+    collection: The dataset collection ID (e.g., "sentinel-2-l2a", "CBERS4A_WFI_L4_SR").
     bbox: [minx, miny, maxx, maxy] in WGS84 (EPSG:4326).
     vector_path: Path to a shapefile or geojson to derive the bounding box.
     start_date, end_date: YYYY-MM-DD strings.
@@ -51,6 +52,7 @@ def build_time_series(
     bands: List of band names to load (e.g., ["red", "green", "blue", "nir"]).
     resolution: Target spatial resolution in meters (if reprojection is needed).
     validate_items: If True, tests each STAC item's URL before stacking to drop corrupted files.
+    access_token: API token for restricted catalogs like Brazil Data Cube (BDC).
     """
     
     # 1. Resolve Bounding Box
@@ -97,6 +99,17 @@ def build_time_series(
         raise ValueError("No images found for the given criteria.")
         
     items_list = list(items)
+    
+    # 3.7 BDC Token injection
+    if access_token:
+        print("Injecting access token into asset URLs...")
+        for item in items_list:
+            for asset_key in item.assets:
+                asset = item.assets[asset_key]
+                if "?" in asset.href:
+                    asset.href = f"{asset.href}&access_token={access_token}"
+                else:
+                    asset.href = f"{asset.href}?access_token={access_token}"
     
     # 3.6 Pre-flight Validation
     if validate_items and bands:
