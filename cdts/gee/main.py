@@ -13,6 +13,7 @@ def download_gee_timeseries(
     out_dir: str, 
     method: str = 'direct',
     composite_type: str = 'annual',
+    bands: Optional[list] = None,
     project: Optional[str] = None
 ) -> None:
     """
@@ -42,6 +43,39 @@ def download_gee_timeseries(
     
     print("Preparing harmonized collection...")
     col = get_harmonized_collection(geom, start_date, end_date)
+    
+    if bands:
+        def compute_indices(img):
+            img_bands = img
+            
+            # Helper to get NDVI if needed for kNDVI
+            ndvi_img = img.normalizedDifference(['SR_B5', 'SR_B4'])
+            
+            if 'NDVI' in bands:
+                ndvi = ndvi_img.rename('NDVI').toFloat()
+                img_bands = img_bands.addBands(ndvi)
+            if 'NBR' in bands:
+                nbr = img.normalizedDifference(['SR_B5', 'SR_B7']).rename('NBR').toFloat()
+                img_bands = img_bands.addBands(nbr)
+            if 'NDWI' in bands:
+                # McFeeters 1996: (Green - NIR) / (Green + NIR)
+                ndwi = img.normalizedDifference(['SR_B3', 'SR_B5']).rename('NDWI').toFloat()
+                img_bands = img_bands.addBands(ndwi)
+            if 'kNDVI' in bands:
+                # Simplified parameter-free kNDVI: tanh(NDVI^2)
+                kndvi = ndvi_img.pow(2).tanh().rename('kNDVI').toFloat()
+                img_bands = img_bands.addBands(kndvi)
+            if 'EVI' in bands:
+                evi = img.expression(
+                    '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
+                    'NIR': img.select('SR_B5'),
+                    'RED': img.select('SR_B4'),
+                    'BLUE': img.select('SR_B2')
+                }).rename('EVI').toFloat()
+                img_bands = img_bands.addBands(evi)
+            return img_bands.select(bands)
+        
+        col = col.map(compute_indices)
     
     start_year = int(start_date.split('-')[0])
     end_year = int(end_date.split('-')[0])

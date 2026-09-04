@@ -58,6 +58,7 @@ Downloads analysis-ready time series data directly from Google Earth Engine (GEE
 | `out_dir` | `str` | **Required**| Directory to save the output `.tif` files. |
 | `method` | `str` | `'direct'` | Download method. Use `'direct'` for immediate tiled local download, or `'drive'` for batch export to Google Drive. |
 | `composite_type`| `str` | `'annual'` | The type of temporal composition to apply. Options include `'annual'` (LandTrendr-style Medoid composites) and `'dense'` (all valid observations for CCDC). |
+| `bands` | `list` | `None` | Specific bands or indices to export. Supports standard bands (e.g., `'SR_B4'`) and on-the-fly indices (`'NDVI'`, `'NBR'`, `'EVI'`, `'NDWI'`, `'kNDVI'`). Defaults to all 6 spectral bands. |
 | `project` | `str` | `None` | Google Cloud Project ID for GEE authentication. Highly recommended to prevent access errors. |
 
 **Usage Example**
