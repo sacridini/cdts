@@ -23,7 +23,7 @@ Dynamically builds a lazy, Dask-backed `xarray.DataArray` (DataCube) directly fr
 | `resolution` | `int` | `None` | Spatial resolution (meters) for automatic reprojection. |
 | `epsg` | `int` | `4326` | Output projection EPSG code. |
 | `validate_items` | `bool` | `False` | Pre-tests each STAC URL to drop corrupted files before building the stack. |
-| `access_token` | `str` | `None` | API token for restricted catalogs (e.g., Brazil Data Cube). |
+| `access_token` | `str` | `None` | API token for restricted catalogs (e.g., Brazil Data Cube, or private AWS/API Gateway catalogs requiring URL tokens). |
 
 **Usage Example**
 
