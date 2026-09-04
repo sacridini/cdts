@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cdts"
-version = "0.2.1"
+version = "0.2.2"
 description = "Continuous monitoring of land cover and land use using dense time series"
 dependencies = [
     "numpy",
