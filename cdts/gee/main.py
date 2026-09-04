@@ -53,6 +53,43 @@ def download_gee_timeseries(
             img_medoid = create_annual_medoid(col, year)
             filename = os.path.join(out_dir, f"landsat_medoid_{year}.tif")
             download_gee_image(img_medoid, geom, filename, method=method)
+    elif composite_type == 'dense':
+        print("Extracting dense time series dates...")
+        
+        # Get dates in milliseconds from GEE
+        dates_ms = col.aggregate_array('system:time_start').getInfo()
+        
+        if not dates_ms:
+            print("No images found in the given date range.")
+            return
+            
+        import pandas as pd
+        from datetime import datetime
+        
+        dates_list = []
+        ordinal_dates = []
+        
+        for ms in dates_ms:
+            dt = datetime.utcfromtimestamp(ms / 1000.0)
+            dates_list.append(dt.strftime('%Y-%m-%d'))
+            ordinal_dates.append(dt.toordinal())
+            
+        # Save to CSV
+        csv_path = os.path.join(out_dir, "ccdc_dates.csv")
+        df = pd.DataFrame({
+            'Date': dates_list,
+            'Ordinal_Day': ordinal_dates
+        })
+        df.to_csv(csv_path, index=False)
+        print(f"Saved dates for CCDC to: {csv_path}")
+        
+        print("Flattening collection for dense stack download...")
+        # Convert the ImageCollection to a single multi-band Image
+        # The bands will be ordered chronologically, matching the dates array
+        dense_image = col.toBands()
+        
+        filename = os.path.join(out_dir, "landsat_dense_stack.tif")
+        download_gee_image(dense_image, geom, filename, method=method)
     else:
         raise NotImplementedError(f"Composite type '{composite_type}' is not currently supported.")
         
