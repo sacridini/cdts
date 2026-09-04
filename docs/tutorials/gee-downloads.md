@@ -2,8 +2,6 @@
 
 The `cdts` package now offers native support for extracting and downloading time series data using **Google Earth Engine (GEE)**. This allows you to skip downloading individual, uncalibrated images and instead let Google process complex data (such as Landsat sensor harmonization, cloud masking, and annual compositing) directly on their servers before downloading.
 
-Our infrastructure has no heavy third-party dependencies (like `geemap`) and is built with a focus on multithreading performance and spatial scalability.
-
 ## Authentication
 
 Earth Engine requires the user to authenticate their machine with Google Cloud Project (GCP) credentials that have API access enabled. Every time you attempt a download, the `download_gee_timeseries` function handles this initialization. If your credentials expire or do not exist, a browser window will open prompting you to log in.
