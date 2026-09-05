@@ -1,0 +1,2454 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Continuous monitoring of land cover and land use using dense time series">
+      
+      
+      
+        <link rel="canonical" href="https://sacridini.github.io/cdts/api/">
+      
+      
+        <link rel="prev" href="../cli/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>API Reference - CDTS</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#api-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="CDTS" class="md-header__button md-logo" aria-label="CDTS" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            CDTS
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              API Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="deep-orange"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/sacridini/cdts" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    sacridini/cdts
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../tutorials/landtrendr/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../cli/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  CLI Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API Reference
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="CDTS" class="md-nav__button md-logo" aria-label="CDTS" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    CDTS
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/sacridini/cdts" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    sacridini/cdts
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/landtrendr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LandTrendr
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/ccdc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CCDC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/tmask/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tmask
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/ai/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI & Deep Learning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/stac-downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    STAC Downloads & Tips
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/gee-downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Google Earth Engine (GEE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/parallel-cloud-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parallel & Cloud Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#data-acquisition-pre-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Acquisition &amp; Pre-processing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Acquisition &amp; Pre-processing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cdtscubebuild_time_series" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.cube.build_time_series
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtsgeedownload_gee_timeseries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.gee.download_gee_timeseries
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtsiosave_raster" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.io.save_raster
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtsioload_raster" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.io.load_raster
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtstmaskapply_tmask_stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.tmask.apply_tmask_stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtssmoothdesawtooth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.smooth.desawtooth
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-algorithms-change-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Algorithms (Change Detection)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Core Algorithms (Change Detection)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cdtsrasterrun_landtrendr_image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.raster.run_landtrendr_image
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtsrasterrun_landtrendr_array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.raster.run_landtrendr_array
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtslandtrendrrun_landtrendr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.landtrendr.run_landtrendr
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtsrasterrun_ccdc_image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.raster.run_ccdc_image
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtsrasterrun_ccdc_array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.raster.run_ccdc_array
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metrics-post-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics &amp; Post-Processing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Metrics &amp; Post-Processing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cdtsmetricsextract_events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.metrics.extract_events
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtsccdcpredict_synthetic_image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.ccdc.predict_synthetic_image
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ai-deep-learning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI &amp; Deep Learning
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AI &amp; Deep Learning">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cdtsaistaccubedataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.ai.STACCubeDataset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtsaiutae" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.ai.UTAE
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtsaitempcnn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.ai.TempCNN
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtsaisiamesechangedetector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.ai.SiameseChangeDetector
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cdtsaigeofoundationvit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.ai.GeoFoundationViT
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cdtsxarray_api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cdts.xarray_api
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="cdts.xarray_api">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dataarraycdtsrun_ccdcdates-qa_stacknone-max_segments6-return_coefstrue-conseq_anom3-n_jobs-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DataArray.cdts.run_ccdc(dates, qa_stack=None, max_segments=6, return_coefs=True, conseq_anom=3, n_jobs=-1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataarraycdtsrun_landtrendryears-max_segments6-pval_threshold005-n_jobs-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DataArray.cdts.run_landtrendr(years, max_segments=6, pval_threshold=0.05, n_jobs=-1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataarraycdtsto_zarr_optimizedstore_path-chunk_sizedicty512-x512" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DataArray.cdts.to_zarr_optimized(store_path, chunk_size=dict(y=512, x=512))
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="api-reference">API Reference</h1>
+<p>This page provides the comprehensive documentation for the primary functions exposed by the <code>cdts</code> library. These are the core building blocks you will use when writing custom Python scripts for Change Detection.</p>
+<h2 id="data-acquisition-pre-processing">Data Acquisition &amp; Pre-processing</h2>
+<h3 id="cdtscubebuild_time_series"><code>cdts.cube.build_time_series</code></h3>
+<p>Dynamically builds a lazy, Dask-backed <code>xarray.DataArray</code> (DataCube) directly from cloud-native STAC catalogs (like AWS Earth Search, Microsoft Planetary Computer, or Brazil Data Cube). It automatically handles API pagination, reprojection, and spatial alignment without downloading the raw files first.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>source</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'earth_search'</code></td>
+<td style="text-align: left;">STAC catalog alias (<code>"earth_search"</code>, <code>"planetary_computer"</code>, <code>"brazil_data_cube"</code>) or any direct STAC API URL.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>collection</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'sentinel-2-l2a'</code></td>
+<td style="text-align: left;">The dataset collection ID. Examples: <code>"sentinel-2-l2a"</code>, <code>"landsat-c2-l2"</code>, <code>"CBERS4A_WFI_L4_SR_1"</code>. Note: Available collections depend strictly on the chosen <code>source</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>bbox</code></td>
+<td style="text-align: center;"><code>list</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">Bounding box <code>[minx, miny, maxx, maxy]</code> in EPSG:4326.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>vector_path</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">Path to a vector file (Shapefile/GeoJSON) to derive <code>bbox</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>start_date</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'2020-01-01'</code></td>
+<td style="text-align: left;">Start date in <code>YYYY-MM-DD</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>end_date</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'2020-12-31'</code></td>
+<td style="text-align: left;">End date in <code>YYYY-MM-DD</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>cloud_cover_max</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>30</code></td>
+<td style="text-align: left;">Maximum cloud cover percentage metadata filter.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>bands</code></td>
+<td style="text-align: center;"><code>list</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">Specific bands to load (e.g., <code>["red", "nir"]</code>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>resolution</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">Spatial resolution (meters) for automatic reprojection.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>epsg</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>4326</code></td>
+<td style="text-align: left;">Output projection EPSG code.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>validate_items</code></td>
+<td style="text-align: center;"><code>bool</code></td>
+<td style="text-align: center;"><code>False</code></td>
+<td style="text-align: left;">Pre-tests each STAC URL to drop corrupted files before building the stack.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>access_token</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">API token for restricted catalogs (e.g., Brazil Data Cube, or private AWS/API Gateway catalogs requiring URL tokens).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.cube</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_time_series</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># Build a cloud-native xarray DataCube for an ROI</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">cube</span> <span class="o">=</span> <span class="n">build_time_series</span><span class="p">(</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">source</span><span class="o">=</span><span class="s2">"earth_search"</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">collection</span><span class="o">=</span><span class="s2">"sentinel-2-l2a"</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">bbox</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">48.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">16.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">47.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">15.9</span><span class="p">],</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">start_date</span><span class="o">=</span><span class="s2">"2021-01-01"</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">end_date</span><span class="o">=</span><span class="s2">"2021-12-31"</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">cloud_cover_max</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="s2">"blue"</span><span class="p">,</span> <span class="s2">"green"</span><span class="p">,</span> <span class="s2">"red"</span><span class="p">,</span> <span class="s2">"nir"</span><span class="p">],</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">resolution</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">epsg</span><span class="o">=</span><span class="mi">32722</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">)</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">cube</span><span class="p">)</span> <span class="c1"># Dask-backed xarray DataArray</span>
+</span></code></pre></div>
+<h3 id="cdtsgeedownload_gee_timeseries"><code>cdts.gee.download_gee_timeseries</code></h3>
+<p>Downloads analysis-ready time series data directly from Google Earth Engine (GEE). It handles Landsat sensor harmonization (Landsat 5/7/8/9), cloud masking (using QA_PIXEL), and annual compositing (Medoid) on Google's servers before downloading. It supports both direct local downloads via multithreaded tiling and asynchronous batch exports to Google Drive.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>roi</code></td>
+<td style="text-align: center;"><code>list</code> or <code>ee.Geometry</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Bounding box <code>[min_lon, min_lat, max_lon, max_lat]</code> or an <code>ee.Geometry</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>start_date</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Start date in <code>YYYY-MM-DD</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>end_date</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">End date in <code>YYYY-MM-DD</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>out_dir</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Directory to save the output <code>.tif</code> files.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>method</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'direct'</code></td>
+<td style="text-align: left;">Download method. Use <code>'direct'</code> for immediate tiled local download, or <code>'drive'</code> for batch export to Google Drive.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>composite_type</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'annual'</code></td>
+<td style="text-align: left;">The type of temporal composition to apply. Options include <code>'annual'</code> (LandTrendr-style Medoid composites) and <code>'dense'</code> (all valid observations for CCDC).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>bands</code></td>
+<td style="text-align: center;"><code>list</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">Specific bands or indices to export. Supports standard bands (e.g., <code>'SR_B4'</code>) and on-the-fly indices (<code>'NDVI'</code>, <code>'NBR'</code>, <code>'EVI'</code>, <code>'NDWI'</code>, <code>'kNDVI'</code>). Defaults to all 6 spectral bands.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>project</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">Google Cloud Project ID for GEE authentication. Highly recommended to prevent access errors.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.gee</span><span class="w"> </span><span class="kn">import</span> <span class="n">download_gee_timeseries</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># 1. Direct local tiled download for a small/medium region</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">download_gee_timeseries</span><span class="p">(</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">roi</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">47.95</span><span class="p">,</span> <span class="o">-</span><span class="mf">15.85</span><span class="p">,</span> <span class="o">-</span><span class="mf">47.85</span><span class="p">,</span> <span class="o">-</span><span class="mf">15.75</span><span class="p">],</span> 
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">start_date</span><span class="o">=</span><span class="s1">'2010-01-01'</span><span class="p">,</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">end_date</span><span class="o">=</span><span class="s1">'2020-12-31'</span><span class="p">,</span> 
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">out_dir</span><span class="o">=</span><span class="s1">'./gee_data'</span><span class="p">,</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">method</span><span class="o">=</span><span class="s1">'direct'</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">composite_type</span><span class="o">=</span><span class="s1">'annual'</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">project</span><span class="o">=</span><span class="s1">'my-gcp-project-id'</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">)</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1"># 2. Export a massive region to Google Drive</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">download_gee_timeseries</span><span class="p">(</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>    <span class="n">roi</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">53.11</span><span class="p">,</span> <span class="o">-</span><span class="mf">25.31</span><span class="p">,</span> <span class="o">-</span><span class="mf">44.15</span><span class="p">,</span> <span class="o">-</span><span class="mf">19.78</span><span class="p">],</span> 
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    <span class="n">start_date</span><span class="o">=</span><span class="s1">'1985-01-01'</span><span class="p">,</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    <span class="n">end_date</span><span class="o">=</span><span class="s1">'2022-12-31'</span><span class="p">,</span> 
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="n">out_dir</span><span class="o">=</span><span class="s1">'./data'</span><span class="p">,</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="n">method</span><span class="o">=</span><span class="s1">'drive'</span><span class="p">,</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>    <span class="n">project</span><span class="o">=</span><span class="s1">'my-gcp-project-id'</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="cdtsiosave_raster"><code>cdts.io.save_raster</code></h3>
+<p>A highly robust, all-in-one utility to save NumPy arrays (2D, 3D, or 4D) and Xarray DataArrays to GeoTIFF format. It automatically handles <code>rasterio</code> profile generation, CRS/Transform extraction, deflate compression, and internal tiling.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>array</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">The NumPy array or Xarray to save.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>output_path</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Output filepath for the GeoTIFF.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>reference_cube</code></td>
+<td style="text-align: center;"><code>Any</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">A rasterio dataset or xarray from which to inherit the CRS and transform.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>crs</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'EPSG:4326'</code></td>
+<td style="text-align: left;">The Coordinate Reference System string.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>transform</code></td>
+<td style="text-align: center;"><code>Affine</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">A <code>rasterio.Affine</code> transform object.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>nodata</code></td>
+<td style="text-align: center;"><code>float</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">NoData value for the output raster.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">rasterio</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_raster</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Read a source file to get its profile (or pass an xarray directly)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"data/source.tif"</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">profile</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># Suppose we processed the data and got a 2D result array</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">result_array</span> <span class="o">=</span> <span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">'float32'</span><span class="p">)</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1"># Save effortlessly without manually building a rasterio profile dictionary</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">save_raster</span><span class="p">(</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    <span class="n">array</span><span class="o">=</span><span class="n">result_array</span><span class="p">,</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="n">output_path</span><span class="o">=</span><span class="s2">"results/processed_data.tif"</span><span class="p">,</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    <span class="n">crs</span><span class="o">=</span><span class="n">profile</span><span class="p">[</span><span class="s1">'crs'</span><span class="p">],</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    <span class="n">transform</span><span class="o">=</span><span class="n">profile</span><span class="p">[</span><span class="s1">'transform'</span><span class="p">],</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    <span class="n">nodata</span><span class="o">=-</span><span class="mf">9999.0</span>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="cdtsioload_raster"><code>cdts.io.load_raster</code></h3>
+<p>Loads a GeoTIFF image into a NumPy array and retrieves its spatial profile. 
+It also provides a built-in safety checker (<code>raster_check</code>) to quickly validate if your raster conforms to the strict format and value requirements of specific CDTS algorithms (like LandTrendr or CCDC) before you start heavy processing.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>file_path</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Path to the raster file (<code>.tif</code>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>raster_check</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">The algorithm to validate against. Options: <code>'landtrendr'</code>, <code>'ccdc'</code>, or <code>'cold'</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_raster</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># 1. Standard loading</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">array</span><span class="p">,</span> <span class="n">profile</span> <span class="o">=</span> <span class="n">load_raster</span><span class="p">(</span><span class="s2">"data/annual_nbr_stack.tif"</span><span class="p">)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># 2. Loading with Data Validation</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># This will raise warnings if the data is unscaled (floats) or lacks the required time depth</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">lt_array</span><span class="p">,</span> <span class="n">lt_profile</span> <span class="o">=</span> <span class="n">load_raster</span><span class="p">(</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="s2">"data/annual_nbr_stack.tif"</span><span class="p">,</span> 
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">raster_check</span><span class="o">=</span><span class="s2">"landtrendr"</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="cdtstmaskapply_tmask_stack"><code>cdts.tmask.apply_tmask_stack</code></h3>
+<p>Applies the Time-series Cloud Masking (Tmask) algorithm to a 3D temporal stack to dynamically map missed clouds and shadows using robust harmonic regression (Huber).</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>dates</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">A 1D array of Julian dates matching the time dimension.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>green_stack</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">A 3D numpy array of the Green spectral band.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>swir_stack</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">A 3D numpy array of the SWIR spectral band (usually SWIR1).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>scale_factor</code></td>
+<td style="text-align: center;"><code>float</code></td>
+<td style="text-align: center;"><code>10000.0</code></td>
+<td style="text-align: left;">Multiplier to convert integer inputs to 0.0-1.0 surface reflectance.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">rasterio</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.tmask</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_tmask_stack</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_raster</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">dates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">737425</span><span class="p">,</span> <span class="mi">737441</span><span class="p">,</span> <span class="mi">737457</span><span class="p">])</span> <span class="c1"># Ordinal dates</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"data/green.tif"</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">green</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"data/swir.tif"</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="n">swir</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="c1"># Generate the boolean cloud mask (True = Clear, False = Cloud/Shadow)</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="n">qa_mask</span> <span class="o">=</span> <span class="n">apply_tmask_stack</span><span class="p">(</span><span class="n">dates</span><span class="p">,</span> <span class="n">green</span><span class="p">,</span> <span class="n">swir</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="mf">10000.0</span><span class="p">)</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="c1"># Invert for CCDC (0 = Clear, 1 = Cloud)</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="n">ccdc_mask</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">qa_mask</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">'uint8'</span><span class="p">)</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="c1"># Save the generated mask</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="n">save_raster</span><span class="p">(</span><span class="n">ccdc_mask</span><span class="p">,</span> <span class="s2">"results/tmask_generated_qa.tif"</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">src</span><span class="o">.</span><span class="n">crs</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">src</span><span class="o">.</span><span class="n">transform</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="cdtssmoothdesawtooth"><code>cdts.smooth.desawtooth</code></h3>
+<p>Applies a temporal smoothing algorithm (despiking) to a 3D raster stack <code>(Time, Rows, Cols)</code> to remove ephemeral 1-year spikes, which are typically caused by unmasked clouds, shadows, or smoke. This is a highly recommended pre-processing step before running LandTrendr.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>raster_stack</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">A 3D numpy array of the time series.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>threshold</code></td>
+<td style="text-align: center;"><code>float</code></td>
+<td style="text-align: center;"><code>0.1</code></td>
+<td style="text-align: left;">The value delta required to flag a spike. Varies by index scale.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>window_size</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>3</code></td>
+<td style="text-align: left;">The size of the rolling window used to detect anomalies.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">rasterio</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.smooth</span><span class="w"> </span><span class="kn">import</span> <span class="n">desawtooth</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_raster</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># Load the raw 3D array</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"data/raw_nbr_stack.tif"</span><span class="p">)</span> <span class="k">as</span> <span class="n">src</span><span class="p">:</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">raw_stack</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">profile</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">profile</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="c1"># Despike the time series</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="n">smoothed_stack</span> <span class="o">=</span> <span class="n">desawtooth</span><span class="p">(</span><span class="n">raw_stack</span><span class="p">)</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="c1"># Save the cleaned stack back to disk</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="n">save_raster</span><span class="p">(</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    <span class="n">array</span><span class="o">=</span><span class="n">smoothed_stack</span><span class="p">,</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="n">output_path</span><span class="o">=</span><span class="s2">"results/smoothed_nbr_stack.tif"</span><span class="p">,</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>    <span class="n">reference_cube</span><span class="o">=</span><span class="n">src</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="core-algorithms-change-detection">Core Algorithms (Change Detection)</h2>
+<h3 id="cdtsrasterrun_landtrendr_image"><code>cdts.raster.run_landtrendr_image</code></h3>
+<p>Executes the LandTrendr algorithm directly on a large multi-band GeoTIFF stored on disk. It handles reading the image in spatial chunks to prevent memory overload, processes the chunks in parallel across CPU cores, and writes the output directly back to disk.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>input_path</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Path to the input multi-band GeoTIFF.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>output_dir</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Directory where output files will be saved.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>start_year</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>2000</code></td>
+<td style="text-align: left;">Calendar year corresponding to the first band.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_segments</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>6</code></td>
+<td style="text-align: left;">Maximum number of line segments allowed per pixel.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>chunk_size</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>512</code></td>
+<td style="text-align: left;">Pixel size of the chunks to read and process at once.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_jobs</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>-1</code></td>
+<td style="text-align: left;">CPU cores to use. <code>-1</code> means all available cores.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>save_vertices</code></td>
+<td style="text-align: center;"><code>bool</code></td>
+<td style="text-align: center;"><code>False</code></td>
+<td style="text-align: left;">Whether to save the raw fitted vertices stack to disk.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>event_type</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'loss'</code></td>
+<td style="text-align: left;">Type of event to extract. Options: <code>'loss'</code> (e.g., deforestation) or <code>'gain'</code> (e.g., regrowth).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.raster</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_landtrendr_image</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Runs LandTrendr on a massive GeoTIFF out-of-core and saves the event metrics directly</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">run_landtrendr_image</span><span class="p">(</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">input_path</span><span class="o">=</span><span class="s2">"data/landsat_nbr_stack_1990_2020.tif"</span><span class="p">,</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">output_dir</span><span class="o">=</span><span class="s2">"results/landtrendr_outputs"</span><span class="p">,</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">start_year</span><span class="o">=</span><span class="mi">1990</span><span class="p">,</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">max_segments</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">chunk_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="n">event_type</span><span class="o">=</span><span class="s1">'loss'</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="cdtsrasterrun_landtrendr_array"><code>cdts.raster.run_landtrendr_array</code></h3>
+<p>Executes the LandTrendr algorithm in memory on a 3D NumPy array stack <code>(Time, Rows, Cols)</code>. It utilizes a C++ backend with OpenMP to distribute pixel trajectories across CPU cores for extremely rapid batch execution.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>years</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">A 1D array of years matching the time dimension.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>raster_stack</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">The 3D input numpy array.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_segments</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>6</code></td>
+<td style="text-align: left;">Maximum number of line segments allowed per pixel.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>pval_threshold</code></td>
+<td style="text-align: center;"><code>float</code></td>
+<td style="text-align: center;"><code>0.05</code></td>
+<td style="text-align: left;">P-value threshold for fitting statistical segments.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_jobs</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>-1</code></td>
+<td style="text-align: left;">CPU cores to use. <code>-1</code> means all available cores.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.raster</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_landtrendr_array</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Synthetic data</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">years</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">2020</span><span class="p">)</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">raster_stack</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">))</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="c1"># Run LandTrendr in parallel</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="n">vertices_stack</span> <span class="o">=</span> <span class="n">run_landtrendr_array</span><span class="p">(</span><span class="n">years</span><span class="p">,</span> <span class="n">raster_stack</span><span class="p">,</span> <span class="n">max_segments</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="cdtslandtrendrrun_landtrendr"><code>cdts.landtrendr.run_landtrendr</code></h3>
+<p>The lowest-level API entry point for LandTrendr. Operates on a single 1-Dimensional time series. It wraps the raw C++ core logic directly via <code>pybind11</code>. Ideal for testing, visualization, or custom integration.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>years</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">A 1D array of years.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>values</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">A 1D array of pixel values.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_segments</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>6</code></td>
+<td style="text-align: left;">Maximum segments to fit.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>pval_threshold</code></td>
+<td style="text-align: center;"><code>float</code></td>
+<td style="text-align: center;"><code>0.05</code></td>
+<td style="text-align: left;">Significance threshold.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.landtrendr</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_landtrendr</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="n">years</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">2010</span><span class="p">)</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="n">pixel_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">100</span><span class="p">,</span> <span class="mi">95</span><span class="p">,</span> <span class="mi">110</span><span class="p">,</span> <span class="mi">800</span><span class="p">,</span> <span class="mi">750</span><span class="p">,</span> <span class="mi">780</span><span class="p">,</span> <span class="mi">700</span><span class="p">,</span> <span class="mi">650</span><span class="p">,</span> <span class="mi">600</span><span class="p">,</span> <span class="mi">500</span><span class="p">])</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="n">vertices</span> <span class="o">=</span> <span class="n">run_landtrendr</span><span class="p">(</span><span class="n">years</span><span class="p">,</span> <span class="n">pixel_values</span><span class="p">,</span> <span class="n">max_segments</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Fitted vertices: </span><span class="si">{</span><span class="n">vertices</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="cdtsrasterrun_ccdc_image"><code>cdts.raster.run_ccdc_image</code></h3>
+<p>Executes the Continuous Change Detection and Classification (CCDC) algorithm directly on a dense multi-band, multi-date GeoTIFF stack stored on disk. Like its LandTrendr counterpart, it handles memory safely via out-of-core chunking.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>input_path</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Path to the stacked GeoTIFF.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>output_dir</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Directory to save the harmonic coefficients and break dates.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>dates</code></td>
+<td style="text-align: center;"><code>list</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">A list of ordinal dates matching the timestamps of the stack.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>num_bands</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>6</code></td>
+<td style="text-align: left;">Number of spectral bands per date in the stack.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>qa_band_idx</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>-1</code></td>
+<td style="text-align: left;">Zero-based index of the QA band. <code>-1</code> disables QA masking.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_segments</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>6</code></td>
+<td style="text-align: left;">Maximum number of distinct change segments to retain.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>conseq_anom</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>3</code></td>
+<td style="text-align: left;">Number of consecutive anomalies required to trigger a break.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_jobs</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>-1</code></td>
+<td style="text-align: left;">CPU cores to use for processing.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.raster</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_ccdc_image</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1"># Generate a list of ordinal dates for the stack</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">dates_str</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"2020-01-15"</span><span class="p">,</span> <span class="s2">"2020-02-01"</span><span class="p">,</span> <span class="s2">"2020-02-17"</span><span class="p">]</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">dates_ordinal</span> <span class="o">=</span> <span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">"</span><span class="p">)</span><span class="o">.</span><span class="n">toordinal</span><span class="p">()</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dates_str</span><span class="p">]</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="c1"># Process the GeoTIFF and save outputs</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">run_ccdc_image</span><span class="p">(</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="n">input_path</span><span class="o">=</span><span class="s2">"data/dense_stack.tif"</span><span class="p">,</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="n">output_dir</span><span class="o">=</span><span class="s2">"results/ccdc_outputs"</span><span class="p">,</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="n">dates</span><span class="o">=</span><span class="n">dates_ordinal</span><span class="p">,</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="n">num_bands</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="n">qa_band_idx</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="c1"># The 6th band is the cloud mask</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>    <span class="n">max_segments</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>    <span class="n">conseq_anom</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>    <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="cdtsrasterrun_ccdc_array"><code>cdts.raster.run_ccdc_array</code></h3>
+<p>Applies the CCDC algorithm across a multi-dimensional array <code>(Bands, Time, Rows, Cols)</code>. It utilizes a C++ backend with OpenMP to distribute pixels across CPU cores for extremely rapid batch execution.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>dates</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Array of ordinal dates.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>spectral_stack</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">A 4D numpy array or stacked 3D array of values.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>qa_stack</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">A 3D numpy array indicating clear (0) or masked (1) pixels.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>num_bands</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>6</code></td>
+<td style="text-align: left;">Number of spectral bands per date.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_segments</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>6</code></td>
+<td style="text-align: left;">Maximum change segments per pixel.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_jobs</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>-1</code></td>
+<td style="text-align: left;">Number of workers.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>conseq_anom</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>3</code></td>
+<td style="text-align: left;">Consecutive anomalies required for a break.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.raster</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_ccdc_array</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1"># Assume pre-loaded dates, spectral stack, and qa mask</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">coefs</span> <span class="o">=</span> <span class="n">run_ccdc_array</span><span class="p">(</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">dates</span><span class="o">=</span><span class="n">ordinal_dates</span><span class="p">,</span> 
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">spectral_stack</span><span class="o">=</span><span class="n">spectral_data</span><span class="p">,</span> 
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="n">qa_stack</span><span class="o">=</span><span class="n">cloud_mask</span><span class="p">,</span> 
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">max_segments</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> 
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="n">n_jobs</span><span class="o">=</span><span class="mi">4</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="metrics-post-processing">Metrics &amp; Post-Processing</h2>
+<h3 id="cdtsmetricsextract_events"><code>cdts.metrics.extract_events</code></h3>
+<p>Parses the raw vertices output generated by LandTrendr and computes intuitive 2D spatial maps representing specific change events (e.g., Year of Detection, Magnitude, Duration).</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>vertices_stack</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">The 3D array output from <code>run_landtrendr_array</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>event_type</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'loss'</code></td>
+<td style="text-align: left;">Filter for event types. Options: <code>'loss'</code> or <code>'gain'</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>sort_by</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'greatest'</code></td>
+<td style="text-align: left;">Strategy to pick the primary event. Options: <code>'greatest'</code> (largest magnitude), <code>'newest'</code> (most recent), <code>'fastest'</code> (shortest duration), <code>'longest'</code> (longest duration).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>min_magnitude</code></td>
+<td style="text-align: center;"><code>float</code></td>
+<td style="text-align: center;"><code>0.0</code></td>
+<td style="text-align: left;">Discard events with magnitude below this threshold.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>min_duration</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>1</code></td>
+<td style="text-align: left;">Discard events shorter than this many years.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>pre_val_threshold</code></td>
+<td style="text-align: center;"><code>float</code></td>
+<td style="text-align: center;"><code>0.0</code></td>
+<td style="text-align: left;">Discard events starting below this initial value.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">extract_events</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_raster</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1"># vertices_stack comes from run_landtrendr_array</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">events</span> <span class="o">=</span> <span class="n">extract_events</span><span class="p">(</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    <span class="n">vertices_stack</span><span class="p">,</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="n">event_type</span><span class="o">=</span><span class="s2">"loss"</span><span class="p">,</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="n">sort_by</span><span class="o">=</span><span class="s2">"greatest"</span><span class="p">,</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="n">min_magnitude</span><span class="o">=</span><span class="mf">100.0</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="p">)</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="c1"># Output is a dictionary of 2D arrays</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="n">yod_map</span> <span class="o">=</span> <span class="n">events</span><span class="p">[</span><span class="s2">"yod"</span><span class="p">]</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="n">mag_map</span> <span class="o">=</span> <span class="n">events</span><span class="p">[</span><span class="s2">"magnitude"</span><span class="p">]</span>
+</span></code></pre></div>
+<h3 id="cdtsccdcpredict_synthetic_image"><code>cdts.ccdc.predict_synthetic_image</code></h3>
+<p>Reconstructs a perfectly cloud-free Synthetic Image for any arbitrary date using the harmonic (Fourier) coefficients generated by CCDC.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>ccdc_coefs_stack</code></td>
+<td style="text-align: center;"><code>np.ndarray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">The array of coefficients output by CCDC.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>target_julian_day</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">The ordinal date for which to predict the image.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>num_bands</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>6</code></td>
+<td style="text-align: left;">Number of spectral bands in the model.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.ccdc</span><span class="w"> </span><span class="kn">import</span> <span class="n">predict_synthetic_image</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># Predict an image for July 1st, 2021</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="n">target_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2021</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">toordinal</span><span class="p">()</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="n">synthetic_img</span> <span class="o">=</span> <span class="n">predict_synthetic_image</span><span class="p">(</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="n">ccdc_coefs_stack</span><span class="o">=</span><span class="n">ccdc_results</span><span class="p">,</span> 
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="n">target_julian_day</span><span class="o">=</span><span class="n">target_date</span><span class="p">,</span> 
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>    <span class="n">num_bands</span><span class="o">=</span><span class="mi">6</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="ai-deep-learning">AI &amp; Deep Learning</h2>
+<h3 id="cdtsaistaccubedataset"><code>cdts.ai.STACCubeDataset</code></h3>
+<p>A specialized PyTorch <code>Dataset</code> that seamlessly bridges <code>xarray.DataArray</code> (or DataCubes) with deep learning workflows. It automatically slices massive satellite image stacks into smaller spatial patches (chips) suitable for neural network training and handles temporal padding.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>cube</code></td>
+<td style="text-align: center;"><code>xr.DataArray</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">The input DataCube.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>labels</code></td>
+<td style="text-align: center;"><code>xr.DataArray</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">The target mask/labels (for training).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>patch_size</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>128</code></td>
+<td style="text-align: left;">Spatial size of the generated chips (e.g., 128x128).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>stride</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>128</code></td>
+<td style="text-align: left;">Stride for extracting patches.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_seq_len</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">Maximum number of timesteps (pads with zeros if shorter).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.ai</span><span class="w"> </span><span class="kn">import</span> <span class="n">STACCubeDataset</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># cube is a pre-loaded xarray</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="n">dataset</span> <span class="o">=</span> <span class="n">STACCubeDataset</span><span class="p">(</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="n">cube</span><span class="o">=</span><span class="n">cube</span><span class="p">,</span> 
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="n">labels</span><span class="o">=</span><span class="n">ground_truth_mask</span><span class="p">,</span> 
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>    <span class="n">patch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> 
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>    <span class="n">stride</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> 
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>    <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">24</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="p">)</span>
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>
+</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="c1"># Ready for PyTorch training loops</span>
+</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="n">dataloader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="cdtsaiutae"><code>cdts.ai.UTAE</code></h3>
+<p>U-Net with Temporal Attention Encoder. A deep learning architecture specialized for multi-temporal, multi-spectral satellite imagery segmentation. Ideal for processing variable-length time-series with missing data (clouds).</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>input_dim</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Number of input spectral bands.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>encoder_widths</code></td>
+<td style="text-align: center;"><code>list</code></td>
+<td style="text-align: center;"><code>[64, 64, 64, 128]</code></td>
+<td style="text-align: left;">Channel dimensions for each layer of the encoder.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>decoder_widths</code></td>
+<td style="text-align: center;"><code>list</code></td>
+<td style="text-align: center;"><code>[32, 32, 64, 128]</code></td>
+<td style="text-align: left;">Channel dimensions for the decoder.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>out_conv</code></td>
+<td style="text-align: center;"><code>list</code></td>
+<td style="text-align: center;"><code>[32, 2]</code></td>
+<td style="text-align: left;">Dimensions of the final output layers (last item is number of classes).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>agg_mode</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'att_group'</code></td>
+<td style="text-align: left;">Strategy for temporal aggregation.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.ai</span><span class="w"> </span><span class="kn">import</span> <span class="n">UTAE</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1"># Initialize a UTAE for 10-class segmentation with 4 spectral bands</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="n">model</span> <span class="o">=</span> <span class="n">UTAE</span><span class="p">(</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="n">input_dim</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="n">out_conv</span><span class="o">=</span><span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">10</span><span class="p">]</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="p">)</span>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="c1"># Dummy Data: (Batch, Time, Bands, H, W)</span>
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="n">X</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">)</span>
+</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="c1"># Output shape: (2, 10, 128, 128)</span>
+</span></code></pre></div>
+<h3 id="cdtsaitempcnn"><code>cdts.ai.TempCNN</code></h3>
+<p>A 1D Temporal Convolutional Neural Network designed specifically for classifying satellite time-series at the pixel level. It uses causal/dilated convolutions to capture seasonal phenology without requiring recurrent layers (like LSTMs).</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>input_dim</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Number of spectral bands.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>num_classes</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Number of output classification categories.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>sequence_len</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Number of timesteps in the sequence.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>hidden_dims</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>64</code></td>
+<td style="text-align: left;">Number of filters in the convolutional layers.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>kernel_size</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><code>5</code></td>
+<td style="text-align: left;">Size of the 1D temporal convolution kernel.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>dropout</code></td>
+<td style="text-align: center;"><code>float</code></td>
+<td style="text-align: center;"><code>0.5</code></td>
+<td style="text-align: left;">Dropout probability for regularization.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.ai</span><span class="w"> </span><span class="kn">import</span> <span class="n">TempCNN</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">TempCNN</span><span class="p">(</span><span class="n">input_dim</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">num_classes</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">sequence_len</span><span class="o">=</span><span class="mi">36</span><span class="p">)</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="c1"># Pixel-level time-series tensor (Batch, Channels, Time)</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="n">X</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">36</span><span class="p">)</span> 
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="c1"># Shape: (32, 5)</span>
+</span></code></pre></div>
+<h3 id="cdtsaisiamesechangedetector"><code>cdts.ai.SiameseChangeDetector</code></h3>
+<p>A PyTorch module for bi-temporal Change Detection. It uses a Siamese CNN architecture (two identical subnetworks sharing weights) to extract features from an image "Time 1" and "Time 2", followed by a contrastive distance metric to highlight areas of change.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>input_dim</code></td>
+<td style="text-align: center;"><code>int</code></td>
+<td style="text-align: center;"><strong>Required</strong></td>
+<td style="text-align: left;">Number of input spectral bands.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>backbone</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'resnet18'</code></td>
+<td style="text-align: left;">The CNN backbone architecture. Options: <code>'resnet18'</code>, <code>'resnet34'</code>, or <code>'unet'</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>pretrained</code></td>
+<td style="text-align: center;"><code>bool</code></td>
+<td style="text-align: center;"><code>True</code></td>
+<td style="text-align: left;">Load pre-trained ImageNet weights (adapts first layer).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>distance_metric</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'euclidean'</code></td>
+<td style="text-align: left;">Metric used to compare features. Options: <code>'euclidean'</code> or <code>'cosine'</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.ai</span><span class="w"> </span><span class="kn">import</span> <span class="n">SiameseChangeDetector</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">SiameseChangeDetector</span><span class="p">(</span><span class="n">input_dim</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">backbone</span><span class="o">=</span><span class="s1">'resnet18'</span><span class="p">)</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="c1"># Two temporal snapshots (Batch, Channels, H, W)</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="n">img_t1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="n">img_t2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="c1"># Returns a spatial change probability map</span>
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="n">change_map</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">img_t1</span><span class="p">,</span> <span class="n">img_t2</span><span class="p">)</span> <span class="c1"># Shape: (8, 1, 256, 256)</span>
+</span></code></pre></div>
+<h3 id="cdtsaigeofoundationvit"><code>cdts.ai.GeoFoundationViT</code></h3>
+<p>A wrapper for Geospatial Foundation Models (like Prithvi or SatMAE) based on Vision Transformers (ViT). This class allows you to load pre-trained massive models and fine-tune them or use them for zero-shot feature extraction on your own rasters.</p>
+<p><strong>Parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Argument</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: center;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>model_name</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'prithvi-100m'</code></td>
+<td style="text-align: left;">The name/ID of the foundation model to load.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>checkpoint_path</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>None</code></td>
+<td style="text-align: left;">Local path to <code>.pth</code> weights (if not downloading automatically).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>freeze_encoder</code></td>
+<td style="text-align: center;"><code>bool</code></td>
+<td style="text-align: center;"><code>False</code></td>
+<td style="text-align: left;">Freeze the transformer backbone for transfer learning.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>task</code></td>
+<td style="text-align: center;"><code>str</code></td>
+<td style="text-align: center;"><code>'segmentation'</code></td>
+<td style="text-align: left;">Fine-tuning head objective. Options: <code>'segmentation'</code> or <code>'classification'</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Usage Example</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.ai</span><span class="w"> </span><span class="kn">import</span> <span class="n">GeoFoundationViT</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="c1"># Load a foundation model and freeze the encoder for transfer learning</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GeoFoundationViT</span><span class="p">(</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="n">model_name</span><span class="o">=</span><span class="s2">"prithvi-100m"</span><span class="p">,</span> 
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    <span class="n">freeze_encoder</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>    <span class="n">task</span><span class="o">=</span><span class="s2">"segmentation"</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="cdtsxarray_api">cdts.xarray_api</h2>
+<p>CDTS registers an Xarray accessor under .cdts for lazy, Dask-backed execution.</p>
+<h3 id="dataarraycdtsrun_ccdcdates-qa_stacknone-max_segments6-return_coefstrue-conseq_anom3-n_jobs-1">DataArray.cdts.run_ccdc(dates, qa_stack=None, max_segments=6, return_coefs=True, conseq_anom=3, n_jobs=-1)</h3>
+<p>Runs CCDC algorithm across a distributed Dask array.</p>
+<h3 id="dataarraycdtsrun_landtrendryears-max_segments6-pval_threshold005-n_jobs-1">DataArray.cdts.run_landtrendr(years, max_segments=6, pval_threshold=0.05, n_jobs=-1)</h3>
+<p>Runs LandTrendr algorithm across a distributed Dask array.</p>
+<h3 id="dataarraycdtsto_zarr_optimizedstore_path-chunk_sizedicty512-x512">DataArray.cdts.to_zarr_optimized(store_path, chunk_size=dict(y=512, x=512))</h3>
+<p>Optimizes spatial chunking and saves the DataArray to Zarr with consolidated metadata.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate", "search.suggest", "search.highlight", "search.share"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
