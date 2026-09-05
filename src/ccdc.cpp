@@ -2,6 +2,7 @@
 #include <cmath>
 #include <Eigen/Dense>
 #include <iostream>
+#include <algorithm>
 
 #ifdef _OPENMP
 #include <omp.h>
