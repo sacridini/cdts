@@ -1,5 +1,7 @@
 #pragma once
 #include <vector>
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
 namespace cdts {
 namespace ccdc {
@@ -25,6 +27,16 @@ std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates,
                                   const std::vector<std::vector<double>>& bands,
                                   const std::vector<int>& qa,
                                   CCDCParams params = CCDCParams());
+
+// Batch fit function for arrays
+pybind11::tuple fit_ccdc_batch(
+    pybind11::array_t<double> values_array, // Shape: [Y, X, Bands, Time]
+    pybind11::array_t<int> qa_array,        // Shape: [Y, X, Time]
+    pybind11::array_t<int> dates_array,     // Shape: [Time]
+    CCDCParams params,
+    int max_segments = 6,
+    bool return_coefs = true,
+    int n_jobs = -1);
 
 } // namespace ccdc
 } // namespace cdts

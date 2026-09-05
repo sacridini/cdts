@@ -86,57 +86,37 @@ def _process_pixel_ccdc(args: Tuple[int, int, np.ndarray, np.ndarray], dates: Un
 
 def run_ccdc_array(dates: "np.ndarray", raster_stack: "np.ndarray", qa_stack: "np.ndarray", max_segments: int = 6, n_jobs: int = -1, return_coefs: bool = True, conseq_anom: int = 3) -> "np.ndarray":
     """
-    Apply CCDC across a 4D numpy array (bands, time, rows, cols) using multiprocessing.
+    Apply CCDC across a 4D numpy array (bands, time, rows, cols) using C++ OpenMP batch processing.
     """
-    num_bands, time_steps, rows, cols = raster_stack.shape
+    from .ccdc import run_ccdc_batch
+    import os as _os
     
-    params_per_segment = 3 + num_bands * 7
-    
-    if return_coefs:
-        output_stack = np.zeros((max_segments, params_per_segment, rows, cols), dtype=np.float32)
-    else:
-        output_stack = np.zeros((max_segments, 1, rows, cols), dtype=np.float32)
-    
-    pixel_args = [
-        (r, c, raster_stack[:, :, r, c], qa_stack[:, r, c]) 
-        for r in range(rows) for c in range(cols)
-    ]
-    
-    worker = partial(_process_pixel_ccdc, dates=dates, max_segments=max_segments, conseq_anom=conseq_anom)
-                     
     if n_jobs == -1:
-        import os as _os
-        n_jobs = _os.cpu_count() or 4
+        n_jobs = max(1, (_os.cpu_count() or 4) - 1)
         
-    if n_jobs == 1:
-        results = list(map(worker, pixel_args))
-    else:
-        with Pool(processes=n_jobs) as pool:
-            results = pool.map(worker, pixel_args)
-        
-    for row, col, segments in results:
-        n_segs = len(segments)
-        if n_segs == 0:
-            continue
-            
-        n_segs = min(n_segs, max_segments)
-        
-        for i in range(n_segs):
-            seg = segments[i]
-            if return_coefs:
-                output_stack[i, 0, row, col] = seg['t_start']
-                output_stack[i, 1, row, col] = seg['t_end']
-                output_stack[i, 2, row, col] = seg['t_break'] if seg['t_break'] > 0 else 0
-                
-                idx = 3
-                for b in range(num_bands):
-                    output_stack[i, idx, row, col] = seg['rmse'][b]
-                    idx += 1
-                    for c_idx in range(6):
-                        output_stack[i, idx, row, col] = seg['coefs'][b][c_idx]
-                        idx += 1
-            else:
-                output_stack[i, 0, row, col] = seg['t_break'] if seg['t_break'] > 0 else 0
+    num_bands, time_steps, rows, cols = raster_stack.shape
+    params_per_segment = 3 + num_bands * 7 if return_coefs else 1
+    
+    # Transpose raster_stack to [rows, cols, bands, time]
+    values = np.transpose(raster_stack, (2, 3, 0, 1))
+    
+    # Transpose qa_stack from (time, rows, cols) to (rows, cols, time)
+    qa = np.transpose(qa_stack, (1, 2, 0))
+    
+    segments_array, counts_array = run_ccdc_batch(dates, values, qa, max_segments, return_coefs, conseq_anom, n_jobs)
+    
+    # segments_array shape: (rows * cols, max_segments, params_per_segment)
+    # Reshape it to (rows, cols, max_segments, params_per_segment)
+    segments_array = segments_array.reshape((rows, cols, max_segments, params_per_segment))
+    counts_array = counts_array.reshape((rows, cols))
+    
+    # Final output shape: (max_segments, params_per_segment, rows, cols)
+    output_stack = np.zeros((max_segments, params_per_segment, rows, cols), dtype=np.float32)
+    
+    for i in range(max_segments):
+        mask = i < counts_array
+        for p in range(params_per_segment):
+            output_stack[i, p, :, :] = np.where(mask, segments_array[:, :, i, p], 0)
             
     return output_stack
 

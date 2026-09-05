@@ -3,6 +3,10 @@
 #include <Eigen/Dense>
 #include <iostream>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace cdts {
 namespace ccdc {
 
@@ -305,6 +309,110 @@ std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates,
     }
     
     return segments;
+}
+
+pybind11::tuple fit_ccdc_batch(
+    pybind11::array_t<double> values_array, // Shape: [Y, X, Bands, Time]
+    pybind11::array_t<int> qa_array,        // Shape: [Y, X, Time]
+    pybind11::array_t<int> dates_array,     // Shape: [Time]
+    CCDCParams params,
+    int max_segments,
+    bool return_coefs,
+    int n_jobs) 
+{
+    auto val_buf = values_array.request();
+    auto qa_buf = qa_array.request();
+    auto dates_buf = dates_array.request();
+    
+    int height = val_buf.shape[0];
+    int width = val_buf.shape[1];
+    int num_bands = val_buf.shape[2];
+    int times = val_buf.shape[3];
+    int num_pixels = height * width;
+    
+    double* val_ptr = static_cast<double*>(val_buf.ptr);
+    int* qa_ptr = static_cast<int*>(qa_buf.ptr);
+    int* dates_ptr = static_cast<int*>(dates_buf.ptr);
+    
+    std::vector<int> dates(dates_ptr, dates_ptr + times);
+    
+    int params_per_segment = return_coefs ? (3 + num_bands * 7) : 1;
+    
+    // Output arrays
+    pybind11::array_t<double> segments_out({num_pixels, max_segments, params_per_segment});
+    auto seg_ptr = static_cast<double*>(segments_out.request().ptr);
+    
+    pybind11::array_t<int> counts_out(num_pixels);
+    auto counts_ptr = static_cast<int*>(counts_out.request().ptr);
+    
+    std::fill(seg_ptr, seg_ptr + (num_pixels * max_segments * params_per_segment), 0.0);
+    std::fill(counts_ptr, counts_ptr + num_pixels, 0);
+    
+    #ifdef _OPENMP
+    if (n_jobs > 0) {
+        omp_set_num_threads(n_jobs);
+    }
+    #pragma omp parallel for schedule(dynamic)
+    #endif
+    for (int p = 0; p < num_pixels; ++p) {
+        std::vector<std::vector<double>> pixel_bands(num_bands, std::vector<double>(times));
+        std::vector<int> pixel_qa(times);
+        
+        bool all_nan = true;
+        for (int t = 0; t < times; ++t) {
+            pixel_qa[t] = qa_ptr[p * times + t];
+            bool has_nan_in_time = false;
+            for (int b = 0; b < num_bands; ++b) {
+                double v = val_ptr[p * num_bands * times + b * times + t];
+                pixel_bands[b][t] = v;
+                if (std::isnan(v)) {
+                    has_nan_in_time = true;
+                } else if (v != 0.0) {
+                    all_nan = false;
+                }
+            }
+            if (has_nan_in_time) {
+                pixel_qa[t] = 1; // Mask this date if any band is NaN
+            }
+        }
+        
+        if (all_nan) {
+            continue;
+        }
+        
+        std::vector<CCDCSegment> segs;
+        try {
+            segs = fit_ccdc(dates, pixel_bands, pixel_qa, params);
+        } catch (...) {
+            // Ignore errors for individual pixels
+        }
+        
+        int n_segs = std::min((int)segs.size(), max_segments);
+        counts_ptr[p] = n_segs;
+        
+        for (int i = 0; i < n_segs; ++i) {
+            const auto& seg = segs[i];
+            int base_idx = p * max_segments * params_per_segment + i * params_per_segment;
+            
+            if (return_coefs) {
+                seg_ptr[base_idx + 0] = seg.t_start;
+                seg_ptr[base_idx + 1] = seg.t_end;
+                seg_ptr[base_idx + 2] = seg.t_break > 0 ? seg.t_break : 0;
+                
+                int idx = 3;
+                for (int b = 0; b < num_bands; ++b) {
+                    seg_ptr[base_idx + idx++] = seg.rmse[b];
+                    for (int c = 0; c < 6; ++c) {
+                        seg_ptr[base_idx + idx++] = seg.coefs[b][c];
+                    }
+                }
+            } else {
+                seg_ptr[base_idx + 0] = seg.t_break > 0 ? seg.t_break : 0;
+            }
+        }
+    }
+    
+    return pybind11::make_tuple(segments_out, counts_out);
 }
 
 } // namespace ccdc

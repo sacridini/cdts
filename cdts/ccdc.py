@@ -87,3 +87,28 @@ def predict_synthetic_image(ccdc_coefs_stack: np.ndarray, target_julian_day: int
                 synthetic_image[b, r, c] = np.dot(coefs, terms)
                 
     return synthetic_image
+
+def run_ccdc_batch(dates: np.ndarray, values: np.ndarray, qa: np.ndarray, max_segments: int = 6, return_coefs: bool = True, conseq_anom: int = 3, n_jobs: int = -1):
+    """
+    Run CCDC algorithm on a batch of pixels.
+    
+    Args:
+        dates (np.ndarray): 1D array of ordinal dates [Time].
+        values (np.ndarray): 4D array of spectral values [Y, X, Bands, Time].
+        qa (np.ndarray): 3D array of QA values [Y, X, Time].
+        max_segments (int): Maximum number of segments to fit.
+        return_coefs (bool): Whether to return harmonic coefficients.
+        conseq_anom (int): Consecutive anomalies to trigger a break.
+        n_jobs (int): Number of threads for OpenMP to use. Default -1 (use all).
+        
+    Returns:
+        tuple of (segments_array, counts_array)
+    """
+    params = _core.ccdc.CCDCParams()
+    params.conseq_anom = conseq_anom
+    
+    dates = np.ascontiguousarray(dates, dtype=np.int32)
+    values = np.ascontiguousarray(values, dtype=np.float64)
+    qa = np.ascontiguousarray(qa, dtype=np.int32)
+    
+    return _core.ccdc.fit_ccdc_batch(values, qa, dates, params, max_segments, return_coefs, n_jobs)

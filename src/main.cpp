@@ -63,6 +63,11 @@ PYBIND11_MODULE(_core, m) {
            py::arg("dates"), py::arg("values"), py::arg("qa"),
            py::arg("params") = cdts::ccdc::CCDCParams());
 
+    // Expose the fit_ccdc_batch function to Python
+    mc.def("fit_ccdc_batch", &cdts::ccdc::fit_ccdc_batch, "Run CCDC on a batch of pixels with OpenMP",
+             py::arg("values_array"), py::arg("qa_array"), py::arg("dates_array"), 
+             py::arg("params"), py::arg("max_segments") = 6, py::arg("return_coefs") = true, py::arg("n_jobs") = -1);
+
     // Utilities sub-module
     py::module_ utils = m.def_submodule("utils", "Geospatial utilities and processing");
     
@@ -70,4 +75,3 @@ PYBIND11_MODULE(_core, m) {
            "Computes the multidimensional medoid composite over the time axis",
            py::arg("input_array"), py::arg("no_data_value") = -9999.0);
 }
-
