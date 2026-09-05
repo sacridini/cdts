@@ -269,7 +269,7 @@ run_landtrendr_image(
 
 ### `cdts.raster.run_landtrendr_array`
 
-Executes the LandTrendr algorithm in memory on a 3D NumPy array stack `(Time, Rows, Cols)`. It utilizes Python's `multiprocessing` to distribute pixel trajectories across all CPU cores for rapid execution.
+Executes the LandTrendr algorithm in memory on a 3D NumPy array stack `(Time, Rows, Cols)`. It utilizes a C++ backend with OpenMP to distribute pixel trajectories across CPU cores for extremely rapid batch execution.
 
 **Parameters**
 
@@ -365,7 +365,7 @@ run_ccdc_image(
 
 ### `cdts.raster.run_ccdc_array`
 
-Applies the CCDC algorithm across a multi-dimensional array `(Bands, Time, Rows, Cols)` using parallel processing.
+Applies the CCDC algorithm across a multi-dimensional array `(Bands, Time, Rows, Cols)`. It utilizes a C++ backend with OpenMP to distribute pixels across CPU cores for extremely rapid batch execution.
 
 **Parameters**
 
