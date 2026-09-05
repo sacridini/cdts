@@ -7,6 +7,10 @@
 #include <vector>
 #include <numeric>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 // -------------------------------------------------------------
 // Math Functions for Statistical Significance (P-value / F-Stat)
 // -------------------------------------------------------------
@@ -483,7 +487,8 @@ pybind11::tuple fit_trajectory_batch(
     pybind11::array_t<double> values_array, // Shape: [Y, X, Time]
     pybind11::array_t<int> years_array,     // Shape: [Time]
     LandTrendrParams params,
-    double no_data_value
+    double no_data_value,
+    int n_jobs
 ) {
     auto val_buf = values_array.request();
     auto year_buf = years_array.request();
@@ -510,6 +515,9 @@ pybind11::tuple fit_trajectory_batch(
     std::fill(counts_ptr, counts_ptr + num_pixels, 0);
     
     #ifdef _OPENMP
+    if (n_jobs > 0) {
+        omp_set_num_threads(n_jobs);
+    }
     #pragma omp parallel for schedule(dynamic)
     #endif
     for (int p = 0; p < num_pixels; ++p) {

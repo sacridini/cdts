@@ -33,7 +33,8 @@ pybind11::tuple fit_trajectory_batch(
     pybind11::array_t<double> values_array, // Shape: [Y, X, Time]
     pybind11::array_t<int> years_array,     // Shape: [Time]
     LandTrendrParams params,
-    double no_data_value = -9999.0);
+    double no_data_value = -9999.0,
+    int n_jobs = -1);
 
 } // namespace landtrendr
 } // namespace cdts

@@ -35,7 +35,7 @@ def run_landtrendr(years: Union[np.ndarray, List[int]], values: Union[np.ndarray
     
     return [{"year": v.year, "value": v.value} for v in vertices]
 
-def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: int = 6, pval_threshold: float = 0.05, no_data_value: float = -9999.0):
+def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: int = 6, pval_threshold: float = 0.05, no_data_value: float = -9999.0, n_jobs: int = -1):
     """
     Run LandTrendr algorithm on a batch of pixels.
     
@@ -45,6 +45,7 @@ def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: in
         max_segments (int): Maximum number of segments to fit.
         pval_threshold (float): P-value threshold for segment significance.
         no_data_value (float): No data value in the array.
+        n_jobs (int): Number of threads for OpenMP to use. Default -1 (use all).
         
     Returns:
         tuple of (vertices_array, counts_array)
@@ -58,7 +59,7 @@ def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: in
     years = np.ascontiguousarray(years, dtype=np.int32)
     values = np.ascontiguousarray(values, dtype=np.float64)
     
-    return _core.landtrendr.fit_trajectory_batch(values, years, params, no_data_value)
+    return _core.landtrendr.fit_trajectory_batch(values, years, params, no_data_value, n_jobs)
 
 def apply_vertices(vertex_years: Union[np.ndarray, List[int]], other_band_years: Union[np.ndarray, List[int]], other_band_values: Union[np.ndarray, List[float]]) -> List[Dict[str, Union[int, float]]]:
     """

@@ -29,6 +29,10 @@ def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_se
     Apply LandTrendr across a 3D numpy array (time_steps, rows, cols) using C++ batch processing with OpenMP.
     """
     from .landtrendr import run_landtrendr_batch
+    import os as _os
+    
+    if n_jobs == -1:
+        n_jobs = max(1, (_os.cpu_count() or 4) - 1)
     
     time_steps, rows, cols = raster_stack.shape
     max_vertices = max_segments + 1
@@ -39,7 +43,7 @@ def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_se
     values = np.transpose(raster_stack, (1, 2, 0))
     
     # Run the C++ batch
-    vertices_array, counts_array = run_landtrendr_batch(years, values, max_segments, pval_threshold, no_data_value=0.0)
+    vertices_array, counts_array = run_landtrendr_batch(years, values, max_segments, pval_threshold, no_data_value=0.0, n_jobs=n_jobs)
     
     # vertices_array shape: (rows * cols, max_vertices, 2)
     # Reshape to (rows, cols, max_vertices, 2)

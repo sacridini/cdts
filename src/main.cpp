@@ -33,7 +33,7 @@ PYBIND11_MODULE(_core, m) {
     // Expose the fit_trajectory_batch function to Python
     lt.def("fit_trajectory_batch", &cdts::landtrendr::fit_trajectory_batch, 
            "Run LandTrendr on a batch of pixels (3D array: [Y, X, Time]) with OpenMP",
-           py::arg("values_array"), py::arg("years_array"), py::arg("params"), py::arg("no_data_value") = -9999.0);
+           py::arg("values_array"), py::arg("years_array"), py::arg("params"), py::arg("no_data_value") = -9999.0, py::arg("n_jobs") = -1);
 
     // Expose desawtooth function for testing
     lt.def("desawtooth", &cdts::landtrendr::desawtooth,
