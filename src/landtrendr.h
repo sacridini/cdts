@@ -1,5 +1,7 @@
 #pragma once
 #include <vector>
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 
 namespace cdts {
 namespace landtrendr {
@@ -25,6 +27,13 @@ std::vector<Vertex> fit_trajectory(const std::vector<int>& years,
 
 // Desawtooth function
 std::vector<double> desawtooth(const std::vector<double>& vals, double stopat = 0.9);
+
+// New batch fit function
+pybind11::tuple fit_trajectory_batch(
+    pybind11::array_t<double> values_array, // Shape: [Y, X, Time]
+    pybind11::array_t<int> years_array,     // Shape: [Time]
+    LandTrendrParams params,
+    double no_data_value = -9999.0);
 
 } // namespace landtrendr
 } // namespace cdts

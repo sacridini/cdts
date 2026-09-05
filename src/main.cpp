@@ -3,6 +3,7 @@
 #include <pybind11/numpy.h>
 #include "landtrendr.h"
 #include "ccdc.h"
+#include "utils.h"
 
 namespace py = pybind11;
 
@@ -28,6 +29,11 @@ PYBIND11_MODULE(_core, m) {
     lt.def("fit_trajectory", &cdts::landtrendr::fit_trajectory, 
            "Run LandTrendr on a single pixel time series",
            py::arg("years"), py::arg("values"), py::arg("params"));
+
+    // Expose the fit_trajectory_batch function to Python
+    lt.def("fit_trajectory_batch", &cdts::landtrendr::fit_trajectory_batch, 
+           "Run LandTrendr on a batch of pixels (3D array: [Y, X, Time]) with OpenMP",
+           py::arg("values_array"), py::arg("years_array"), py::arg("params"), py::arg("no_data_value") = -9999.0);
 
     // Expose desawtooth function for testing
     lt.def("desawtooth", &cdts::landtrendr::desawtooth,
@@ -56,4 +62,12 @@ PYBIND11_MODULE(_core, m) {
            "Run CCDC on a single pixel time series",
            py::arg("dates"), py::arg("values"), py::arg("qa"),
            py::arg("params") = cdts::ccdc::CCDCParams());
+
+    // Utilities sub-module
+    py::module_ utils = m.def_submodule("utils", "Geospatial utilities and processing");
+    
+    utils.def("compute_medoid", &cdts::utils::compute_medoid,
+           "Computes the multidimensional medoid composite over the time axis",
+           py::arg("input_array"), py::arg("no_data_value") = -9999.0);
 }
+

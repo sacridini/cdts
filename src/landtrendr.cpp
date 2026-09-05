@@ -479,5 +479,63 @@ std::vector<Vertex> fit_trajectory(const std::vector<int>& years,
     return vertices;
 }
 
+pybind11::tuple fit_trajectory_batch(
+    pybind11::array_t<double> values_array, // Shape: [Y, X, Time]
+    pybind11::array_t<int> years_array,     // Shape: [Time]
+    LandTrendrParams params,
+    double no_data_value
+) {
+    auto val_buf = values_array.request();
+    auto year_buf = years_array.request();
+    
+    int height = val_buf.shape[0];
+    int width = val_buf.shape[1];
+    int times = val_buf.shape[2];
+    int num_pixels = height * width;
+    
+    double* val_ptr = static_cast<double*>(val_buf.ptr);
+    int* year_ptr = static_cast<int*>(year_buf.ptr);
+    
+    std::vector<int> years(year_ptr, year_ptr + times);
+    int max_vertices = params.max_segments + 1;
+    
+    // Output arrays
+    pybind11::array_t<double> vertices_out({num_pixels, max_vertices, 2});
+    auto vert_ptr = static_cast<double*>(vertices_out.request().ptr);
+    
+    pybind11::array_t<int> counts_out(num_pixels);
+    auto counts_ptr = static_cast<int*>(counts_out.request().ptr);
+    
+    std::fill(vert_ptr, vert_ptr + (num_pixels * max_vertices * 2), no_data_value);
+    std::fill(counts_ptr, counts_ptr + num_pixels, 0);
+    
+    #ifdef _OPENMP
+    #pragma omp parallel for schedule(dynamic)
+    #endif
+    for (int p = 0; p < num_pixels; ++p) {
+        std::vector<double> pixel_values(times);
+        bool has_valid_data = false;
+        
+        for (int t = 0; t < times; ++t) {
+            double v = val_ptr[p * times + t];
+            pixel_values[t] = v;
+            if (v != no_data_value && !std::isnan(v)) has_valid_data = true;
+        }
+        
+        if (!has_valid_data) continue;
+        
+        std::vector<Vertex> result = fit_trajectory(years, pixel_values, params);
+        
+        counts_ptr[p] = result.size();
+        for (size_t i = 0; i < result.size() && (int)i < max_vertices; ++i) {
+            vert_ptr[p * max_vertices * 2 + i * 2 + 0] = result[i].year;
+            vert_ptr[p * max_vertices * 2 + i * 2 + 1] = result[i].value;
+        }
+    }
+    
+    return pybind11::make_tuple(vertices_out, counts_out);
+}
+
 } // namespace landtrendr
 } // namespace cdts
+

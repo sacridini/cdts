@@ -35,6 +35,31 @@ def run_landtrendr(years: Union[np.ndarray, List[int]], values: Union[np.ndarray
     
     return [{"year": v.year, "value": v.value} for v in vertices]
 
+def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: int = 6, pval_threshold: float = 0.05, no_data_value: float = -9999.0):
+    """
+    Run LandTrendr algorithm on a batch of pixels.
+    
+    Args:
+        years (np.ndarray): 1D array of years [Time].
+        values (np.ndarray): 3D array of spectral values [Y, X, Time].
+        max_segments (int): Maximum number of segments to fit.
+        pval_threshold (float): P-value threshold for segment significance.
+        no_data_value (float): No data value in the array.
+        
+    Returns:
+        tuple of (vertices_array, counts_array)
+        vertices_array: [Y*X, max_segments+1, 2] containing (year, value) for each vertex
+        counts_array: [Y*X] containing the number of valid vertices found for each pixel
+    """
+    params = _core.landtrendr.LandTrendrParams()
+    params.max_segments = max_segments
+    params.pval_threshold = pval_threshold
+    
+    years = np.ascontiguousarray(years, dtype=np.int32)
+    values = np.ascontiguousarray(values, dtype=np.float64)
+    
+    return _core.landtrendr.fit_trajectory_batch(values, years, params, no_data_value)
+
 def apply_vertices(vertex_years: Union[np.ndarray, List[int]], other_band_years: Union[np.ndarray, List[int]], other_band_values: Union[np.ndarray, List[float]]) -> List[Dict[str, Union[int, float]]]:
     """
     Applies LandTrendr structural vertices (FTV - Fitted to Vertices) to another spectral band.
