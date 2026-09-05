@@ -22,7 +22,8 @@ dependencies = [
     "transformers",
     "planetary-computer",
     "earthengine-api",
-    "requests"
+    "requests",
+    "zarr"
 ]
 
 [project.optional-dependencies]
