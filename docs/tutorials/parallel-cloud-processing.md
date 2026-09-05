@@ -68,25 +68,13 @@ client = Client(cluster)
 
 ---
 
-## 3. Dask vs OpenMP: Avoiding Thread Oversubscription
+## 3. Zarr Format for Cloud Processing
 
-When integrating Dask with CDTS's highly optimized C++ engine, there is a classic trap: **Thread Oversubscription**. 
-By default, the C++ engine uses OpenMP to spawn one thread per CPU core. If Dask also spawns multiple worker processes on the same machine, and each worker spawns its own OpenMP threads, you will end up with `(Dask Workers) * (OpenMP Threads)` competing for the same CPU cores. This causes catastrophic context-switching and makes processing slower.
+In a distributed environment where multiple workers process data concurrently, writing outputs to a single GeoTIFF file can result in file corruption or I/O bottlenecks. 
 
-To solve this, the `.cdts` accessor allows you to orchestrate the parallelism using the `n_jobs` parameter:
+Zarr is a format designed for cloud storage that represents multi-dimensional arrays as a directory of compressed chunk files. Because each chunk is a separate file, multiple distributed workers can write their respective chunks in parallel without encountering race conditions.
 
-* **Strategy A (Cluster-Level / Recommended):** Configure Dask to spawn only **1 worker per physical machine**. Then, use `n_jobs=-1` in CDTS. Dask will simply hand over a chunk of the image to a machine, and OpenMP will use 100% of the cores on that machine to process it at maximum C++ speed.
-* **Strategy B (Process-Level):** If Dask is spawning multiple workers per machine (e.g., 8 workers on an 8-core CPU), you MUST pass `n_jobs=1` to CDTS. This turns off OpenMP, allowing Dask to manage the parallelism across its worker processes.
-
----
-
-## 4. Why Zarr is Crucial (Say Goodbye to GeoTIFF)
-
-When a single laptop processes data, saving to a single `.tif` file is fine. However, when 50 cloud servers or 3 office PCs are processing data simultaneously, they **cannot** all write to the same GeoTIFF file at the same time—it creates a massive bottleneck and corrupts the file.
-
-The modern standard for cloud processing is **Zarr**. Zarr stores multi-dimensional arrays in a structured directory of thousands of tiny chunk files. This allows an unlimited number of servers to read and write data simultaneously without stepping on each other's toes.
-
-To make this frictionless, CDTS provides `.cdts.to_zarr_optimized()`. This method encapsulates Spatial Engineering best practices: it forces ideal spatial chunking (e.g., 512x512) and consolidates metadata into a single JSON, making cloud reads up to 10x faster.
+To assist with exporting data to this format, CDTS provides the `.cdts.to_zarr_optimized()` method. This helper function allows for custom spatial chunking (defaulting to 512x512) and consolidates the dataset metadata into a single file to improve read performance from object storage (like AWS S3 or Google Cloud Storage).
 
 ### Complete Practical Workflow
 
@@ -109,7 +97,6 @@ def run_distributed_analysis():
     years = [2020, 2021, 2022, 2023, 2024]
     
     # 3. Disperse the C++ algorithm across the cluster
-    # We use Strategy A (n_jobs=-1), assuming 1 Dask Worker per Node
     print("Mapping LandTrendr across the cluster...")
     lt_results = cube.cdts.run_landtrendr(years=years, n_jobs=-1)
     
