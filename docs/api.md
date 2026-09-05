@@ -607,3 +607,16 @@ model = GeoFoundationViT(
 )
 ```
 
+
+## cdts.xarray_api
+
+CDTS registers an Xarray accessor under .cdts for lazy, Dask-backed execution.
+
+### DataArray.cdts.run_ccdc(dates, qa_stack=None, max_segments=6, return_coefs=True, conseq_anom=3, n_jobs=-1)
+Runs CCDC algorithm across a distributed Dask array.
+
+### DataArray.cdts.run_landtrendr(years, max_segments=6, pval_threshold=0.05, n_jobs=-1)
+Runs LandTrendr algorithm across a distributed Dask array.
+
+### DataArray.cdts.to_zarr_optimized(store_path, chunk_size=dict(y=512, x=512))
+Optimizes spatial chunking and saves the DataArray to Zarr with consolidated metadata.
