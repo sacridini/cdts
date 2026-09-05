@@ -42,8 +42,11 @@ def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_se
     # Transpose from (time, row, col) to (row, col, time) for batch function
     values = np.transpose(raster_stack, (1, 2, 0))
     
+    if n_jobs > 0:
+        _os.environ['OMP_NUM_THREADS'] = str(n_jobs)
+        
     # Run the C++ batch
-    vertices_array, counts_array = run_landtrendr_batch(years, values, max_segments, pval_threshold, no_data_value=0.0, n_jobs=n_jobs)
+    vertices_array, counts_array = run_landtrendr_batch(years, values, max_segments, pval_threshold, no_data_value=0.0)
     
     # vertices_array shape: (rows * cols, max_vertices, 2)
     # Reshape to (rows, cols, max_vertices, 2)
