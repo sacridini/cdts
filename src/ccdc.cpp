@@ -88,9 +88,29 @@ double chi2_cdf(double x, double df) {
     return gammap(df / 2.0, x / 2.0);
 }
 
+double chi2_ppf(double p, int df) {
+    double low = 0.0;
+    double high = 1000.0; 
+    while(chi2_cdf(high, df) < p) {
+        low = high;
+        high *= 2.0;
+    }
+    for(int i = 0; i < 60; ++i) { 
+        double mid = (low + high) / 2.0;
+        if(chi2_cdf(mid, df) < p) {
+            low = mid;
+        } else {
+            high = mid;
+        }
+    }
+    return (low + high) / 2.0;
+}
+
 // Helper to fit Harmonic OLS with IRLS (Robust Fit) for a SINGLE band
 bool fit_harmonic_robust(const std::vector<int>& dates, 
                          const std::vector<double>& values,
+                         const std::vector<double>& cos_t,
+                         const std::vector<double>& sin_t,
                          int start_idx, int end_idx,
                          Eigen::VectorXd& beta_out, double& rmse_out) {
     int n = end_idx - start_idx + 1;
@@ -101,36 +121,37 @@ bool fit_harmonic_robust(const std::vector<int>& dates,
     Eigen::VectorXd Y(n);
     
     for (int i = 0; i < n; ++i) {
-        double t = dates[start_idx + i];
         Y(i) = values[start_idx + i];
         
+        double c_wt = cos_t[start_idx + i];
+        double s_wt = sin_t[start_idx + i];
+        
         X(i, 0) = 1.0;
-        X(i, 1) = t;
-        X(i, 2) = std::cos(W * t);
-        X(i, 3) = std::sin(W * t);
-        X(i, 4) = std::cos(2.0 * W * t);
-        X(i, 5) = std::sin(2.0 * W * t);
+        X(i, 1) = dates[start_idx + i];
+        X(i, 2) = c_wt;
+        X(i, 3) = s_wt;
+        X(i, 4) = c_wt * c_wt - s_wt * s_wt;
+        X(i, 5) = 2.0 * s_wt * c_wt;
     }
     
     // IRLS Loop (3 iterations is usually enough for CCDC initialization)
     Eigen::VectorXd w = Eigen::VectorXd::Ones(n);
     for (int iter = 0; iter < 4; ++iter) {
-        Eigen::MatrixXd W_mat = w.asDiagonal();
-        Eigen::MatrixXd Xw = W_mat * X;
-        Eigen::VectorXd Yw = W_mat * Y;
+        Eigen::VectorXd w2 = w.cwiseAbs2(); 
+        Eigen::MatrixXd XtWX = X.transpose() * w2.asDiagonal() * X;
+        Eigen::VectorXd XtWY = X.transpose() * w2.cwiseProduct(Y);
         
-        beta_out = (Xw.transpose() * Xw).ldlt().solve(Xw.transpose() * Yw);
+        beta_out = XtWX.ldlt().solve(XtWY);
         
         Eigen::VectorXd residuals = Y - X * beta_out;
         
-        // Calculate Median Absolute Deviation (MAD)
         std::vector<double> abs_res(n);
         for(int i=0; i<n; ++i) abs_res[i] = std::abs(residuals(i));
-        std::sort(abs_res.begin(), abs_res.end());
+        
+        std::nth_element(abs_res.begin(), abs_res.begin() + n/2, abs_res.end());
         double mad = abs_res[n/2];
         if (mad < 1e-6) mad = 1e-6;
         
-        // Bisquare weights
         double tune = 4.685 * mad / 0.6745;
         for (int i = 0; i < n; ++i) {
             double r = std::abs(residuals(i)) / tune;
@@ -148,10 +169,13 @@ bool fit_harmonic_robust(const std::vector<int>& dates,
     return true;
 }
 
-std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates, 
-                                  const std::vector<std::vector<double>>& band_values,
-                                  const std::vector<int>& qa,
-                                  CCDCParams params) {
+std::vector<CCDCSegment> fit_ccdc_core(const std::vector<int>& dates, 
+                                       const std::vector<double>& global_cos,
+                                       const std::vector<double>& global_sin,
+                                       const std::vector<std::vector<double>>& band_values,
+                                       const std::vector<int>& qa,
+                                       CCDCParams params,
+                                       double chi2_crit) {
     std::vector<CCDCSegment> segments;
     int num_bands = band_values.size();
     if (num_bands == 0) return segments;
@@ -159,11 +183,20 @@ std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates,
     
     // 1. Filter out QA pixels (clouds, shadows)
     std::vector<int> valid_dates;
+    std::vector<double> valid_cos;
+    std::vector<double> valid_sin;
     std::vector<std::vector<double>> valid_bands(num_bands);
+    
+    valid_dates.reserve(n_total);
+    valid_cos.reserve(n_total);
+    valid_sin.reserve(n_total);
+    for (int b = 0; b < num_bands; ++b) valid_bands[b].reserve(n_total);
     
     for (int i = 0; i < n_total; ++i) {
         if (qa[i] == 0) { // Assuming 0 means clear
             valid_dates.push_back(dates[i]);
+            valid_cos.push_back(global_cos[i]);
+            valid_sin.push_back(global_sin[i]);
             for (int b = 0; b < num_bands; ++b) {
                 valid_bands[b].push_back(band_values[b][i]);
             }
@@ -186,7 +219,7 @@ std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates,
         
         // Fit initial model for ALL bands
         for (int b = 0; b < num_bands; ++b) {
-            if (!fit_harmonic_robust(valid_dates, valid_bands[b], start_idx, end_idx, betas[b], rmses[b])) {
+            if (!fit_harmonic_robust(valid_dates, valid_bands[b], valid_cos, valid_sin, start_idx, end_idx, betas[b], rmses[b])) {
                 init_success = false;
                 break;
             }
@@ -202,14 +235,19 @@ std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates,
         for (int i = end_idx + 1; i < n; ++i) {
             double t = valid_dates[i];
             
+            double cos_wt = valid_cos[i];
+            double sin_wt = valid_sin[i];
+            double cos_2wt = cos_wt * cos_wt - sin_wt * sin_wt;
+            double sin_2wt = 2.0 * sin_wt * cos_wt;
+            
             // Calculate a unified Change Metric across all bands
             double change_metric = 0.0;
             
             for (int b = 0; b < num_bands; ++b) {
                 double actual = valid_bands[b][i];
                 double pred = betas[b](0) + betas[b](1)*t + 
-                              betas[b](2)*std::cos(W*t) + betas[b](3)*std::sin(W*t) + 
-                              betas[b](4)*std::cos(2.0*W*t) + betas[b](5)*std::sin(2.0*W*t);
+                              betas[b](2)*cos_wt + betas[b](3)*sin_wt + 
+                              betas[b](4)*cos_2wt + betas[b](5)*sin_2wt;
                               
                 double residual = std::abs(actual - pred);
                 
@@ -218,10 +256,8 @@ std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates,
                 change_metric += norm_res * norm_res;
             }
             
-            // Dynamic threshold using exact Chi-Square CDF
-            double prob_change = chi2_cdf(change_metric, num_bands);
-            
-            if (prob_change > params.chi2_prob_threshold) {
+            // Dynamic threshold check
+            if (change_metric > chi2_crit) {
                 anom_count++;
                 if (anom_count == params.conseq_anom) {
                     bool valid_break = true;
@@ -232,10 +268,15 @@ std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates,
                             int neg_count = 0;
                             for (int k = i - params.conseq_anom + 1; k <= i; ++k) {
                                 double t_anom = valid_dates[k];
+                                double c_wt = valid_cos[k];
+                                double s_wt = valid_sin[k];
+                                double c_2wt = c_wt * c_wt - s_wt * s_wt;
+                                double s_2wt = 2.0 * s_wt * c_wt;
+                                
                                 double actual = valid_bands[b][k];
                                 double pred = betas[b](0) + betas[b](1)*t_anom + 
-                                              betas[b](2)*std::cos(W*t_anom) + betas[b](3)*std::sin(W*t_anom) + 
-                                              betas[b](4)*std::cos(2.0*W*t_anom) + betas[b](5)*std::sin(2.0*W*t_anom);
+                                              betas[b](2)*c_wt + betas[b](3)*s_wt + 
+                                              betas[b](4)*c_2wt + betas[b](5)*s_2wt;
                                 if (actual > pred) pos_count++;
                                 else neg_count++;
                             }
@@ -263,7 +304,7 @@ std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates,
                 // Dynamic Model Updating: update coefficients every 24 new observations
                 if ((end_idx - start_idx + 1) % 24 == 0) {
                     for (int b = 0; b < num_bands; ++b) {
-                        fit_harmonic_robust(valid_dates, valid_bands[b], start_idx, end_idx, betas[b], rmses[b]);
+                        fit_harmonic_robust(valid_dates, valid_bands[b], valid_cos, valid_sin, start_idx, end_idx, betas[b], rmses[b]);
                         if (rmses[b] < 1e-4) rmses[b] = 1e-4;
                     }
                 }
@@ -275,10 +316,19 @@ std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates,
         CCDCSegment seg;
         seg.t_start = valid_dates[start_idx];
         seg.t_end = valid_dates[end_idx];
-        seg.t_break = (break_idx != -1) ? valid_dates[break_idx] : 0;
+        double t_brk = (break_idx != -1) ? valid_dates[break_idx] : 0;
+        seg.t_break = t_brk;
+        
+        double cos_wt_brk = 0, sin_wt_brk = 0, cos_2wt_brk = 0, sin_2wt_brk = 0;
+        if (break_idx != -1) {
+            cos_wt_brk = valid_cos[break_idx];
+            sin_wt_brk = valid_sin[break_idx];
+            cos_2wt_brk = cos_wt_brk * cos_wt_brk - sin_wt_brk * sin_wt_brk;
+            sin_2wt_brk = 2.0 * sin_wt_brk * cos_wt_brk;
+        }
         
         for (int b = 0; b < num_bands; ++b) {
-            fit_harmonic_robust(valid_dates, valid_bands[b], start_idx, end_idx, betas[b], rmses[b]);
+            fit_harmonic_robust(valid_dates, valid_bands[b], valid_cos, valid_sin, start_idx, end_idx, betas[b], rmses[b]);
             
             seg.rmse.push_back(rmses[b]);
             
@@ -290,10 +340,9 @@ std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates,
             
             double mag = 0.0;
             if (break_idx != -1) {
-                double t = valid_dates[break_idx];
-                double pred = betas[b](0) + betas[b](1)*t + 
-                              betas[b](2)*std::cos(W*t) + betas[b](3)*std::sin(W*t) + 
-                              betas[b](4)*std::cos(2.0*W*t) + betas[b](5)*std::sin(2.0*W*t);
+                double pred = betas[b](0) + betas[b](1)*t_brk + 
+                              betas[b](2)*cos_wt_brk + betas[b](3)*sin_wt_brk + 
+                              betas[b](4)*cos_2wt_brk + betas[b](5)*sin_2wt_brk;
                 mag = valid_bands[b][break_idx] - pred;
             }
             seg.magnitude.push_back(mag);
@@ -310,6 +359,23 @@ std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates,
     }
     
     return segments;
+}
+
+std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates, 
+                                  const std::vector<std::vector<double>>& band_values,
+                                  const std::vector<int>& qa,
+                                  CCDCParams params) {
+    if (band_values.empty()) return {};
+    
+    int times = dates.size();
+    std::vector<double> global_cos(times);
+    std::vector<double> global_sin(times);
+    for (int t = 0; t < times; ++t) {
+        global_cos[t] = std::cos(W * dates[t]);
+        global_sin[t] = std::sin(W * dates[t]);
+    }
+    double chi2_crit = chi2_ppf(params.chi2_prob_threshold, band_values.size());
+    return fit_ccdc_core(dates, global_cos, global_sin, band_values, qa, params, chi2_crit);
 }
 
 pybind11::tuple fit_ccdc_batch(
@@ -336,6 +402,15 @@ pybind11::tuple fit_ccdc_batch(
     int* dates_ptr = static_cast<int*>(dates_buf.ptr);
     
     std::vector<int> dates(dates_ptr, dates_ptr + times);
+    
+    std::vector<double> global_cos(times);
+    std::vector<double> global_sin(times);
+    for (int t = 0; t < times; ++t) {
+        global_cos[t] = std::cos(W * dates[t]);
+        global_sin[t] = std::sin(W * dates[t]);
+    }
+    
+    double chi2_crit = chi2_ppf(params.chi2_prob_threshold, num_bands);
     
     int params_per_segment = return_coefs ? (3 + num_bands * 7) : 1;
     
@@ -383,7 +458,7 @@ pybind11::tuple fit_ccdc_batch(
         
         std::vector<CCDCSegment> segs;
         try {
-            segs = fit_ccdc(dates, pixel_bands, pixel_qa, params);
+            segs = fit_ccdc_core(dates, global_cos, global_sin, pixel_bands, pixel_qa, params, chi2_crit);
         } catch (...) {
             // Ignore errors for individual pixels
         }
