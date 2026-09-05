@@ -26,12 +26,12 @@ def test_xarray_ccdc_accessor():
     # Dummy fractional years
     dates = np.linspace(2000.0, 2010.0, time)
     
-    # Run CCDC lazily
+    # Run CCDC lazily with Strategy A (n_jobs=-1)
     max_segments = 4
     return_coefs = True
     params_per_seg = 3 + (bands * 7) if return_coefs else 1
     
-    result = da_arr.cdts.run_ccdc(dates=dates, max_segments=max_segments, return_coefs=return_coefs)
+    result = da_arr.cdts.run_ccdc(dates=dates, max_segments=max_segments, return_coefs=return_coefs, n_jobs=-1)
     
     # Check that it's still lazy (Dask array inside)
     assert isinstance(result.data, da.Array)
@@ -70,8 +70,8 @@ def test_xarray_landtrendr_accessor():
     max_segments = 3
     max_vertices = max_segments + 1
     
-    # Run LandTrendr lazily
-    result = da_arr.cdts.run_landtrendr(years=years, max_segments=max_segments)
+    # Run LandTrendr lazily with Strategy A (n_jobs=-1)
+    result = da_arr.cdts.run_landtrendr(years=years, max_segments=max_segments, n_jobs=-1)
     
     # Check laziness
     assert isinstance(result.data, da.Array)
@@ -86,3 +86,32 @@ def test_xarray_landtrendr_accessor():
     assert computed_result.shape == (2 * max_vertices, y, x)
     # The first row for pixel (0,0) should contain the start year 2000
     assert computed_result[0, 0, 0] > 0 
+
+def test_xarray_to_zarr(tmp_path):
+    """
+    Test that the xarray accessor can export a lazy computation directly to Zarr.
+    """
+    time, y, x = 15, 8, 8
+    data = np.random.randn(time, y, x).astype(np.float32)
+    
+    # Create chunked xarray
+    da_arr = xr.DataArray(
+        da.from_array(data, chunks=(time, 4, 4)),
+        dims=["time", "y", "x"]
+    )
+    
+    # Run LT lazily
+    years = np.arange(2000, 2000 + time)
+    result = da_arr.cdts.run_landtrendr(years=years, max_segments=2)
+    
+    # Export to zarr using the accessor, optimizing chunks
+    zarr_path = str(tmp_path / "test.zarr")
+    result.cdts.to_zarr_optimized(zarr_path, chunk_size={"y": 4, "x": 4})
+    
+    # Read back and verify
+    ds_zarr = xr.open_zarr(zarr_path)
+    assert "data" in ds_zarr.data_vars
+    # 2 segments = 3 max_vertices. 2 * 3 = 6 rows in vertex_info
+    assert ds_zarr["data"].shape == (6, y, x)
+    assert ds_zarr["data"].chunks == ((6,), (4, 4), (4, 4))
+
