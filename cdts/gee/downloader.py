@@ -70,6 +70,7 @@ def download_gee_image(image: ee.Image, roi: ee.Geometry, out_filename: str, met
             folder=drive_folder,
             scale=scale,
             region=roi.bounds(),
+            crs='EPSG:4326',
             maxPixels=1e13
         )
         task.start()
