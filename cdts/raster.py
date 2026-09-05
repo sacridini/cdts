@@ -26,43 +26,32 @@ def _process_pixel_lt(args: Tuple[int, int, np.ndarray], years: Union[np.ndarray
 
 def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_segments: int = 6, pval_threshold: float = 0.05, n_jobs: int = -1) -> "np.ndarray":
     """
-    Apply LandTrendr across a 3D numpy array (time_steps, rows, cols) using multiprocessing.
+    Apply LandTrendr across a 3D numpy array (time_steps, rows, cols) using C++ batch processing with OpenMP.
     """
+    from .landtrendr import run_landtrendr_batch
+    
     time_steps, rows, cols = raster_stack.shape
     max_vertices = max_segments + 1
     
     output = np.zeros((2 * max_vertices, rows, cols), dtype=np.float32)
     
-    pixel_args = [
-        (r, c, raster_stack[:, r, c]) 
-        for r in range(rows) for c in range(cols)
-    ]
+    # Transpose from (time, row, col) to (row, col, time) for batch function
+    values = np.transpose(raster_stack, (1, 2, 0))
     
-    worker = partial(_process_pixel_lt, 
-                     years=years, 
-                     max_segments=max_segments, 
-                     pval_threshold=pval_threshold)
-                     
-    if n_jobs == -1:
-        import os as _os
-        n_jobs = _os.cpu_count() or 4
-        
-    if n_jobs == 1:
-        results = list(map(worker, pixel_args))
-    else:
-        with Pool(processes=n_jobs) as pool:
-            results = pool.map(worker, pixel_args)
-        
-    for row, col, vertices in results:
-        n_verts = len(vertices)
-        if n_verts == 0:
-            continue
-            
-        n_verts = min(n_verts, max_vertices)
-        
-        for i in range(n_verts):
-            output[i, row, col] = vertices[i]['year']
-            output[i + max_vertices, row, col] = vertices[i]['value']
+    # Run the C++ batch
+    vertices_array, counts_array = run_landtrendr_batch(years, values, max_segments, pval_threshold, no_data_value=0.0)
+    
+    # vertices_array shape: (rows * cols, max_vertices, 2)
+    # Reshape to (rows, cols, max_vertices, 2)
+    vertices_array = vertices_array.reshape((rows, cols, max_vertices, 2))
+    counts_array = counts_array.reshape((rows, cols))
+    
+    for i in range(max_vertices):
+        mask = i < counts_array
+        # years
+        output[i, :, :] = np.where(mask, vertices_array[:, :, i, 0], 0)
+        # values
+        output[i + max_vertices, :, :] = np.where(mask, vertices_array[:, :, i, 1], 0)
             
     return output
 
