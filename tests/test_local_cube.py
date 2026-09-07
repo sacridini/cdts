@@ -11,7 +11,7 @@ from cdts.local import build_local_cube
 
 @pytest.fixture
 def dummy_tif_dir():
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
         tmp_path = Path(tmpdir)
         
         # Create some dummy TIFs using rasterio
@@ -67,3 +67,5 @@ def test_build_local_cube(dummy_tif_dir):
     
     # Assert dask array is used (lazily evaluated)
     assert cube.chunks is not None
+
+    cube.close()
