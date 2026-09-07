@@ -2,6 +2,7 @@ from .landtrendr import run_landtrendr, desawtooth, apply_vertices
 from .raster import run_landtrendr_array, run_landtrendr_image, run_ccdc_array, run_ccdc_image
 from .metrics import extract_events
 from .ccdc import predict_synthetic_image
+from .twdtw import run_twdtw, run_twdtw_batch
 try:
     from .classify import train_ccdc_classifier, classify_ccdc_stack
 except ImportError:

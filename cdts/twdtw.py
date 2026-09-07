@@ -9,7 +9,9 @@ def run_twdtw(
     pattern_dates: Union[np.ndarray, List[int]], 
     alpha: float = 0.1, 
     beta: float = 0.05, 
-    gamma: float = 50.0
+    gamma: float = 50.0,
+    max_time_warp: int = 365,
+    abort_threshold: float = float('inf')
 ) -> float:
     """
     Run Time-Weighted Dynamic Time Warping (TWDTW) on a single time series against a pattern.
@@ -22,6 +24,8 @@ def run_twdtw(
         alpha (float): Amplitude of the time weight penalty.
         beta (float): Steepness of the logistic time weight function.
         gamma (float): Midpoint (inflection point) of the logistic function.
+        max_time_warp (int): Sakoe-Chiba constraint (maximum time distortion allowed).
+        abort_threshold (float): Early abandonment limit. Returns inf if cost exceeds this.
         
     Returns:
         float: The TWDTW distance between the time series and the pattern.
@@ -35,8 +39,16 @@ def run_twdtw(
     params.alpha = alpha
     params.beta = beta
     params.gamma = gamma
+    params.max_time_warp = max_time_warp
     
-    distance = _core.twdtw.fit_twdtw(ts_values_list, ts_dates_list, pat_values_list, pat_dates_list, params)
+    distance = _core.twdtw.fit_twdtw(
+        ts_values_list, 
+        ts_dates_list, 
+        pat_values_list, 
+        pat_dates_list, 
+        params, 
+        float(abort_threshold)
+    )
     
     return distance
 
@@ -49,10 +61,12 @@ def run_twdtw_batch(
     alpha: float = 0.1, 
     beta: float = 0.05, 
     gamma: float = 50.0,
+    max_time_warp: int = 365,
+    abort_threshold: float = float('inf'),
     n_jobs: int = -1
 ) -> np.ndarray:
     """
-    Run TWDTW on a batch of pixels (3D array) using OpenMP.
+    Run highly optimized TWDTW on a batch of pixels (3D array) using OpenMP.
     
     Args:
         values_array (np.ndarray): 3D array of spectral values [Y, X, Time].
@@ -62,6 +76,8 @@ def run_twdtw_batch(
         alpha (float): Amplitude of the time weight penalty.
         beta (float): Steepness of the logistic time weight function.
         gamma (float): Midpoint (inflection point) of the logistic function.
+        max_time_warp (int): Sakoe-Chiba constraint (maximum time distortion allowed).
+        abort_threshold (float): Early abandonment limit.
         n_jobs (int): Number of threads for OpenMP to use. Default -1 (use all).
         
     Returns:
@@ -71,6 +87,7 @@ def run_twdtw_batch(
     params.alpha = alpha
     params.beta = beta
     params.gamma = gamma
+    params.max_time_warp = max_time_warp
     
     values_array = np.ascontiguousarray(values_array, dtype=np.float64)
     dates_array = np.ascontiguousarray(dates_array, dtype=np.int32)
@@ -82,7 +99,8 @@ def run_twdtw_batch(
         dates_array, 
         pattern_values, 
         pattern_dates, 
-        params, 
+        params,
+        float(abort_threshold),
         n_jobs
     )
     

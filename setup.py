@@ -16,7 +16,7 @@ class get_pybind_include(object):
 ext_modules = [
     Extension(
         'cdts._core',
-        ['src/main.cpp', 'src/landtrendr.cpp', 'src/ccdc.cpp', 'src/utils.cpp'],
+        ['src/main.cpp', 'src/landtrendr.cpp', 'src/ccdc.cpp', 'src/utils.cpp', 'src/twdtw.cpp'],
         include_dirs=[
             get_pybind_include(),
             get_pybind_include(user=True),
