@@ -34,3 +34,4 @@ CDTS relies on the SpatioTemporal Asset Catalog (STAC) standard and can pull tim
 ## Tutorials
 
 *   [Distributed Processing with LandTrendr and Dask](tutorials/distributed_landtrendr.md)
+*   [Distributed Processing with CCDC and Dask](tutorials/distributed_ccdc.md)
