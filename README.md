@@ -121,12 +121,12 @@ Identify structural breakpoints in time-series (e.g., detecting exactly when def
 
 ```python
 import numpy as np
+from cdts.metrics import extract_events
 
 # 1. Prepare annual NBR data (Time, Y, X)
 years = np.array([2018, 2019, 2020, 2021, 2022, 2023])
 
 # 2. Run LandTrendr across the entire Dask datacube natively
-# max_segments=4 means up to 5 vertices (breakpoints) per pixel.
 lt_results = cube_nbr.cdts.run_landtrendr(
     years=years, 
     max_segments=4, 
@@ -136,28 +136,22 @@ lt_results = cube_nbr.cdts.run_landtrendr(
 
 # Trigger Dask computation (runs the C++ core in parallel)
 # Output shape is (2 * max_vertices, Y, X).
-# The first half of the layers are Vertex Years, the second half are Fitted Values.
 lt_array = lt_results.compute()
 
-# Slicing the layers
-max_vertices = 5
-vertex_years = lt_array[0 : max_vertices, :, :]
-vertex_fitted_values = lt_array[max_vertices : 2 * max_vertices, :, :]
-
 # 3. Analyze disturbances (e.g., finding the biggest drop in NBR)
-magnitude_of_change = np.diff(vertex_fitted_values, axis=0)
+events = extract_events(
+    vertices_stack=lt_array, 
+    event_type="loss",      # Look for drops in the index (e.g., vegetation loss)
+    sort_by="greatest",     # Get the segment with the largest magnitude
+    min_magnitude=0.1       # Optional noise filter
+)
 
-# Identify the segment with the most negative change (greatest vegetation loss)
-biggest_loss_idx = np.argmin(magnitude_of_change, axis=0)
-
-# Extract the specific year that this major disturbance began
-disturbance_year = np.take_along_axis(
-    vertex_years, 
-    np.expand_dims(biggest_loss_idx, axis=0), 
-    axis=0
-).squeeze(0)
-
-# Now you have a 2D Map of Disturbance Years ready to export!
+# You now have 2D maps ready to be exported to GeoTIFF!
+yod_map = events["year"]        # Year of Disturbance (YOD)
+mag_map = events["magnitude"]   # Magnitude of the disturbance
+dur_map = events["duration"]    # How many years the disturbance took
+pre_map = events["pre_val"]     # Value before disturbance
+post_map = events["post_val"]   # Value after disturbance
 ```
 
 ### CCDC / COLD (Harmonic Modeling)
