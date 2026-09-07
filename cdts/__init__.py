@@ -19,6 +19,8 @@ except ImportError:
 
 try:
     from .cube import build_time_series
+    from .local import build_local_cube
+    from .regularize import regularize_time_series
 except ImportError:
     pass
 
@@ -44,6 +46,8 @@ __all__ = [
     "extract_water_mask",
     "run_tmask_pixel", "apply_tmask_stack",
     "build_time_series",
+    "build_local_cube",
+    "regularize_time_series",
     "save_raster",
     "ai"
 ]
