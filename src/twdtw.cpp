@@ -223,7 +223,7 @@ pybind11::array_t<double> fit_twdtw_batch(
         }
     }
 
-    #pragma omp parallel for collapse(2) num_threads(n_jobs > 0 ? n_jobs : omp_get_max_threads())
+    #pragma omp parallel for collapse(2) num_threads(n_jobs > 0 ? n_jobs : std::max(1, omp_get_max_threads() - 1))
     for (int y = 0; y < Y; ++y) {
         for (int x = 0; x < X; ++x) {
             std::vector<double> ts_vals(T * num_bands);

@@ -40,7 +40,7 @@ pybind11::array_t<double> train_som_batch(
         }
     }
 
-    int threads = n_jobs > 0 ? n_jobs : omp_get_max_threads();
+    int threads = n_jobs > 0 ? n_jobs : std::max(1, omp_get_max_threads() - 1);
 
     for (int t = 0; t < num_iters; ++t) {
         double sigma = initial_sigma * std::exp(-static_cast<double>(t) / num_iters);
@@ -151,7 +151,7 @@ pybind11::array_t<int> predict_bmus(
     auto buf_res = result.request();
     int* res_ptr = static_cast<int*>(buf_res.ptr);
 
-    int threads = n_jobs > 0 ? n_jobs : omp_get_max_threads();
+    int threads = n_jobs > 0 ? n_jobs : std::max(1, omp_get_max_threads() - 1);
 
     #pragma omp parallel for num_threads(threads)
     for(int i = 0; i < N; ++i) {
