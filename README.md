@@ -1,5 +1,10 @@
 # CDTS: Continuous Monitoring of Land Cover and Land Use using Dense Time Series
 
+[![Build Wheels](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml)
+[![Tests](https://github.com/sacridini/cdts/actions/workflows/tests.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/tests.yml)
+[![Docs](https://github.com/sacridini/cdts/actions/workflows/docs.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/docs.yml)
+[![PyPI version](https://badge.fury.io/py/cdts.svg)](https://badge.fury.io/py/cdts)
+
 **CDTS** is a high-performance Python package for Earth Observation (EO) data cube processing and time series analysis. It bridges the gap between modern cloud-native data formats (STAC, Xarray, Dask) and state-of-the-art pixel-based trajectory algorithms (TWDTW, CCDC, LandTrendr, SOM). 
 
 Built with highly optimized C++ extensions (OpenMP and Eigen SIMD) bound to Python via `pybind11`, CDTS is designed to handle massive multi-spectral satellite image time series efficiently while keeping memory footprints strictly bounded.
