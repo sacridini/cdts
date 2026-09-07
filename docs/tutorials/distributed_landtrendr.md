@@ -6,9 +6,26 @@ This guide demonstrates an End-to-End (E2E) workflow for running LandTrendr on a
 
 ## 1. Setting up the Dask Cluster
 
-To process across multiple machines, you need a Dask Scheduler and several Dask Workers. You can deploy this using tools like `dask-kubernetes`, `dask-yarn`, `dask-cloudprovider`, or simply by running `dask scheduler` and `dask worker` on your machines.
+To process across multiple machines, you don't need to hardcode the IPs of all machines in your Python script. Dask uses a **Scheduler-Worker** architecture:
 
-In Python, you connect your script to the cluster using the `Client`.
+1. **The Scheduler** (e.g., `192.168.0.100`) coordinates the work.
+2. **The Workers** (the other machines) connect to the Scheduler to ask for work.
+
+**On the Main Machine (Scheduler):**
+Open a terminal and start the scheduler:
+```bash
+dask scheduler
+# It will print out its address, e.g., tcp://192.168.0.100:8786
+```
+
+**On the Worker Machines:**
+Open a terminal on each machine and connect them to the scheduler. **Here is where you configure the cores and memory for each machine:**
+```bash
+dask worker tcp://192.168.0.100:8786 --nworkers 4 --nthreads 2 --memory-limit 16GB
+```
+*(In this example, the machine dedicates 4 processes, 2 threads each, and 16GB RAM limit to the cluster).*
+
+In your Python script, you only need to connect your `Client` to the Scheduler. The image is divided automatically into "chunks" (e.g., blocks of 512x512 pixels), and the Scheduler automatically sends different chunks to different worker machines as they become available.
 
 ## 2. End-to-End Example
 
