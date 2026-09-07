@@ -1,274 +1,176 @@
-# CDTS: Change Detection and Time-Series for Python
+# CDTS: Continuous Monitoring of Land Cover and Land Use using Dense Time Series
 
-<p align="center">
-  <img src="docs/assets/logo.png" alt="CDTS Logo" width="400">
-</p>
+**CDTS** is a high-performance Python package for Earth Observation (EO) data cube processing and time series analysis. It bridges the gap between modern cloud-native data formats (STAC, Xarray, Dask) and state-of-the-art pixel-based trajectory algorithms (TWDTW, CCDC, LandTrendr, SOM). 
 
-[![Build and Publish Wheels](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml) [![Tests](https://github.com/sacridini/cdts/actions/workflows/tests.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/tests.yml)
+Built with highly optimized C++ extensions (OpenMP and Eigen SIMD) bound to Python via `pybind11`, CDTS is designed to handle massive multi-spectral satellite image time series efficiently while keeping memory footprints strictly bounded.
 
-`cdts` is an ultra-fast, cloud-native Python library for **Remote Sensing Time-Series Analysis and Change Detection**. 
+---
 
-Designed to replace heavy dependencies on Google Earth Engine, `cdts` handles the entire geospatial pipeline locally or on cloud clusters: from directly streaming satellite imagery via **STAC** APIs, to scaling memory lazily with **Dask/Xarray**, down to executing heavy statistical regression in native **C++**.
+## Key Capabilities
 
-It provides state-of-the-art algorithms:
-*   **LandTrendr** (Landsat-based detection of Trends in Disturbance and Recovery)
-*   **CCDC** (Continuous Change Detection and Classification)
-*   **COLD** (Continuous monitoring of Land Disturbance)
+- **ARD Data Cube Ingestion:** Fetch cloud-native STAC catalogs (via MGRS/WRS tiles or Bounding Boxes) or parse local TIFF directories into lazy Dask-backed `xarray` Datacubes.
+- **Semantic Cloud Masking:** Automated extraction and translation of Quality Assessment (QA) bands for Landsat and Sentinel-2 directly inside the query pipeline.
+- **Temporal Regularization:** Mathematical composite generation (e.g., Medoid, Median) to align irregular satellite acquisitions into uniform time steps (crucial for Deep Learning and DTW).
+- **High-Performance C++ Algorithms:**
+  - **TWDTW** (Time-Weighted Dynamic Time Warping): Highly optimized with LB_Keogh lower bounding, early abandonment, Sakoe-Chiba constraints, and multivariate Eigen vectorization.
+  - **Batch SOM** (Self-Organizing Maps): Unsupervised multi-threaded clustering of massive spectral-temporal arrays.
+  - **CCDC / COLD**: Continuous Change Detection and Classification via robust harmonic modeling.
+  - **LandTrendr**: Trajectory-based disturbance and recovery detection.
+- **Deep Learning (`cdts.ai`):** Pre-built PyTorch architectures tailored for spatio-temporal Earth Observation (U-TAE, TempCNN, Siamese Networks).
+
+---
 
 ## Installation
-
-The easiest way to install `cdts` is via `pip`. We provide pre-compiled binaries (wheels) for Windows, macOS, and Linux (Python 3.9+), which means **you do not need a C++ compiler** installed on your machine!
 
 ```bash
 pip install cdts
 ```
-*(This will automatically install Python dependencies like `xarray`, `dask`, `scikit-learn`, `rasterio`, `torch`, and `pystac-client`)*.
-
-### Development / From Source
-
-If you want to modify the C++ backend or install the bleeding-edge version directly from GitHub, you will need a C++ Compiler (GCC, Clang, or MSVC) and Python 3.9+:
-
-```bash
-git clone https://github.com/sacridini/cdts.git
-cd cdts
-pip install -e .
-```
+*(Note: Requires a C++14 compatible compiler installed on your system to build the optimized extensions).*
 
 ---
 
-### Docker
-Because `cdts` relies on heavy C++ compilation and GPU-accelerated PyTorch, the easiest way to deploy it to the cloud or share it with other researchers is via our official Docker container.
+## 1. Cloud-Native ARD Cubes (STAC)
 
-```bash
-# This will build the C++ engines, install PyTorch with CUDA, and launch a JupyterLab environment on port 8888.
-docker-compose up --build
-```
-
----
-
-## Core Architecture
-
-1.  **C++ Engine (`pybind11` & `Eigen3`)**: The core statistical fitting (OLS, Robust Iteratively Reweighted Least Squares, Exact F-Statistics, Chi-Square CDFs) is fully written in C++ for maximum single-core speed.
-2.  **Cloud-Native Data Fetching (`STAC` & `stackstac`)**: Download-free pipelines! Query AWS or Microsoft servers for imagery and stream only the exact pixels you need.
-3.  **Horizontal Scaling (`xarray` & `dask`)**: Data is lazily chunked. Run processing over 100,000 km² without blowing up your RAM by distributing tasks across multiple CPU threads or remote Dask workers.
-
----
-
-## Supported Cloud Data Services (STAC)
-
-Because `cdts` relies on the open **SpatioTemporal Asset Catalog (STAC)** standard, it can pull time-series data from virtually any modern satellite provider.
-
-| Provider / Service | Default ID in `cdts` | Highlights |
-| :--- | :--- | :--- |
-| **AWS Earth Search (Element84)** | `"earth_search"` | Free, public Sentinel-2 L2A and Landsat Collection 2. No authentication needed! |
-| **Microsoft Planetary Computer** | `"planetary_computer"` | Huge catalog (ALOS, MODIS, NAIP, Sentinel, Landsat). *Note: Requires a free token for heavy downloads.* |
-| **Brazil Data Cube (INPE)** | `"brazil_data_cube"` | High-quality ARD cubes for Brazil (CBERS-4/4A, Amazonia-1). *Note: Requires INPE token.* |
-| **Copernicus Data Space** | Custom URL | The official European Space Agency hub for Sentinel 1/2/3/5P. |
-
----
-
-## Advanced Tutorial: End-to-End Pipeline
-
-Here is a complete workflow demonstrating how to go from zero data to a classified map of persistent water using `cdts`.
-
-### 1. Stream Virtual Data (STAC)
-No downloading required. We define a Bounding Box in Mato Grosso (Brazil) and request 2 years of Sentinel-2 data.
+Fetch lazy evaluated, Dask-backed analysis-ready data cubes directly from STAC providers (e.g., Earth Search, Planetary Computer, Brazil Data Cube).
 
 ```python
-from cdts import build_time_series
-import cdts.xarray_api # Registers the .cdts accessor on Xarray
+import cdts
 
-# Builds a Dask-backed virtual datacube
-cube = build_time_series(
-    source="earth_search",       
+# Build a lazy DataArray using MGRS/WRS tiles or Bounding Boxes
+cube = cdts.build_time_series(
+    source="earth_search",
     collection="sentinel-2-l2a",
-    bbox=[-54.0, -12.0, -53.9, -11.9],
-    start_date="2020-01-01",
+    tiles=["22JFQ"], # Sentinel-2 MGRS or Landsat WRS-2 (e.g., "215065")
+    start_date="2022-01-01",
     end_date="2022-12-31",
-    cloud_cover_max=30,
-    bands=["red", "green", "blue", "nir", "swir16"],
-    epsg=3857,
-    resolution=30
+    bands=["red", "green", "blue", "nir"],
+    apply_cloud_mask=True # Automatically fetches QA band and natively masks clouds/shadows
 )
-print(cube.shape) # e.g., (Time: 45, Bands: 5, Y: 1000, X: 1000)
+
+print(cube) # Returns an xarray.DataArray (Time, Band, Y, X)
 ```
 
-### 2. Run CCDC / COLD (Distributed via Dask)
-Using the Xarray accessor, we pipe the virtual cube directly into our C++ engine.
+## 2. Temporal Regularization
+
+Algorithms like TWDTW, SOM, and Deep Learning expect temporally aligned data. `cdts` natively regularizes irregular STAC acquisitions.
 
 ```python
-# 'conseq_anom=6' activates the rigorous COLD algorithm (6 consecutive anomalies required to flag deforestation).
-# This returns a lazy map of harmonic coefficients (Intercept, Slopes, Sine, Cosine).
-ccdc_lazy_results = cube.cdts.run_ccdc(max_segments=6, conseq_anom=6, return_coefs=True)
+from cdts import regularize_time_series
 
-# Actually execute the download + calculation in parallel threads
-coef_stack = ccdc_lazy_results.compute()
+# Aggregate observations into 16-day Medoid composites 
+# (Maintains xarray lazy evaluation via Dask graphs)
+cube_16d = regularize_time_series(cube, freq="16D", method="medoid")
 ```
 
-### 3. Extract Physical Masks & Classify
-With the harmonic coefficients calculated, we can derive physical parameters. For instance, extracting persistent rivers/lakes by comparing the Intercept coefficients of Green (index 1) and SWIR (index 4).
+## 3. Time-Weighted Dynamic Time Warping (TWDTW)
+
+The C++ TWDTW engine handles multivariate sequences simultaneously using Eigen's $L^2$ norms and aggressively skips non-matching pixels using $O(N)$ Lower Bounding techniques.
 
 ```python
-from cdts import extract_water_mask, predict_synthetic_image
+from cdts.twdtw import classify_twdtw
+import numpy as np
 
-# 1. Physical Extraction: Isolate rivers and lakes
-water_mask = extract_water_mask(coef_stack.values, green_band_idx=1, swir_band_idx=4)
+# Suppose you have regularized data (Y, X, Time, Bands)
+dates = np.arange(1, 366, 16) # Day of year
 
-# 2. Synthetic Imagery: Generate a cloud-free image for Julian Day 150
-cloud_free_rgb = predict_synthetic_image(coef_stack.values, target_julian_day=150, num_bands=3)
+# Define temporal patterns (Signatures)
+patterns = {
+    "Forest": (forest_signature_array, dates),
+    "Agriculture": (soy_signature_array, dates)
+}
+
+# Run classification block-by-block using OpenMP
+# n_jobs=-1 automatically uses all CPU cores minus 1 to prevent OS lockup
+classes_map, dist_map, class_names = classify_twdtw(
+    cube_16d.values, 
+    dates, 
+    patterns, 
+    n_jobs=-1 
+)
 ```
 
-If you have training data, you can run a full Random Forest classification on the coefficients:
+## 4. Self-Organizing Maps (SOM)
+
+Unsupervised classification and dimensionality reduction of time series using a fast Batch SOM algorithm implemented in C++.
+
 ```python
-from cdts import train_ccdc_classifier, classify_ccdc_stack
+from cdts.ai import train_som_batch, predict_bmus
 
-clf = train_ccdc_classifier(X_train_data, y_train_labels)
-classify_ccdc_stack(clf, coef_stack_path="output/coefs.tif", output_path="landcover.tif")
+# Flatten cube to (Pixels, Features)
+X_train = cube_16d.values.reshape(-1, cube_16d.shape[2] * cube_16d.shape[3])
+
+# Train a 10x10 SOM grid
+som_weights = train_som_batch(
+    data=X_train,
+    grid_rows=10,
+    grid_cols=10,
+    num_epochs=100,
+    n_jobs=-1
+)
+
+# Predict Best Matching Units (BMUs) for new data
+bmus = predict_bmus(X_train, som_weights, n_jobs=-1)
 ```
 
-### Pre & Post-Processing (Smoothing & Spatial Filters)
-Before classifying, it is highly recommended to smooth the temporal trajectories to remove atmospheric noise. After classifying, pixel-based maps often suffer from "salt and pepper" noise. `cdts` provides fast functions to regularize your data in both dimensions:
+## 5. CCDC & LandTrendr
+
+Continuous structural monitoring using robust harmonic and breakpoint regression models. 
+
+```python
+# CCDC / COLD Algorithm
+# Integrates natively with xarray datasets via pandas-like accessors
+ccdc_results = cube_16d.cdts.run_ccdc(
+    max_segments=6, 
+    conseq_anom=6, 
+    return_coefs=True, 
+    n_jobs=-1
+)
+
+# Evaluate the Dask graph and run the C++ kernel
+coef_stack = ccdc_results.compute()
+
+# Extract Physical Masks (e.g. permanent water via intercepts)
+from cdts import extract_water_mask
+water_map = extract_water_mask(coef_stack.values, green_band_idx=1, swir_band_idx=4)
+```
+
+## 6. Pre and Post-Processing
+
+Before classifying, it is highly recommended to smooth temporal trajectories. After classifying, pixel-based maps often suffer from noise. CDTS provides fast functions to regularize your data in both dimensions:
 
 ```python
 from cdts import apply_savgol_filter, apply_majority_filter, apply_mmu_filter
 
-# 1. Temporal Smoothing: Apply Savitzky-Golay filter across the time axis (e.g. axis 0)
-smoothed_cube = apply_savgol_filter(raw_cube, window_length=5, polyorder=2)
+# Temporal Smoothing (Savitzky-Golay, Whittaker, or Bayesian)
+smoothed_array = apply_savgol_filter(raw_array, window_length=5, polyorder=2)
 
-# ... (Run Classification to get `land_cover_map`) ...
+# Spatial Regularization (Mode filter)
+regularized_map = apply_majority_filter(classified_map, size=3)
 
-# 2. Spatial Regularization: Force pixels to match their 3x3 neighborhood (Mode filter)
-regularized_map = apply_majority_filter(land_cover_map, size=3)
-
-# 3. Minimum Mapping Unit (MMU): Erase any isolated patches smaller than 10 pixels
+# Minimum Mapping Unit (MMU): Erase isolated patches smaller than 10 pixels
 final_map = apply_mmu_filter(regularized_map, min_pixels=10)
 ```
 
----
+## 7. Exporting Geospatial Data
 
-## LandTrendr Specifics (FTV)
-If your focus is on forest recovery, `cdts` natively supports LandTrendr. A key feature is **FTV (Fitted to Vertices)**, which allows you to find structural breakpoints in an index (like NBR) and apply them to smooth out noisy raw bands (like SWIR).
-
-```python
-from cdts import run_landtrendr, apply_vertices
-
-# 1. Fit the trajectory on the main index to find the breakpoint years
-vertices = run_landtrendr(years, nbr_time_series)
-vertex_years = [v["year"] for v in vertices]
-
-# 2. Force the raw SWIR band to conform to the NBR breakpoints!
-swir_fitted = apply_vertices(vertex_years, years, raw_swir_time_series)
-```
-
----
-
-## Deep Learning & Foundation Models (`cdts.ai`)
-Beyond statistical algorithms like CCDC, `cdts` embraces the next generation of Spatio-Temporal Artificial Intelligence. Built on **PyTorch**, the new `cdts.ai` module provides modern neural network architectures tailored for earth observation:
-
-### 1. U-TAE and TempCNN (Time-Series Neural Networks)
-Instead of processing individual pixels, **U-TAE** consumes entire 3D Data Cubes (Spatial + Temporal) simultaneously to naturally ignore cloud noise. If you prefer pixel-based time-series classification, `cdts` also provides **TempCNN**, a lightweight 1D-CNN (inspired by INPE's `sits` package) that is incredibly fast to train.
+Seamlessly dump predicted arrays back to the disk, preserving the metadata from the original STAC cube.
 
 ```python
-from cdts.ai import UTAE, TempCNN
-import torch
+from cdts import save_raster
 
-# U-TAE: Input shape (Batch, Time, Channels, Height, Width)
-model_3d = UTAE(in_channels=6, num_classes=5)
-
-# TempCNN: Input shape (Batch, Channels, Time)
-model_1d = TempCNN(in_channels=6, num_classes=5)
-```
-
-### 2. Bi-Temporal Siamese CNNs
-Perfect for disaster mapping (floods, fires, landslides). A Siamese Network processes a T0 ("Before") image and a T1 ("After") image through shared convolutional weights, then extracts absolute differences deep in the feature space.
-
-```python
-from cdts.ai import SiameseChangeDetector
-
-model = SiameseChangeDetector(in_channels=4, num_classes=2)
-img_before = torch.randn(1, 4, 512, 512)
-img_after = torch.randn(1, 4, 512, 512)
-
-# Outputs a spatial change map directly
-change_map = model(img_before, img_after)
-```
-
-### 3. Geospatial Foundation Models (ViT)
-`cdts.ai.GeoFoundationViT` acts as a wrapper/stub to plug in large-scale Vision Transformers (like the **NASA/IBM Prithvi** model). It enables you to take pre-trained planetary representations and fine-tune them for specific downstream tasks like deforestation or crop classification.
-
-### 4. Specialized Change Detection Losses
-Remote sensing datasets are highly imbalanced (usually >99% unchanged pixels). Standard Cross-Entropy fails here. `cdts.ai.losses` provides battle-tested loss functions specifically for Change Detection:
-```python
-from cdts.ai.losses import FocalLoss, TverskyLoss, ContrastiveSiameseLoss
-
-# Focal Loss: Forces the network to focus gradients on hard-to-detect subtle changes
-criterion1 = FocalLoss(alpha=0.25, gamma=2.0)
-
-# Tversky Loss: Penalizes False Negatives heavier than False Positives (beta=0.7)
-criterion2 = TverskyLoss(alpha=0.3, beta=0.7)
+save_raster(
+    array=final_map, 
+    output_path="output/land_cover.tif", 
+    reference_cube=cube, # Copies Affine Transform and CRS
+    nodata=255
+)
 ```
 
 ---
 
-## Tmask: Time-Series Cloud Masking
-Before running CCDC or deep learning models, you must have clean data. While STAC APIs provide QA bands (like Fmask), `cdts` natively implements **Tmask** (Zhu & Woodcock 2014) to dynamically find undetected clouds and shadows.
+## Architecture & Threading Safety
 
-Tmask runs a robust harmonic regression on Green and SWIR bands. If a pixel suddenly flashes bright green or dark SWIR without altering the long-term structural trajectory, it is flagged as noise.
-
-```python
-from cdts import apply_tmask_stack
-
-# Outputs a Boolean mask (True = Clear, False = Cloud/Shadow)
-# Uses robust Huber regression under the hood
-clear_sky_mask = apply_tmask_stack(dates_julian, green_cube, swir_cube)
-```
-
----
-
-## Exporting & Saving Data (IO)
-Instead of dealing with complex `rasterio` profiles, `cdts` includes a powerful `save_raster` utility that automatically extracts the geotransform and CRS from the downloaded STAC Datacube and exports your PyTorch/Numpy predictions into professional, ready-to-use GeoTIFFs.
-
-```python
-from cdts import save_raster, get_georef
-
-# Extract geospatial reference explicitly if needed
-geo_info = get_georef(cube)
-print(geo_info["crs"]) # e.g. "EPSG:3857"
-
-# Or save the array seamlessly using the original cube as reference!
-# Handles 2D, 3D, and even 4D cubes out-of-the-box.
-save_raster(prediction_array, "output/final_map.tif", reference_cube=cube, nodata=255)
-```
-
----
-
-## End-to-End Examples
-We provide **6 complete example scripts** in the `examples/` directory. They cover everything from downloading STAC data to temporal smoothing and classification using both statistical and AI models. Running these scripts will automatically output georeferenced GeoTIFFs into `examples/data/`.
-
-- `example_01_landtrendr.py` (LandTrendr Disturbance Year)
-- `example_02_ccdc_cold.py` (CCDC / COLD Synthetic Image Generation)
-- `example_03_ai_siamese.py` (Siamese Neural Network)
-- `example_04_ai_utae.py` (U-TAE 4D processing)
-- `example_05_ai_tempcnn.py` (TempCNN time-series)
-- `example_06_ai_vit.py` (Geospatial Foundation Model)
-
-```bash
-# Try one!
-python examples/example_05_ai_tempcnn.py
-```
-
----
-
-## Command Line Interface (CLI)
-
-Prefer the terminal? If you already have a massive GeoTIFF locally, you can process it chunk-by-chunk using the CLI.
-
-```bash
-# Run LandTrendr (Extracting just the break years)
-cdts landtrendr input_stack.tif output_folder/ \
-    --start-year 1990 --event-type loss --jobs -1
-
-# Run COLD (Extracting the harmonic coefficient matrix)
-cdts ccdc multi_band_stack.tif output_folder/ \
-    --num-bands 6 --max-segments 6 --cold --jobs -1
-```
+CDTS safely blends Python-based distributed workflows (Dask) with highly parallel C++ routines:
+- **OpenMP CPU Scaling**: All C++ algorithms expose the `n_jobs` parameter. When `n_jobs=-1`, CDTS automatically reserves one CPU core (`std::max(1, max_threads - 1)`) to ensure the host Operating System remains responsive during intensive workloads.
+- **Memory Footprint**: Algorithms like TWDTW are strictly optimized via a 2-Row Dynamic Programming algorithm, restricting mathematical matrices to the CPU's L1 cache and avoiding heavy allocations.
+- **Cross-Platform Compatibility**: Uses safe `#ifdef _OPENMP` boundaries to gracefully fallback to single-threaded operations on macOS environments using Apple Clang (which lacks native `libomp`), allowing `pip install` to succeed universally.
