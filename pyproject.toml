@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cdts"
-version = "0.3.1"
-description = "Continuous Disturbance Time Series (CDTS) - LandTrendr and CCDC tools for Python"
+version = "0.4.0"
+description = "Change Detection and Time Series for Python (CDTS) - LandTrendr and CCDC tools for Python"
 dependencies = [
     "numpy",
     "numba>=0.53.0",
