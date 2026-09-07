@@ -173,22 +173,41 @@ The C++ TWDTW engine handles multivariate sequences simultaneously using Eigen's
 from cdts.twdtw import classify_twdtw
 import numpy as np
 
-# Suppose you have regularized data (Y, X, Time, Bands)
-dates = np.arange(1, 366, 16) # Day of year
+# 1. Prepare your regularized data (Y, X, Time, Bands) and temporal axis
+dates = np.arange(1, 366, 16) # Day of the year (DOY) for a 16-day composite
 
-# Define temporal patterns (Signatures)
+# 2. Extract or define temporal patterns (Signatures)
+# A signature is a 1D or 2D array representing the expected phenological curve of a class.
+# Example: 23 time steps, 4 bands (Red, Green, Blue, NIR)
+forest_sig = np.random.rand(23, 4)  
+soy_sig = np.random.rand(23, 4)
+
 patterns = {
-    "Forest": (forest_signature_array, dates),
-    "Agriculture": (soy_signature_array, dates)
+    "Forest": (forest_sig, dates),
+    "Agriculture": (soy_sig, dates)
 }
 
-# Run classification block-by-block using OpenMP
-# n_jobs=-1 automatically uses all CPU cores minus 1 to prevent OS lockup
+# 3. Run the TWDTW Classifier using the C++ OpenMP engine
+# It calculates the multi-dimensional distance using the L2 Norm (Euclidean) 
+# and aligns the series dynamically in time, bounded by max_time_warp.
 classes_map, dist_map, class_names = classify_twdtw(
-    cube_16d.values, 
-    dates, 
-    patterns, 
-    n_jobs=-1 
+    values_array=cube_16d.values, 
+    dates_array=dates, 
+    patterns=patterns, 
+    alpha=0.1,             # Steepness of the time penalty
+    beta=0.05,             # Midpoint of the time penalty
+    max_time_warp=60,      # Max allowed temporal shift in days
+    n_jobs=-1              # Use all CPU cores minus 1 to keep OS responsive
+)
+
+# 4. Filter predictions by similarity (distance)
+# TWDTW distance represents similarity (lower is better).
+# Mask out pixels that matched poorly with all known signatures (Unclassified)
+max_acceptable_distance = 15.0
+final_classification = np.where(
+    dist_map < max_acceptable_distance, 
+    classes_map, 
+    -1 # Assign -1 for Unclassified/Unknown pixels
 )
 ```
 
