@@ -2,7 +2,7 @@
   <img src="docs/assets/logo.png" alt="CDTS Logo" width="400">
 </p>
 
-# CDTS: Continuous Monitoring of Land Cover and Land Use using Dense Time Series
+# CDTS: Change Detection and Time Series for Python
 
 [![Build Wheels](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml)
 [![Tests](https://github.com/sacridini/cdts/actions/workflows/tests.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/tests.yml)
