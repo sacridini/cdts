@@ -1,50 +1,40 @@
 import numpy as np
+from .. import _core
 
 class SOM:
     """
-    Self-Organizing Map (SOM) for clustering and filtering time series samples.
-    Similar to sits_som_map for identifying noisy training samples.
+    High-Performance Self-Organizing Map (SOM) accelerated by C++, OpenMP and Eigen.
+    Uses the Batch SOM algorithm which is massively faster for large satellite datasets.
     """
-    def __init__(self, x: int, y: int, input_len: int, sigma: float = 1.0, learning_rate: float = 0.5, random_seed: int = None):
+    def __init__(self, x: int, y: int, input_len: int, sigma: float = 1.0, random_seed: int = 42):
         self.x = x
         self.y = y
         self.input_len = input_len
         self.sigma = sigma
-        self.learning_rate = learning_rate
-        if random_seed is not None:
-            np.random.seed(random_seed)
-        self.weights = np.random.rand(x, y, input_len)
-        self._xx, self._yy = np.meshgrid(np.arange(x), np.arange(y), indexing='ij')
-    
-    def winner(self, x: np.ndarray) -> tuple:
-        dists = np.linalg.norm(self.weights - x, axis=-1)
-        w = np.unravel_index(np.argmin(dists), dists.shape)
-        return w
+        self.random_seed = random_seed
+        self.weights = np.zeros((x, y, input_len), dtype=np.float64)
+        self._is_trained = False
         
-    def update(self, x: np.ndarray, win: tuple, t: int, max_iters: int):
-        eta = self.learning_rate * np.exp(-t / max_iters)
-        sig = self.sigma * np.exp(-t / max_iters)
-        
-        d = (self._xx - win[0])**2 + (self._yy - win[1])**2
-        h = np.exp(-d / (2 * sig**2 + 1e-8))
-        
-        self.weights += eta * h[..., np.newaxis] * (x - self.weights)
-        
-    def train(self, data: np.ndarray, num_iters: int):
-        for t in range(num_iters):
-            idx = np.random.randint(0, len(data))
-            x = data[idx]
-            win = self.winner(x)
-            self.update(x, win, t, num_iters)
+    def train(self, data: np.ndarray, num_iters: int, n_jobs: int = -1):
+        data = np.ascontiguousarray(data, dtype=np.float64)
+        # Ensure 2D input
+        if data.ndim != 2:
+            raise ValueError("Data must be a 2D array [Samples, Features]")
             
-    def filter_noisy_samples(self, data: np.ndarray, labels: np.ndarray) -> np.ndarray:
-        """
-        Groups data into neurons and filters out samples whose label doesn't match the neuron's majority label.
-        Returns a boolean mask of 'clean' samples.
-        """
-        winners = np.array([self.winner(d) for d in data])
-        winners_flat = winners[:, 0] * self.y + winners[:, 1]
+        self.weights = _core.som.train_som_batch(
+            data, self.x, self.y, num_iters, self.sigma, n_jobs, self.random_seed
+        )
+        self._is_trained = True
         
+    def predict(self, data: np.ndarray, n_jobs: int = -1) -> np.ndarray:
+        if not self._is_trained:
+            raise ValueError("SOM is not trained yet.")
+        data = np.ascontiguousarray(data, dtype=np.float64)
+        w = np.ascontiguousarray(self.weights, dtype=np.float64)
+        return _core.som.predict_bmus(data, w, n_jobs)
+
+    def filter_noisy_samples(self, data: np.ndarray, labels: np.ndarray, n_jobs: int = -1) -> np.ndarray:
+        winners_flat = self.predict(data, n_jobs)
         clean_mask = np.ones(len(data), dtype=bool)
         
         for w in np.unique(winners_flat):

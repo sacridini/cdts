@@ -5,6 +5,7 @@
 #include "ccdc.h"
 #include "utils.h"
 #include "twdtw.h"
+#include "som.h"
 
 namespace py = pybind11;
 
@@ -108,4 +109,9 @@ PYBIND11_MODULE(_core, m) {
            py::arg("params"), 
            py::arg("abort_threshold") = std::numeric_limits<double>::infinity(),
            py::arg("n_jobs") = -1);
+
+    // SOM submodule
+    py::module_ som = m.def_submodule("som", "SOM C++ implementations");
+    som.def("train_som_batch", &cdts::som::train_som_batch, "Train a Batch SOM");
+    som.def("predict_bmus", &cdts::som::predict_bmus, "Find BMU for samples");
 }
