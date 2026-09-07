@@ -25,6 +25,7 @@ except ImportError:
     pass
 
 from .io import save_raster, get_georef
+from .validation import generate_landtrendr_accuracy_dashboard
 
 try:
     import cdts.xarray_api # This registers the xarray accessor automatically
@@ -49,5 +50,6 @@ __all__ = [
     "build_local_cube",
     "regularize_time_series",
     "save_raster",
+    "generate_landtrendr_accuracy_dashboard",
     "ai"
 ]

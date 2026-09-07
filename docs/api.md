@@ -231,6 +231,52 @@ save_raster(
 )
 ```
 
+
+### `cdts.build_local_cube`
+
+Builds a lazy `xarray.DataArray` (DataCube) by parsing a directory of local GeoTIFF files. It extracts the date and band from the filenames using a regular expression.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `data_dir` | `str` | | Path to the directory containing `.tif` files. |
+| `regex_pattern` | `str` | | Regular expression containing named groups `(?P<date>...)` and optionally `(?P<band>...)`. |
+| `date_format` | `str` | `"%Y%m%d"` | String format to parse the extracted date. |
+
+**Usage Example**
+
+```python
+import cdts
+
+# Ingesting ARD files named like "CBERS_20200101_B04.tif"
+cube = cdts.build_local_cube(
+    data_dir="/data/tiles",
+    regex_pattern=r".*_(?P<date>\d{8})_(?P<band>B\d{2})\.tif"
+)
+```
+
+### `cdts.regularize_time_series`
+
+Regularizes irregular time series to fixed temporal intervals (e.g., 16-day, monthly). Extremely useful for preparing data for machine learning or temporal harmonization.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `cube` | `xr.DataArray` | | The input spatiotemporal cube. |
+| `freq` | `str` | `'16D'` | Pandas frequency string (e.g., `'16D'`, `'1M'`). |
+| `method` | `str` | `'median'` | Aggregation method. Supported: `'median'`, `'medoid'`. |
+
+**Usage Example**
+
+```python
+import cdts
+
+# Regularize to 16-day medoid composites
+reg_cube = cdts.regularize_time_series(cube, freq='16D', method='medoid')
+```
+
 ## Core Algorithms (Change Detection)
 
 ### `cdts.raster.run_landtrendr_image`
@@ -455,6 +501,36 @@ synthetic_img = predict_synthetic_image(
     ccdc_coefs_stack=ccdc_results, 
     target_julian_day=target_date, 
     num_bands=6
+)
+```
+
+
+### `cdts.generate_landtrendr_accuracy_dashboard`
+
+Generates an interactive, serverless HTML dashboard to validate LandTrendr change detection results against raw spatial-temporal data. 
+It automatically extracts time-series trajectories and true-color spatial context chips (25x25) for visual interpretation. Features a responsive mobile and desktop layout, live Kappa index calculation, and CSV Export.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `cube` | `xr.DataArray` | | The input spatiotemporal STAC cube containing the original bands. |
+| `points` | `str/GDF/list`| | Points to validate. Can be a path to a vector file (`.shp`), a GeoDataFrame, or a list of `(lon, lat)` tuples. |
+| `lt_results` | `xr.DataArray` | `None` | (Optional) The output metrics from `cdts.metrics.extract_events`. Used to extract Predicted YOD automatically. |
+| `output_html`| `str` | `'lt_accuracy_dashboard.html'` | The path to save the generated HTML file. |
+| `window_size`| `int` | `25` | The size of the spatial context window (width and height in pixels). |
+
+**Usage Example**
+
+```python
+import cdts
+
+# Generate an interactive HTML Validation tool reading points directly from a Shapefile
+cdts.generate_landtrendr_accuracy_dashboard(
+    cube=stac_cube,
+    points="data/validation_points.shp",
+    lt_results=events_ds,
+    output_html="validation_rondonia.html"
 )
 ```
 
