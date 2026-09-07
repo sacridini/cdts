@@ -117,6 +117,10 @@ post_map = events["post_val"]   # Value after disturbance
 Extracts harmonic coefficients (Intercept, Slopes, Sine, Cosine) and detects intra-annual changes by fitting mathematical curves to multi-spectral data.
 
 ```python
+import numpy as np
+from cdts.ccdc import predict_synthetic_image
+from cdts.classify import train_ccdc_classifier, classify_ccdc_stack
+
 # 1. Provide Julian dates and a Quality Assurance mask (Cloud/Shadow)
 # cube_multi: 4D array (Bands, Time, Y, X)
 # qa_mask: 3D array (Time, Y, X) with 0 for clear sky, 1 for clouds
@@ -127,22 +131,37 @@ ccdc_results = cube_multi.cdts.run_ccdc(
     dates=dates_julian,
     qa_stack=qa_mask, # Automatically skips clouded pixels in regression
     max_segments=6, 
-    conseq_anom=3, 
     return_coefs=True, 
     n_jobs=-1
 )
 
-# Run the C++ engine
+# Run the C++ engine to generate the harmonic coefficient stack
 coef_stack = ccdc_results.compute()
 
-# 3. Extract Physical Attributes
-# The returned coefficients (intercepts) can be used to map persistent physics.
-# For example, mapping permanent water bodies by comparing Green and SWIR intercepts:
-from cdts import extract_water_mask
-water_map = extract_water_mask(
-    coef_stack.values, 
-    green_band_idx=1, 
-    swir_band_idx=4
+# 3. Generate Synthetic Images (Harmonic Reconstruction)
+# Predict what the surface should look like on any arbitrary date without clouds!
+# Output shape: (Bands, Y, X)
+synthetic_image = predict_synthetic_image(
+    ccdc_coefs_stack=coef_stack.values, 
+    target_julian_day=200, # Predict for Julian day 200
+    num_bands=6
+)
+
+# 4. Land Cover Classification using the Harmonic Coefficients
+# Train a Random Forest using harmonic coefficients as features
+rf_model = train_ccdc_classifier(
+    X_train=training_coefs, # Your extracted training samples
+    y_train=training_labels, 
+    n_estimators=100
+)
+
+# Classify the entire CCDC cube into a categorical land cover map block-by-block
+# (Handles memory efficiently by reading/writing chunks)
+classify_ccdc_stack(
+    clf=rf_model,
+    coef_stack_path="output/ccdc_coefs.tif",
+    output_path="output/land_cover_map.tif",
+    chunk_size=512
 )
 ```
 
