@@ -83,8 +83,10 @@ def build_time_series(
         if "sentinel" in col_name or "s2" in col_name:
             query_params["s2:mgrs_tile"] = {"in": tiles}
         elif "landsat" in col_name:
-            # Note: Landsat uses wrs_path and wrs_row, if 'tiles' represents pathrow like "215065"
-            pass
+            # For Landsat, if it's a single tile (e.g., "215065"), inject into query
+            if len(tiles) == 1 and len(tiles[0]) == 6 and tiles[0].isdigit():
+                query_params["landsat:wrs_path"] = {"eq": tiles[0][:3]}
+                query_params["landsat:wrs_row"]  = {"eq": tiles[0][3:]}
             
     search_kwargs = {
         "collections": [collection] if isinstance(collection, str) else collection,
@@ -113,6 +115,22 @@ def build_time_series(
         raise ValueError("No images found for the given criteria.")
         
     items_list = list(items)
+
+    # Manual post-filtering for Landsat tiles if multiple were provided
+    # since STAC query doesn't easily support OR conditions across multiple path/row pairs
+    if tiles and "landsat" in col_name:
+        filtered_items = []
+        for item in items_list:
+            path = item.properties.get("landsat:wrs_path", "")
+            row = item.properties.get("landsat:wrs_row", "")
+            # Some catalogs store them as integers or unpadded strings
+            pr = f"{int(path):03d}{int(row):03d}" if path and row else ""
+            if pr in tiles:
+                filtered_items.append(item)
+        
+        if filtered_items or len(tiles) > 1: # if we found matches or we were explicitly filtering
+            items_list = filtered_items
+            print(f"Filtered to {len(items_list)} items matching Landsat tiles: {tiles}")
     
     # 3.7 BDC Token injection
     if access_token:
