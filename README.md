@@ -112,12 +112,28 @@ som_weights = train_som_batch(
 bmus = predict_bmus(X_train, som_weights, n_jobs=-1)
 ```
 
-## 5. CCDC & LandTrendr
+## 5. LandTrendr & CCDC
 
-Continuous structural monitoring using robust harmonic and breakpoint regression models. 
+Continuous structural monitoring using robust breakpoint and harmonic regression models. 
+
+### LandTrendr (Trajectory-based Disturbance)
+Ideal for forest recovery and disturbance detection. The FTV (Fitted to Vertices) feature allows you to find structural breakpoints in an index (like NBR) and apply them to smooth out other raw bands.
 
 ```python
-# CCDC / COLD Algorithm
+from cdts import run_landtrendr, apply_vertices
+
+# 1. Fit the trajectory on the main index to find breakpoint years
+vertices = run_landtrendr(years, nbr_time_series)
+vertex_years = [v["year"] for v in vertices]
+
+# 2. Force a raw band (e.g., SWIR) to conform to the NBR breakpoints
+swir_fitted = apply_vertices(vertex_years, years, raw_swir_time_series)
+```
+
+### CCDC / COLD (Harmonic Modeling)
+Extracts harmonic coefficients (Intercept, Slopes, Sine, Cosine) and detects intra-annual changes natively scaling across your Dask arrays.
+
+```python
 # Integrates natively with xarray datasets via pandas-like accessors
 ccdc_results = cube_16d.cdts.run_ccdc(
     max_segments=6, 
