@@ -23,11 +23,21 @@ cube = cdts.build_time_series(
     bands=["red", "green", "blue", "nir"]
 )
 
-# Option B: MGRS Tiles
-cube_tiles = cdts.build_time_series(
+# Option B: MGRS Tiles (Sentinel-2)
+cube_tiles_s2 = cdts.build_time_series(
     source="earth_search",
     collection="sentinel-2-l2a",
     tiles=["22JFQ", "22JGQ"], # Fetch specific Sentinel-2 MGRS tiles
+    start_date="2022-01-01",
+    end_date="2022-12-31",
+    bands=["red", "green", "blue", "nir"]
+)
+
+# Option C: WRS-2 Path/Row Tiles (Landsat)
+cube_tiles_l8 = cdts.build_time_series(
+    source="earth_search",
+    collection="landsat-c2-l2",
+    tiles=["215065"], # 6-digit Path/Row string (Path 215, Row 065)
     start_date="2022-01-01",
     end_date="2022-12-31",
     bands=["red", "green", "blue", "nir"]
@@ -83,4 +93,33 @@ cube_local = build_local_cube(
 )
 
 # You get a full xarray DataArray ready for TWDTW, SOM, or CCDC!
+```
+
+## Calculating Spectral Indices (e.g., NDVI)
+
+If you wish to obtain only a specific spectral index like NDVI, there are two possible scenarios depending on the STAC catalog:
+
+**1. The index is pre-calculated by the provider**
+If the catalog (such as Brazil Data Cube) natively provides an `ndvi` asset, you can fetch it directly without downloading the raw optical bands:
+```python
+cube_ndvi = cdts.build_time_series(
+    source="brazil_data_cube",
+    collection="CBERS4A_WFI_L4_SR",
+    tiles=["022024"],
+    bands=["ndvi"] # Direct index download
+)
+```
+
+**2. The index is NOT pre-calculated (e.g., Earth Search)**
+Standard Level-2A collections typically do not store the index to save space. You must explicitly download the `red` and `nir` bands and calculate the index locally. Because CDTS is built on Dask, this mathematical operation is lazy and virtually memory-free until you save it or plot it.
+```python
+cube_raw = cdts.build_time_series(
+    source="earth_search",
+    collection="sentinel-2-l2a",
+    tiles=["22JFQ"],
+    bands=["red", "nir"]
+)
+
+# Compute NDVI lazily
+cube_ndvi = (cube_raw.sel(band="nir") - cube_raw.sel(band="red")) / (cube_raw.sel(band="nir") + cube_raw.sel(band="red"))
 ```
