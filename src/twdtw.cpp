@@ -1,4 +1,3 @@
-
 #include "twdtw.h"
 #include <cmath>
 #include <algorithm>
@@ -44,10 +43,8 @@ TWDTWResult fit_twdtw(const std::vector<double>& ts_values,
     TWDTW_LUT lut(params);
 
     if (return_path) {
-        // Full matrix mode (required for path backtracking)
         std::vector<std::vector<double>> d(n + 1, std::vector<double>(m + 1, std::numeric_limits<double>::infinity()));
         
-        // Initialization
         if (params.subsequence_matching) {
             for (int i = 0; i <= n; ++i) d[i][0] = 0.0;
         } else {
@@ -63,9 +60,9 @@ TWDTWResult fit_twdtw(const std::vector<double>& ts_values,
                 if (num_bands == 1) {
                     spatial_dist = std::abs(ts_values[i - 1] - pattern_values[j - 1]);
                 } else {
-                    Eigen::Map<const Eigen::VectorXd> v1(ts_values.data() + (i-1)*num_bands, num_bands);
-                    Eigen::Map<const Eigen::VectorXd> v2(pattern_values.data() + (j-1)*num_bands, num_bands);
-                    spatial_dist = (v1 - v2).norm(); // Euclidean distance
+                    Eigen::Map<const Eigen::VectorXd> v1(const_cast<double*>(ts_values.data()) + (i-1)*num_bands, num_bands);
+                    Eigen::Map<const Eigen::VectorXd> v2(const_cast<double*>(pattern_values.data()) + (j-1)*num_bands, num_bands);
+                    spatial_dist = (v1 - v2).norm();
                 }
                 
                 double temp_penalty = lut.get(ts_dates[i - 1], pattern_dates[j - 1]);
@@ -77,7 +74,6 @@ TWDTWResult fit_twdtw(const std::vector<double>& ts_values,
             if (min_in_row > abort_threshold) return result;
         }
 
-        // Subsequence: find the min at the last column
         int best_i = n;
         if (params.subsequence_matching) {
             double min_val = std::numeric_limits<double>::infinity();
@@ -92,7 +88,6 @@ TWDTWResult fit_twdtw(const std::vector<double>& ts_values,
             result.distance = d[n][m];
         }
 
-        // Backtrack
         if (result.distance != std::numeric_limits<double>::infinity()) {
             int i = best_i;
             int j = m;
@@ -109,7 +104,6 @@ TWDTWResult fit_twdtw(const std::vector<double>& ts_values,
         }
 
     } else {
-        // Fast 2-row memory optimized mode
         std::vector<double> prev_row(m + 1, std::numeric_limits<double>::infinity());
         std::vector<double> curr_row(m + 1, std::numeric_limits<double>::infinity());
         
@@ -137,8 +131,8 @@ TWDTWResult fit_twdtw(const std::vector<double>& ts_values,
                 if (num_bands == 1) {
                     spatial_dist = std::abs(ts_values[i - 1] - pattern_values[j - 1]);
                 } else {
-                    Eigen::Map<const Eigen::VectorXd> v1(ts_values.data() + (i-1)*num_bands, num_bands);
-                    Eigen::Map<const Eigen::VectorXd> v2(pattern_values.data() + (j-1)*num_bands, num_bands);
+                    Eigen::Map<const Eigen::VectorXd> v1(const_cast<double*>(ts_values.data()) + (i-1)*num_bands, num_bands);
+                    Eigen::Map<const Eigen::VectorXd> v2(const_cast<double*>(pattern_values.data()) + (j-1)*num_bands, num_bands);
                     spatial_dist = (v1 - v2).norm();
                 }
 
@@ -207,6 +201,28 @@ pybind11::array_t<double> fit_twdtw_batch(
 
     TWDTW_LUT lut(params);
 
+    // LB_Keogh Precomputation
+    bool use_lb = (abort_threshold < std::numeric_limits<double>::infinity()) && !params.subsequence_matching;
+    std::vector<std::vector<double>> U(T, std::vector<double>(num_bands, -std::numeric_limits<double>::infinity()));
+    std::vector<std::vector<double>> L(T, std::vector<double>(num_bands, std::numeric_limits<double>::infinity()));
+    std::vector<bool> valid_window(T, false);
+
+    if (use_lb) {
+        for (int t = 0; t < T; ++t) {
+            int t_date = ts_dates[t];
+            for (int p = 0; p < P; ++p) {
+                if (std::abs(t_date - pat_dates[p]) <= params.max_time_warp) {
+                    valid_window[t] = true;
+                    for (int b = 0; b < num_bands; ++b) {
+                        double val = pat_vals[p * num_bands + b];
+                        U[t][b] = std::max(U[t][b], val);
+                        L[t][b] = std::min(L[t][b], val);
+                    }
+                }
+            }
+        }
+    }
+
     #pragma omp parallel for collapse(2) num_threads(n_jobs > 0 ? n_jobs : omp_get_max_threads())
     for (int y = 0; y < Y; ++y) {
         for (int x = 0; x < X; ++x) {
@@ -215,6 +231,40 @@ pybind11::array_t<double> fit_twdtw_batch(
                 ts_vals[t] = values_ptr[y * X * T * num_bands + x * T * num_bands + t];
             }
             
+            if (use_lb) {
+                double lb_dist = 0.0;
+                bool valid_lb = true;
+                for (int t = 0; t < T; ++t) {
+                    if (!valid_window[t]) {
+                        lb_dist = std::numeric_limits<double>::infinity();
+                        break;
+                    }
+                    double spatial_dist = 0.0;
+                    if (num_bands == 1) {
+                        double v = ts_vals[t];
+                        if (v > U[t][0]) spatial_dist = v - U[t][0];
+                        else if (v < L[t][0]) spatial_dist = L[t][0] - v;
+                    } else {
+                        double sq_dist = 0.0;
+                        for (int b = 0; b < num_bands; ++b) {
+                            double v = ts_vals[t * num_bands + b];
+                            if (v > U[t][b]) sq_dist += (v - U[t][b]) * (v - U[t][b]);
+                            else if (v < L[t][b]) sq_dist += (L[t][b] - v) * (L[t][b] - v);
+                        }
+                        spatial_dist = std::sqrt(sq_dist);
+                    }
+                    lb_dist += spatial_dist;
+                    if (lb_dist > abort_threshold) {
+                        break;
+                    }
+                }
+                
+                if (lb_dist > abort_threshold) {
+                    result_ptr[y * X + x] = std::numeric_limits<double>::infinity();
+                    continue; // LB Keogh successfully pruned this calculation!
+                }
+            }
+
             TWDTWResult res = fit_twdtw(ts_vals, ts_dates, pat_vals, pat_dates, num_bands, params, abort_threshold, false);
             result_ptr[y * X + x] = res.distance;
         }
