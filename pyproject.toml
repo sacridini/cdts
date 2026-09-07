@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cdts"
-version = "0.2.7"
+version = "0.3.1"
 description = "Continuous Disturbance Time Series (CDTS) - LandTrendr and CCDC tools for Python"
 dependencies = [
     "numpy",
@@ -23,7 +23,8 @@ dependencies = [
     "planetary-computer",
     "earthengine-api",
     "requests",
-    "zarr"
+    "zarr",
+    "rioxarray"
 ]
 
 [project.optional-dependencies]
