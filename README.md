@@ -38,7 +38,7 @@ pip install cdts
 
 ---
 
-## 1. Cloud-Native ARD Cubes (STAC)
+## Cloud-Native ARD Cubes (STAC)
 
 Fetch lazy evaluated, Dask-backed analysis-ready data cubes directly from STAC providers (e.g., Earth Search, Planetary Computer, Brazil Data Cube).
 
@@ -59,7 +59,7 @@ cube = cdts.build_time_series(
 print(cube) # Returns an xarray.DataArray (Time, Band, Y, X)
 ```
 
-## 2. Temporal Regularization
+## Temporal Regularization
 
 Algorithms like TWDTW, SOM, and Deep Learning expect temporally aligned data. `cdts` natively regularizes irregular STAC acquisitions.
 
@@ -71,57 +71,7 @@ from cdts import regularize_time_series
 cube_16d = regularize_time_series(cube, freq="16D", method="medoid")
 ```
 
-## 3. Time-Weighted Dynamic Time Warping (TWDTW)
-
-The C++ TWDTW engine handles multivariate sequences simultaneously using Eigen's $L^2$ norms and aggressively skips non-matching pixels using $O(N)$ Lower Bounding techniques.
-
-```python
-from cdts.twdtw import classify_twdtw
-import numpy as np
-
-# Suppose you have regularized data (Y, X, Time, Bands)
-dates = np.arange(1, 366, 16) # Day of year
-
-# Define temporal patterns (Signatures)
-patterns = {
-    "Forest": (forest_signature_array, dates),
-    "Agriculture": (soy_signature_array, dates)
-}
-
-# Run classification block-by-block using OpenMP
-# n_jobs=-1 automatically uses all CPU cores minus 1 to prevent OS lockup
-classes_map, dist_map, class_names = classify_twdtw(
-    cube_16d.values, 
-    dates, 
-    patterns, 
-    n_jobs=-1 
-)
-```
-
-## 4. Self-Organizing Maps (SOM)
-
-Unsupervised classification and dimensionality reduction of time series using a fast Batch SOM algorithm implemented in C++.
-
-```python
-from cdts.ai import train_som_batch, predict_bmus
-
-# Flatten cube to (Pixels, Features)
-X_train = cube_16d.values.reshape(-1, cube_16d.shape[2] * cube_16d.shape[3])
-
-# Train a 10x10 SOM grid
-som_weights = train_som_batch(
-    data=X_train,
-    grid_rows=10,
-    grid_cols=10,
-    num_epochs=100,
-    n_jobs=-1
-)
-
-# Predict Best Matching Units (BMUs) for new data
-bmus = predict_bmus(X_train, som_weights, n_jobs=-1)
-```
-
-## 5. LandTrendr & CCDC
+## Change Detection (LandTrendr & CCDC)
 
 Continuous structural monitoring using robust breakpoint and harmonic regression models directly on xarray Datacubes via pandas-like accessors (`cube.cdts.run_...`).
 
@@ -196,7 +146,57 @@ water_map = extract_water_mask(
 )
 ```
 
-## 6. Pre and Post-Processing
+## Time-Series Classification (TWDTW)
+
+The C++ TWDTW engine handles multivariate sequences simultaneously using Eigen's $L^2$ norms and aggressively skips non-matching pixels using $O(N)$ Lower Bounding techniques.
+
+```python
+from cdts.twdtw import classify_twdtw
+import numpy as np
+
+# Suppose you have regularized data (Y, X, Time, Bands)
+dates = np.arange(1, 366, 16) # Day of year
+
+# Define temporal patterns (Signatures)
+patterns = {
+    "Forest": (forest_signature_array, dates),
+    "Agriculture": (soy_signature_array, dates)
+}
+
+# Run classification block-by-block using OpenMP
+# n_jobs=-1 automatically uses all CPU cores minus 1 to prevent OS lockup
+classes_map, dist_map, class_names = classify_twdtw(
+    cube_16d.values, 
+    dates, 
+    patterns, 
+    n_jobs=-1 
+)
+```
+
+## Unsupervised Clustering (SOM)
+
+Unsupervised classification and dimensionality reduction of time series using a fast Batch SOM algorithm implemented in C++.
+
+```python
+from cdts.ai import train_som_batch, predict_bmus
+
+# Flatten cube to (Pixels, Features)
+X_train = cube_16d.values.reshape(-1, cube_16d.shape[2] * cube_16d.shape[3])
+
+# Train a 10x10 SOM grid
+som_weights = train_som_batch(
+    data=X_train,
+    grid_rows=10,
+    grid_cols=10,
+    num_epochs=100,
+    n_jobs=-1
+)
+
+# Predict Best Matching Units (BMUs) for new data
+bmus = predict_bmus(X_train, som_weights, n_jobs=-1)
+```
+
+## Pre and Post-Processing
 
 Before classifying, it is highly recommended to smooth temporal trajectories. After classifying, pixel-based maps often suffer from noise. CDTS provides fast functions to regularize your data in both dimensions:
 
@@ -213,7 +213,7 @@ regularized_map = apply_majority_filter(classified_map, size=3)
 final_map = apply_mmu_filter(regularized_map, min_pixels=10)
 ```
 
-## 7. Exporting Geospatial Data
+## Exporting Geospatial Data
 
 Seamlessly dump predicted arrays back to the disk, preserving the metadata from the original STAC cube.
 
