@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/logo.png" alt="CDTS Logo" width="400">
+</p>
+
 # CDTS: Continuous Monitoring of Land Cover and Land Use using Dense Time Series
 
 [![Build Wheels](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml)
