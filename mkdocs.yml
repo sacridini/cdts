@@ -66,5 +66,7 @@ nav:
       - AI & Deep Learning: tutorials/ai.md
       - Google Earth Engine (GEE): tutorials/gee-downloads.md
       - Parallel & Cloud Processing: tutorials/parallel-cloud-processing.md
+      - Distributed LandTrendr (Dask): tutorials/distributed_landtrendr.md
+      - Distributed CCDC (Dask): tutorials/distributed_ccdc.md
   - CLI Reference: cli.md
   - API Reference: api.md
