@@ -114,12 +114,12 @@ bmus = predict_bmus(X_train, som_weights, n_jobs=-1)
 
 ## 5. LandTrendr & CCDC
 
-Continuous structural monitoring using robust breakpoint and harmonic regression models directly on xarray Datacubes via pandas-like accessors (cube.cdts.run_...).
+Continuous structural monitoring using robust breakpoint and harmonic regression models directly on xarray Datacubes via pandas-like accessors (`cube.cdts.run_...`).
 
 ### LandTrendr (Trajectory-based Disturbance)
-Identify structural breakpoints in time-series (e.g., detecting exactly when deforestation occurred). CDTS scales LandTrendr to massive datasets using C++ OpenMP and Dask map_blocks.
+Identify structural breakpoints in time-series (e.g., detecting exactly when deforestation occurred). CDTS scales LandTrendr to massive datasets using C++ OpenMP and Dask `map_blocks`.
 
-`python
+```python
 import numpy as np
 
 # 1. Prepare annual NBR data (Time, Y, X)
@@ -158,12 +158,12 @@ disturbance_year = np.take_along_axis(
 ).squeeze(0)
 
 # Now you have a 2D Map of Disturbance Years ready to export!
-`
+```
 
 ### CCDC / COLD (Harmonic Modeling)
 Extracts harmonic coefficients (Intercept, Slopes, Sine, Cosine) and detects intra-annual changes by fitting mathematical curves to multi-spectral data.
 
-`python
+```python
 # 1. Provide Julian dates and a Quality Assurance mask (Cloud/Shadow)
 # cube_multi: 4D array (Bands, Time, Y, X)
 # qa_mask: 3D array (Time, Y, X) with 0 for clear sky, 1 for clouds
@@ -191,7 +191,7 @@ water_map = extract_water_mask(
     green_band_idx=1, 
     swir_band_idx=4
 )
-`
+```
 
 ## 6. Pre and Post-Processing
 
