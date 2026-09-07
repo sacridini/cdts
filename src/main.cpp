@@ -84,14 +84,22 @@ PYBIND11_MODULE(_core, m) {
         .def_readwrite("alpha", &cdts::twdtw::TWDTWParams::alpha)
         .def_readwrite("beta", &cdts::twdtw::TWDTWParams::beta)
         .def_readwrite("gamma", &cdts::twdtw::TWDTWParams::gamma)
-        .def_readwrite("max_time_warp", &cdts::twdtw::TWDTWParams::max_time_warp);
+        .def_readwrite("max_time_warp", &cdts::twdtw::TWDTWParams::max_time_warp)
+        .def_readwrite("subsequence_matching", &cdts::twdtw::TWDTWParams::subsequence_matching);
+
+    py::class_<cdts::twdtw::TWDTWResult>(tw, "TWDTWResult")
+        .def(py::init<>())
+        .def_readwrite("distance", &cdts::twdtw::TWDTWResult::distance)
+        .def_readwrite("path", &cdts::twdtw::TWDTWResult::path);
 
     tw.def("fit_twdtw", &cdts::twdtw::fit_twdtw,
            "Run TWDTW on a single time series against a pattern",
            py::arg("ts_values"), py::arg("ts_dates"), 
            py::arg("pattern_values"), py::arg("pattern_dates"),
+           py::arg("num_bands") = 1,
            py::arg("params") = cdts::twdtw::TWDTWParams(),
-           py::arg("abort_threshold") = std::numeric_limits<double>::infinity());
+           py::arg("abort_threshold") = std::numeric_limits<double>::infinity(),
+           py::arg("return_path") = false);
 
     tw.def("fit_twdtw_batch", &cdts::twdtw::fit_twdtw_batch,
            "Run TWDTW on a batch of pixels with OpenMP",

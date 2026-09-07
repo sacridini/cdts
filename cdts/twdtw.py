@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Dict, Any, Union, Tuple
+from typing import List, Dict, Any, Union, Tuple, Optional
 from . import _core
 
 def run_twdtw(
@@ -11,28 +11,27 @@ def run_twdtw(
     beta: float = 0.05, 
     gamma: float = 50.0,
     max_time_warp: int = 365,
-    abort_threshold: float = float('inf')
-) -> float:
+    subsequence_matching: bool = False,
+    abort_threshold: float = float('inf'),
+    return_path: bool = False
+) -> Union[float, Tuple[float, List[Tuple[int, int]]]]:
     """
     Run Time-Weighted Dynamic Time Warping (TWDTW) on a single time series against a pattern.
-    
-    Args:
-        ts_values (np.ndarray or list): Time series values.
-        ts_dates (np.ndarray or list): Time series dates (ordinal or DOY).
-        pattern_values (np.ndarray or list): Pattern time series values.
-        pattern_dates (np.ndarray or list): Pattern time series dates.
-        alpha (float): Amplitude of the time weight penalty.
-        beta (float): Steepness of the logistic time weight function.
-        gamma (float): Midpoint (inflection point) of the logistic function.
-        max_time_warp (int): Sakoe-Chiba constraint (maximum time distortion allowed).
-        abort_threshold (float): Early abandonment limit. Returns inf if cost exceeds this.
-        
-    Returns:
-        float: The TWDTW distance between the time series and the pattern.
+    Supports multivariate data if ts_values is 2D (Time x Bands).
     """
-    ts_values_list = [float(v) for v in (ts_values.tolist() if isinstance(ts_values, np.ndarray) else list(ts_values))]
+    if isinstance(ts_values, list):
+        ts_values = np.array(ts_values, dtype=np.float64)
+    if isinstance(pattern_values, list):
+        pattern_values = np.array(pattern_values, dtype=np.float64)
+        
+    num_bands = 1
+    if ts_values.ndim == 2:
+        num_bands = ts_values.shape[1]
+    
+    ts_values_flat = [float(v) for v in ts_values.flatten()]
+    pat_values_flat = [float(v) for v in pattern_values.flatten()]
+
     ts_dates_list = [int(d) for d in (ts_dates.tolist() if isinstance(ts_dates, np.ndarray) else list(ts_dates))]
-    pat_values_list = [float(v) for v in (pattern_values.tolist() if isinstance(pattern_values, np.ndarray) else list(pattern_values))]
     pat_dates_list = [int(d) for d in (pattern_dates.tolist() if isinstance(pattern_dates, np.ndarray) else list(pattern_dates))]
     
     params = _core.twdtw.TWDTWParams()
@@ -40,17 +39,22 @@ def run_twdtw(
     params.beta = beta
     params.gamma = gamma
     params.max_time_warp = max_time_warp
+    params.subsequence_matching = subsequence_matching
     
-    distance = _core.twdtw.fit_twdtw(
-        ts_values_list, 
+    res = _core.twdtw.fit_twdtw(
+        ts_values_flat, 
         ts_dates_list, 
-        pat_values_list, 
+        pat_values_flat, 
         pat_dates_list, 
+        num_bands,
         params, 
-        float(abort_threshold)
+        float(abort_threshold),
+        return_path
     )
     
-    return distance
+    if return_path:
+        return res.distance, res.path
+    return res.distance
 
 
 def run_twdtw_batch(
@@ -62,32 +66,19 @@ def run_twdtw_batch(
     beta: float = 0.05, 
     gamma: float = 50.0,
     max_time_warp: int = 365,
+    subsequence_matching: bool = False,
     abort_threshold: float = float('inf'),
     n_jobs: int = -1
 ) -> np.ndarray:
     """
-    Run highly optimized TWDTW on a batch of pixels (3D array) using OpenMP.
-    
-    Args:
-        values_array (np.ndarray): 3D array of spectral values [Y, X, Time].
-        dates_array (np.ndarray): 1D array of dates [Time].
-        pattern_values (np.ndarray): 1D array of pattern spectral values.
-        pattern_dates (np.ndarray): 1D array of pattern dates.
-        alpha (float): Amplitude of the time weight penalty.
-        beta (float): Steepness of the logistic time weight function.
-        gamma (float): Midpoint (inflection point) of the logistic function.
-        max_time_warp (int): Sakoe-Chiba constraint (maximum time distortion allowed).
-        abort_threshold (float): Early abandonment limit.
-        n_jobs (int): Number of threads for OpenMP to use. Default -1 (use all).
-        
-    Returns:
-        np.ndarray: 2D array [Y, X] of TWDTW distances.
+    Run highly optimized TWDTW on a batch of pixels (3D or 4D array) using OpenMP.
     """
     params = _core.twdtw.TWDTWParams()
     params.alpha = alpha
     params.beta = beta
     params.gamma = gamma
     params.max_time_warp = max_time_warp
+    params.subsequence_matching = subsequence_matching
     
     values_array = np.ascontiguousarray(values_array, dtype=np.float64)
     dates_array = np.ascontiguousarray(dates_array, dtype=np.int32)
@@ -105,3 +96,58 @@ def run_twdtw_batch(
     )
     
     return result
+
+def classify_twdtw(
+    values_array: np.ndarray, 
+    dates_array: np.ndarray, 
+    patterns: Dict[str, Tuple[np.ndarray, np.ndarray]], 
+    alpha: float = 0.1, 
+    beta: float = 0.05, 
+    gamma: float = 50.0,
+    max_time_warp: int = 365,
+    subsequence_matching: bool = False,
+    n_jobs: int = -1
+) -> Tuple[np.ndarray, np.ndarray, List[str]]:
+    """
+    Classify a raster cube based on a dictionary of patterns using TWDTW.
+    
+    Args:
+        values_array: 3D [Y, X, T] or 4D [Y, X, T, Bands] array.
+        dates_array: 1D array of dates.
+        patterns: dict mapping class_name to a tuple (pattern_values, pattern_dates).
+                  pattern_values should be 1D or 2D (if multi-band).
+        
+    Returns:
+        classification_map (np.ndarray): 2D integer array containing the index of the winning class.
+        distance_map (np.ndarray): 2D float array containing the TWDTW distance of the winning class.
+        class_names (List[str]): List of class names, where index matches classification_map values.
+    """
+    Y, X = values_array.shape[0], values_array.shape[1]
+    
+    best_dist = np.full((Y, X), np.inf, dtype=np.float64)
+    best_class = np.full((Y, X), -1, dtype=np.int32)
+    
+    class_names = list(patterns.keys())
+    
+    for class_idx, class_name in enumerate(class_names):
+        pat_vals, pat_dates = patterns[class_name]
+        
+        # Calculate TWDTW for this class, using the current best_dist as the abort_threshold
+        # wait, abort_threshold per pixel needs to be passed, but the batch C++ takes a single float.
+        # Since we can't pass a 2D array of abort_thresholds easily without modifying C++ again,
+        # we pass inf for now, or just the maximum of the current best_dist if we want to be safe, 
+        # but max(best_dist) might be inf initially.
+        # To truly use per-pixel early abandonment in batch, we'd need to pass a 2D array of thresholds.
+        # Since we didn't, we just run standard batch per class.
+        
+        dist = run_twdtw_batch(
+            values_array, dates_array, pat_vals, pat_dates,
+            alpha, beta, gamma, max_time_warp, subsequence_matching,
+            abort_threshold=float('inf'), n_jobs=n_jobs
+        )
+        
+        mask = dist < best_dist
+        best_dist[mask] = dist[mask]
+        best_class[mask] = class_idx
+        
+    return best_class, best_dist, class_names
