@@ -51,3 +51,29 @@ def apply_majority_filter(image: "np.ndarray", size: int = 3) -> "np.ndarray":
         
     # generic_filter applies the function to a moving window
     return generic_filter(image, _mode_func, size=size)
+
+from scipy.ndimage import uniform_filter
+
+def apply_bayesian_filter(probs: "np.ndarray", window_size: int = 3) -> "np.ndarray":
+    """
+    Applies a Bayesian smoothing filter to class probabilities.
+    Unlike a simple majority filter, this considers the confidence (probability) of the 
+    AI/TWDTW model. It multiplies the local pixel probability by the neighborhood average probability.
+    
+    Args:
+        probs: 3D numpy array [Classes, Y, X] of probabilities or confidence scores.
+        window_size: Size of the spatial window.
+        
+    Returns:
+        2D numpy array [Y, X] of the winning class indices after Bayesian smoothing.
+    """
+    C, Y, X = probs.shape
+    smoothed_probs = np.zeros_like(probs)
+    
+    for c in range(C):
+        smoothed_probs[c] = uniform_filter(probs[c], size=window_size)
+        
+    # Bayesian update: P(class|neighbor) is proportional to P(class) * P_neighbor(class)
+    updated_probs = probs * smoothed_probs
+    
+    return np.argmax(updated_probs, axis=0)

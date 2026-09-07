@@ -63,6 +63,6 @@ nav:
       - AI & Deep Learning: tutorials/ai.md
       - STAC Downloads & Tips: tutorials/stac-downloads.md
       - Google Earth Engine (GEE): tutorials/gee-downloads.md
-      - Parallel & Cloud Processing: tutorials/parallel-cloud-processing.md
+      - Parallel & Cloud Processing: tutorials/parallel-cloud-processing.md\n      - TWDTW (Time-Weighted DTW): tutorials/twdtw.md
   - CLI Reference: cli.md
   - API Reference: api.md

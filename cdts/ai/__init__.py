@@ -6,3 +6,4 @@ from .dataset import STACCubeDataset
 from .losses import FocalLoss, TverskyLoss, ContrastiveSiameseLoss
 
 __all__ = ['SiameseChangeDetector', 'UTAE', 'LTAE', 'TempCNN', 'GeoFoundationViT', 'STACCubeDataset', 'FocalLoss', 'TverskyLoss', 'ContrastiveSiameseLoss']
+from .som import SOM
