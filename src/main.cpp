@@ -4,6 +4,7 @@
 #include "landtrendr.h"
 #include "ccdc.h"
 #include "utils.h"
+#include "twdtw.h"
 
 namespace py = pybind11;
 
@@ -74,4 +75,25 @@ PYBIND11_MODULE(_core, m) {
     utils.def("compute_medoid", &cdts::utils::compute_medoid,
            "Computes the multidimensional medoid composite over the time axis",
            py::arg("input_array"), py::arg("no_data_value") = -9999.0);
+
+    // TWDTW sub-module
+    py::module_ tw = m.def_submodule("twdtw", "TWDTW algorithms");
+
+    py::class_<cdts::twdtw::TWDTWParams>(tw, "TWDTWParams")
+        .def(py::init<>())
+        .def_readwrite("alpha", &cdts::twdtw::TWDTWParams::alpha)
+        .def_readwrite("beta", &cdts::twdtw::TWDTWParams::beta)
+        .def_readwrite("gamma", &cdts::twdtw::TWDTWParams::gamma);
+
+    tw.def("fit_twdtw", &cdts::twdtw::fit_twdtw,
+           "Run TWDTW on a single time series against a pattern",
+           py::arg("ts_values"), py::arg("ts_dates"), 
+           py::arg("pattern_values"), py::arg("pattern_dates"),
+           py::arg("params") = cdts::twdtw::TWDTWParams());
+
+    tw.def("fit_twdtw_batch", &cdts::twdtw::fit_twdtw_batch,
+           "Run TWDTW on a batch of pixels with OpenMP",
+           py::arg("values_array"), py::arg("dates_array"),
+           py::arg("pattern_values_array"), py::arg("pattern_dates_array"),
+           py::arg("params"), py::arg("n_jobs") = -1);
 }
