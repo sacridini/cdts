@@ -114,41 +114,84 @@ bmus = predict_bmus(X_train, som_weights, n_jobs=-1)
 
 ## 5. LandTrendr & CCDC
 
-Continuous structural monitoring using robust breakpoint and harmonic regression models. 
+Continuous structural monitoring using robust breakpoint and harmonic regression models directly on xarray Datacubes via pandas-like accessors (cube.cdts.run_...).
 
 ### LandTrendr (Trajectory-based Disturbance)
-Ideal for forest recovery and disturbance detection. The FTV (Fitted to Vertices) feature allows you to find structural breakpoints in an index (like NBR) and apply them to smooth out other raw bands.
+Identify structural breakpoints in time-series (e.g., detecting exactly when deforestation occurred). CDTS scales LandTrendr to massive datasets using C++ OpenMP and Dask map_blocks.
 
-```python
-from cdts import run_landtrendr, apply_vertices
+`python
+import numpy as np
 
-# 1. Fit the trajectory on the main index to find breakpoint years
-vertices = run_landtrendr(years, nbr_time_series)
-vertex_years = [v["year"] for v in vertices]
+# 1. Prepare annual NBR data (Time, Y, X)
+years = np.array([2018, 2019, 2020, 2021, 2022, 2023])
 
-# 2. Force a raw band (e.g., SWIR) to conform to the NBR breakpoints
-swir_fitted = apply_vertices(vertex_years, years, raw_swir_time_series)
-```
+# 2. Run LandTrendr across the entire Dask datacube natively
+# max_segments=4 means up to 5 vertices (breakpoints) per pixel.
+lt_results = cube_nbr.cdts.run_landtrendr(
+    years=years, 
+    max_segments=4, 
+    pval_threshold=0.05, 
+    n_jobs=-1
+)
+
+# Trigger Dask computation (runs the C++ core in parallel)
+# Output shape is (2 * max_vertices, Y, X).
+# The first half of the layers are Vertex Years, the second half are Fitted Values.
+lt_array = lt_results.compute()
+
+# Slicing the layers
+max_vertices = 5
+vertex_years = lt_array[0 : max_vertices, :, :]
+vertex_fitted_values = lt_array[max_vertices : 2 * max_vertices, :, :]
+
+# 3. Analyze disturbances (e.g., finding the biggest drop in NBR)
+magnitude_of_change = np.diff(vertex_fitted_values, axis=0)
+
+# Identify the segment with the most negative change (greatest vegetation loss)
+biggest_loss_idx = np.argmin(magnitude_of_change, axis=0)
+
+# Extract the specific year that this major disturbance began
+disturbance_year = np.take_along_axis(
+    vertex_years, 
+    np.expand_dims(biggest_loss_idx, axis=0), 
+    axis=0
+).squeeze(0)
+
+# Now you have a 2D Map of Disturbance Years ready to export!
+`
 
 ### CCDC / COLD (Harmonic Modeling)
-Extracts harmonic coefficients (Intercept, Slopes, Sine, Cosine) and detects intra-annual changes natively scaling across your Dask arrays.
+Extracts harmonic coefficients (Intercept, Slopes, Sine, Cosine) and detects intra-annual changes by fitting mathematical curves to multi-spectral data.
 
-```python
-# Integrates natively with xarray datasets via pandas-like accessors
-ccdc_results = cube_16d.cdts.run_ccdc(
+`python
+# 1. Provide Julian dates and a Quality Assurance mask (Cloud/Shadow)
+# cube_multi: 4D array (Bands, Time, Y, X)
+# qa_mask: 3D array (Time, Y, X) with 0 for clear sky, 1 for clouds
+dates_julian = np.array([100, 116, 132, 148, 164, 180])
+
+# 2. Run CCDC directly as an xarray accessor
+ccdc_results = cube_multi.cdts.run_ccdc(
+    dates=dates_julian,
+    qa_stack=qa_mask, # Automatically skips clouded pixels in regression
     max_segments=6, 
-    conseq_anom=6, 
+    conseq_anom=3, 
     return_coefs=True, 
     n_jobs=-1
 )
 
-# Evaluate the Dask graph and run the C++ kernel
+# Run the C++ engine
 coef_stack = ccdc_results.compute()
 
-# Extract Physical Masks (e.g. permanent water via intercepts)
+# 3. Extract Physical Attributes
+# The returned coefficients (intercepts) can be used to map persistent physics.
+# For example, mapping permanent water bodies by comparing Green and SWIR intercepts:
 from cdts import extract_water_mask
-water_map = extract_water_mask(coef_stack.values, green_band_idx=1, swir_band_idx=4)
-```
+water_map = extract_water_mask(
+    coef_stack.values, 
+    green_band_idx=1, 
+    swir_band_idx=4
+)
+`
 
 ## 6. Pre and Post-Processing
 
