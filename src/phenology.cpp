@@ -120,6 +120,17 @@ PhenologyMetrics extract_metrics(const Eigen::VectorXd& params, CurveType type, 
     }
     
     metrics.los = metrics.eos - metrics.sos;
+    
+    // If the fitted curve is degenerate (e.g. completely flat or monotonically decreasing),
+    // the start and end of season will collapse to the same point or overlap.
+    // We reject these as invalid seasons.
+    if (std::isnan(metrics.los) || metrics.los <= 0.0) {
+        metrics.sos = std::nan("");
+        metrics.eos = std::nan("");
+        metrics.los = std::nan("");
+        metrics.pop = std::nan("");
+    }
+    
     return metrics;
 }
 
