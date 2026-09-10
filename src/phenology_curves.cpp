@@ -190,58 +190,65 @@ bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y,
 
     switch(type) {
         case CurveType::BECK: {
-            if(params.size() != 6) params = Eigen::VectorXd::Ones(6);
+            if(params.size() != 6) params = Eigen::VectorXd::Zero(6);
             lb = Eigen::VectorXd(6); ub = Eigen::VectorXd(6);
             lb << y_min - 0.5*y_amp, y_min, t_min - 30, 0.0, t_min - 30, 0.0;
             ub << y_min + 0.5*y_amp, y_max + 0.5*y_amp, t_max + 30, 50.0, t_max + 30, 50.0;
+            if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
             BeckFunctor functor(t, y, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
         case CurveType::ELMORE: {
-            if(params.size() != 7) params = Eigen::VectorXd::Ones(7);
+            if(params.size() != 7) params = Eigen::VectorXd::Zero(7);
             lb = Eigen::VectorXd(7); ub = Eigen::VectorXd(7);
             lb << y_min - 0.5*y_amp, y_min, t_min - 30, 0.0, t_min - 30, 0.0, -0.1;
             ub << y_min + 0.5*y_amp, y_max + 0.5*y_amp, t_max + 30, 50.0, t_max + 30, 50.0, 0.1;
+            if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
             ElmoreFunctor functor(t, y, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
         case CurveType::GU: {
-            if(params.size() != 9) params = Eigen::VectorXd::Ones(9);
+            if(params.size() != 9) params = Eigen::VectorXd::Zero(9);
             lb = Eigen::VectorXd(9); ub = Eigen::VectorXd(9);
             lb << y_min - 0.5*y_amp, 0.0, 0.0, t_min - 30, 0.0, t_min - 30, 0.0, 0.1, 0.1;
             ub << y_min + 0.5*y_amp, 5.0*y_amp, 5.0*y_amp, t_max + 30, 50.0, t_max + 30, 50.0, 10.0, 10.0;
+            if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
             GuFunctor functor(t, y, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
         case CurveType::KLOS: {
-            if(params.size() != 13) params = Eigen::VectorXd::Ones(13);
+            if(params.size() != 13) params = Eigen::VectorXd::Zero(13);
             lb = Eigen::VectorXd(13); ub = Eigen::VectorXd(13);
             lb << -1.0, -1.0, -1.0, -1.0, y_min - 1.0, 0.0, 0.0, t_min - 30, t_min - 30, -5.0, -5.0, 0.1, 0.1;
             ub <<  1.0,  1.0,  1.0,  1.0, y_max + 1.0, 50.0, 50.0, t_max + 30, t_max + 30,  5.0,  5.0, 10.0, 10.0;
+            if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
             KlosFunctor functor(t, y, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
         case CurveType::ZHANG: {
-            if(params.size() != 7) params = Eigen::VectorXd::Ones(7);
+            if(params.size() != 7) params = Eigen::VectorXd::Zero(7);
             lb = Eigen::VectorXd(7); ub = Eigen::VectorXd(7);
             lb << t_min, y_min - 0.5*y_amp, y_min, t_min - 30, 0.0, t_min - 30, 0.0;
             ub << t_max, y_min + 0.5*y_amp, y_max + 0.5*y_amp, t_max + 30, 50.0, t_max + 30, 50.0;
+            if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
             ZhangFunctor functor(t, y, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
         case CurveType::AG: {
-            if(params.size() != 7) params = Eigen::VectorXd::Ones(7);
+            if(params.size() != 7) params = Eigen::VectorXd::Zero(7);
             lb = Eigen::VectorXd(7); ub = Eigen::VectorXd(7);
             lb << t_min, y_min - 0.5*y_amp, y_min, 0.0, 0.1, 0.0, 0.1;
             ub << t_max, y_min + 0.5*y_amp, y_max + 0.5*y_amp, 50.0, 10.0, 50.0, 10.0;
+            if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
             AGFunctor functor(t, y, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
         case CurveType::DL: {
-            if(params.size() != 6) params = Eigen::VectorXd::Ones(6);
+            if(params.size() != 6) params = Eigen::VectorXd::Zero(6);
             lb = Eigen::VectorXd(6); ub = Eigen::VectorXd(6);
             lb << y_min - 0.5*y_amp, y_min, t_min - 30, 0.0, t_min - 30, 0.0;
             ub << y_min + 0.5*y_amp, y_max + 0.5*y_amp, t_max + 30, 50.0, t_max + 30, 50.0;
+            if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
             DLFunctor functor(t, y, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
