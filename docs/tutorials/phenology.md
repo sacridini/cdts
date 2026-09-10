@@ -64,85 +64,49 @@ Once the curve is fitted perfectly, how do we define the "Start" and "End" of th
 
 ---
 
-## 3. Practical Example: Processing a Raster
+## 3. Practical Example: Processing a Raster (End-to-End)
 
-The following example demonstrates how to process a dense time series of EVI (Enhanced Vegetation Index) saved in a GeoTIFF. The algorithm will evaluate thousands of pixels simultaneously using all available CPU cores.
+The `cdts` package natively integrates with `xarray` through a custom accessor (`.cdts.run_phenology`). This abstracts away all the complex array reshaping and memory management, allowing you to process large MODIS/Landsat time series elegantly.
 
 ```python
+import rioxarray
 import numpy as np
 import pandas as pd
-import xarray as xr
-import rioxarray
-import cdts._core as core
+import cdts # Automatically registers the .cdts accessor in xarray
+from cdts.io import save_raster
 
-# 1. Load the dense time series raster
-tif_path = 'EVI_Series_2001_2025.tif'
-ds = rioxarray.open_rasterio(tif_path)
-time_steps, height, width = ds.shape
+# 1. Load the dense time series raster (Shape: Time, Y, X)
+ds = rioxarray.open_rasterio('MODIS_EVI_Series.tif')
 
-# 2. Prepare the Continuous Time Array (DOY)
-# We need an array of Days of the Year relative to the start of our series
-dates = pd.date_range(start='2001-01-01', periods=time_steps, freq='16D')
+# 2. Prepare the Time Array (Continuous Day of Year)
+dates = pd.date_range(start='2001-01-01', periods=ds.shape[0], freq='16D')
 dates_doy = np.array([d.timetuple().tm_yday + (d.year - 2001) * 365 for d in dates], dtype=np.float64)
 
-# 3. Flatten and interpolate spatial data to feed the C++ engine
-# Reshape to (pixels, time) and handle NoData values
-data_2d = ds.data.reshape(time_steps, height * width).T
-if ds.dtype == np.int16:
-    data_2d = data_2d.astype(np.float32) * 0.0001
-data_2d = np.where(np.isinf(data_2d), np.nan, data_2d)
-
-# Interpolate internal gaps (optional but recommended)
-data_df = pd.DataFrame(data_2d.T).interpolate().fillna(0).T
-
-# 4. Run the C++ Phenology Engine
-print("Extracting phenology...")
-sos, eos, los, pop = core.phenology.fit_phenology_batch(
-    values_array=data_df.values,
-    dates_array=dates_doy,
+# 3. Run the Phenology Engine directly on the xarray DataArray
+# This leverages Dask internally for parallel out-of-core execution
+print("Extracting phenology metrics...")
+metrics_da = ds.cdts.run_phenology(
+    dates=dates_doy,
     curve_type=1,             # 1 = BECK
     extraction_method=2,      # 2 = DERIVATIVE
-    max_seasons=1,            # Extract only the 1st season for simplicity
+    max_seasons=1,            # Extract the main season per pixel
     whittaker_lambda=2.0,     # Whittaker smoothness parameter
     apply_whittaker=True,     # Apply Whittaker before fitting
-    apply_hants=False,        # Skip HANTS
     min_season_length=3,      # A season must last at least 3 days
-    min_amplitude=0.01,       # The seasonal swing must be > 0.01 EVI
     min_pixel_amplitude=0.01, # Skip dead/water pixels entirely
     n_jobs=-1                 # Use 100% of CPU cores (OpenMP)
 )
 
-# 5. Reshape outputs back to spatial dimensions
-band_sos = sos[:, 0].reshape(height, width)
-band_eos = eos[:, 0].reshape(height, width)
-band_los = los[:, 0].reshape(height, width)
-band_pop = pop[:, 0].reshape(height, width)
-```
+# 4. Save to disk using the native io helper
+# metrics_da shape is (metric, max_seasons, y, x). 
+# We slice metric[:] and max_seasons[0] to get a 3D array (4 bands, Y, X)
+output_array = metrics_da.values[:, 0, :, :]
 
----
-
-## 4. Exporting to GIS: The "Optical Illusion" Trap
-
-When the C++ engine encounters a pixel that doesn't represent vegetation (e.g., water, urban areas, or flat deserts), or a pixel that violates our quality controls (`min_amplitude`), it skips the computationally expensive curve fitting and immediately returns `NaN` (Not a Number) for that pixel's metrics.
-
-**Important Note for QGIS/ArcGIS users:**
-If you save this array directly to a `.tif` file without explicitly telling the software that `NaN` means "NoData", your GIS software will try to render those `NaN` pixels as valid numbers. This causes an "optical illusion" where the bounding box of your image is filled with solid black/white pixels, destroying the visual mask of your study area.
-
-To avoid this, always enforce the `nodata` tag before writing your file with `rioxarray`:
-
-```python
-from cdts.io import save_raster
-
-# Stack the bands into a single 3D NumPy array (Bands, Y, X)
-output_array = np.stack([band_sos, band_eos, band_los, band_pop], axis=0)
-
-# Save the raster automatically inheriting the spatial metadata from 'ds'
-# IMPORTANT: Pass nodata=np.nan so QGIS treats the empty pixels as transparent
 save_raster(
     array=output_array,
-    output_path='Phenology_Metrics.tif',
+    output_path='MODIS_Phenology_Metrics.tif',
     reference_cube=ds,
-    nodata=np.nan
+    nodata=np.nan # Enforce transparency for NoData in GIS
 )
 print("Successfully saved!")
 ```
