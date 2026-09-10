@@ -1,7 +1,9 @@
 #include "som.h"
 #include <Eigen/Dense>
 #ifdef _OPENMP
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 #else
 #define omp_get_max_threads() 1
 #define omp_get_thread_num() 0

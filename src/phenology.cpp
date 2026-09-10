@@ -1,5 +1,7 @@
 #include "phenology.h"
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 #include <cmath>
 #include <iostream>
 
