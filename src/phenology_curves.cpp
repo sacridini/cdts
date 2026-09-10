@@ -194,7 +194,13 @@ bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y,
             lb = Eigen::VectorXd(6); ub = Eigen::VectorXd(6);
             lb << y_min - 0.5*y_amp, y_min, t_min - 30, 0.0, t_min - 30, 0.0;
             ub << y_min + 0.5*y_amp, y_max + 0.5*y_amp, t_max + 30, 50.0, t_max + 30, 50.0;
-            if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
+            if((params.array() == 1.0).all() || (params.array() == 0.0).all()) {
+                params = (lb + ub) / 2.0;
+                params(2) = t_min + (t_max - t_min) * 0.25; // SOS timing
+                params(4) = t_min + (t_max - t_min) * 0.75; // EOS timing
+                params(3) = 1.0; // rate
+                params(5) = 1.0; // rate
+            }
             BeckFunctor functor(t, y, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
@@ -203,7 +209,14 @@ bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y,
             lb = Eigen::VectorXd(7); ub = Eigen::VectorXd(7);
             lb << y_min - 0.5*y_amp, y_min, t_min - 30, 0.0, t_min - 30, 0.0, -0.1;
             ub << y_min + 0.5*y_amp, y_max + 0.5*y_amp, t_max + 30, 50.0, t_max + 30, 50.0, 0.1;
-            if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
+            if((params.array() == 1.0).all() || (params.array() == 0.0).all()) {
+                params = (lb + ub) / 2.0;
+                params(2) = t_min + (t_max - t_min) * 0.25;
+                params(4) = t_min + (t_max - t_min) * 0.75;
+                params(3) = 1.0;
+                params(5) = 1.0;
+                params(6) = 0.0;
+            }
             ElmoreFunctor functor(t, y, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
