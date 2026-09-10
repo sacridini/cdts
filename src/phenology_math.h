@@ -45,6 +45,7 @@ std::vector<SeasonSegment> split_growing_seasons(
 // threshold: outlier rejection threshold
 std::vector<double> eigen_hants(
     const std::vector<double>& y, 
+    const std::vector<double>& t, 
     int num_frequencies, 
     double threshold);
 

@@ -200,6 +200,7 @@ std::vector<SeasonSegment> split_growing_seasons(
 
 std::vector<double> eigen_hants(
     const std::vector<double>& y, 
+    const std::vector<double>& t, 
     int num_frequencies, 
     double threshold)
 {
@@ -218,7 +219,7 @@ std::vector<double> eigen_hants(
     for (int i = 0; i < n; ++i) {
         X(i, 0) = 1.0;
         for (int j = 1; j <= num_frequencies; ++j) {
-            double angle = 2.0 * pi * j * i / n;
+            double angle = 2.0 * pi * j * t[i] / 365.25;
             X(i, 2 * j - 1) = std::sin(angle);
             X(i, 2 * j) = std::cos(angle);
         }

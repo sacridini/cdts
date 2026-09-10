@@ -1,4 +1,5 @@
 #include "phenology.h"
+#include "phenology_curves.h"
 
 #ifndef _OPENMP
 #ifndef OMP_DUMMIES_DEFINED
@@ -13,7 +14,7 @@
 #include <omp.h>
 #endif
 #include <cmath>
-#include <iostream>
+
 
 namespace phenology {
 
@@ -28,22 +29,8 @@ PhenologyMetrics extract_metrics(const Eigen::VectorXd& params, CurveType type, 
     if (t_max - t_min < 1.0) t_max = t_min + 365.0;
     
     Eigen::VectorXd t_eval = Eigen::VectorXd::LinSpaced(n_pts, t_min, t_max);
-    Eigen::VectorXd y_dummy = Eigen::VectorXd::Zero(n_pts);
-    Eigen::VectorXd fvec(n_pts);
     
-    // Create empty bound vectors just for functor evaluation (optimization bounds aren't used here)
-    Eigen::VectorXd dummy_bounds(params.size());
-    dummy_bounds.setZero();
-    
-    switch(type) {
-        case CurveType::BECK: { BeckFunctor f(t_eval, y_dummy, dummy_bounds, dummy_bounds); f(params, fvec); break; }
-        case CurveType::ELMORE: { ElmoreFunctor f(t_eval, y_dummy, dummy_bounds, dummy_bounds); f(params, fvec); break; }
-        case CurveType::GU: { GuFunctor f(t_eval, y_dummy, dummy_bounds, dummy_bounds); f(params, fvec); break; }
-        case CurveType::KLOS: { KlosFunctor f(t_eval, y_dummy, dummy_bounds, dummy_bounds); f(params, fvec); break; }
-        case CurveType::ZHANG: { ZhangFunctor f(t_eval, y_dummy, dummy_bounds, dummy_bounds); f(params, fvec); break; }
-        case CurveType::AG: { AGFunctor f(t_eval, y_dummy, dummy_bounds, dummy_bounds); f(params, fvec); break; }
-        case CurveType::DL: { DLFunctor f(t_eval, y_dummy, dummy_bounds, dummy_bounds); f(params, fvec); break; }
-    }
+    Eigen::VectorXd fvec = evaluate_curve(type, params, t_eval);
     
     double min_val = fvec.minCoeff();
     double max_val = fvec.maxCoeff();
@@ -130,7 +117,7 @@ PhenologyMetrics extract_metrics(const Eigen::VectorXd& params, CurveType type, 
     }
     
     metrics.los = metrics.eos - metrics.sos;
-    
+    // std::cout << "Curve: " << (int)type << " | SOS: " << metrics.sos << " | EOS: " << metrics.eos << " | POP: " << metrics.pop << std::endl;
     // If the fitted curve is degenerate (e.g. completely flat or monotonically decreasing),
     // the start and end of season will collapse to the same point or overlap.
     // We reject these as invalid seasons.
@@ -229,7 +216,8 @@ pybind11::tuple fit_phenology_batch(
             }
         } else if (apply_hants) {
             try {
-                y_smooth = eigen_hants(y_raw, hants_frequencies, hants_threshold);
+                std::vector<double> t_vec(t_all.data(), t_all.data() + t_all.size());
+            y_smooth = eigen_hants(y_raw, t_vec, hants_frequencies, hants_threshold);
             } catch (...) {
                 continue;
             }

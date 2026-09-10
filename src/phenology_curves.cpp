@@ -269,4 +269,66 @@ bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y,
     return false;
 }
 
+Eigen::VectorXd evaluate_curve(CurveType type, const Eigen::VectorXd& params, const Eigen::VectorXd& t) {
+    Eigen::VectorXd fvec(t.size());
+    switch(type) {
+        case CurveType::BECK: {
+            double mn = params[0], mx = params[1], sos = params[2], rsp = params[3], eos = params[4], rau = params[5];
+            for(int i=0; i<t.size(); ++i) {
+                fvec[i] = mn + (mx - mn) * (1.0 / (1.0 + std::exp(-rsp * (t[i] - sos))) + 1.0 / (1.0 + std::exp(rau * (t[i] - eos))) - 1.0);
+            }
+            break;
+        }
+        case CurveType::ELMORE: {
+            double mn = params[0], mx = params[1], sos = params[2], rsp = params[3], eos = params[4], rau = params[5], m7 = params[6];
+            for(int i=0; i<t.size(); ++i) {
+                fvec[i] = mn + (mx - m7 * t[i]) * (1.0 / (1.0 + std::exp(-rsp * (t[i] - sos))) - 1.0 / (1.0 + std::exp(-rau * (t[i] - eos))));
+            }
+            break;
+        }
+        case CurveType::GU: {
+            double y0 = params[0], a1 = params[1], a2 = params[2], t1 = params[3], t2 = params[4];
+            double b1 = params[5], b2 = params[6], c1 = params[7], c2 = params[8];
+            for(int i=0; i<t.size(); ++i) {
+                fvec[i] = y0 + (a1 / (1.0 + std::exp(-(t[i] - t1) / b1)) * c1) + (a2 / (1.0 + std::exp(-(t[i] - t2) / b2)) * c2);
+            }
+            break;
+        }
+        case CurveType::KLOS: {
+            double a1 = params[0], a2 = params[1], b1 = params[2], b2 = params[3], c = params[4];
+            double d1 = params[5], d2 = params[6], q1 = params[7], q2 = params[8], v1 = params[9], v2 = params[10], m1 = params[11], m2 = params[12];
+            for(int i=0; i<t.size(); ++i) {
+                fvec[i] = (a1 * t[i] + b1) + (a2 * t[i] + b2 - (a1 * t[i] + b1)) * (1.0 / std::pow(1.0 + q1 * std::exp(-c * (t[i] - d1)), v1)) - (1.0 / std::pow(1.0 + q2 * std::exp(-m1 * (t[i] - d2)), v2)) * m2;
+            }
+            break;
+        }
+        case CurveType::ZHANG: {
+            double a = params[0], b = params[1], c = params[2], d = params[3], e = params[4], f = params[5], g = params[6];
+            for(int i=0; i<t.size(); ++i) {
+                fvec[i] = a + b / (1.0 + std::exp(c * (t[i] - d))) + e / (1.0 + std::exp(f * (t[i] - g)));
+            }
+            break;
+        }
+        case CurveType::AG: {
+            double t0 = params[0], a0 = params[1], a1 = params[2], a2 = params[3], a3 = params[4], a4 = params[5], a5 = params[6];
+            for(int i=0; i<t.size(); ++i) {
+                if(t[i] > t0) {
+                    fvec[i] = a0 + a1 * std::exp(-std::pow((t[i] - t0) / a2, a3));
+                } else {
+                    fvec[i] = a0 + a1 * std::exp(-std::pow((t0 - t[i]) / a4, a5));
+                }
+            }
+            break;
+        }
+        case CurveType::DL: {
+            double mn = params[0], mx = params[1], sos = params[2], rsp = params[3], eos = params[4], rau = params[5];
+            for(int i=0; i<t.size(); ++i) {
+                fvec[i] = mn + (mx - mn) * (1.0 / (1.0 + std::exp(-rsp * (t[i] - sos))) * (1.0 / (1.0 + std::exp(rau * (t[i] - eos)))));
+            }
+            break;
+        }
+    }
+    return fvec;
+}
+
 } // namespace phenology

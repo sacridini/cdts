@@ -132,6 +132,8 @@ enum class CurveType {
 bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y, 
                Eigen::VectorXd& params, CurveType type, int max_fev = 2000);
 
+Eigen::VectorXd evaluate_curve(CurveType type, const Eigen::VectorXd& params, const Eigen::VectorXd& t);
+
 } // namespace phenology
 
 #endif // PHENOLOGY_CURVES_H
