@@ -94,7 +94,7 @@ def test_real_phenology_extraction_advanced_params():
         apply_whittaker=False,
         apply_hants=True,
         hants_frequencies=3,
-        min_season_length=50,
+        min_season_length=3,
         min_amplitude=0.1,
         n_jobs=1 # Test single thread as well
     )
