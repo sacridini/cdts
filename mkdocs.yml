@@ -61,6 +61,7 @@ nav:
       - CCDC: tutorials/ccdc.md
       - Tmask: tutorials/tmask.md
       - TWDTW (Time-Weighted DTW): tutorials/twdtw.md
+      - Phenology: tutorials/phenology.md
       - SOM (Self-Organizing Maps): tutorials/som.md
       - STAC & ARD Integration: tutorials/stac-downloads.md
       - AI & Deep Learning: tutorials/ai.md
