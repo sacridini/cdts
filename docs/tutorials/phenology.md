@@ -131,23 +131,19 @@ If you save this array directly to a `.tif` file without explicitly telling the 
 To avoid this, always enforce the `nodata` tag before writing your file with `rioxarray`:
 
 ```python
-# Stack the bands into a single Xarray DataArray
-ds_out = xr.DataArray(
-    np.stack([band_sos, band_eos, band_los, band_pop], axis=0),
-    coords={'band': [1, 2, 3, 4], 'y': ds.y, 'x': ds.x},
-    dims=['band', 'y', 'x']
+from cdts.io import save_raster
+
+# Stack the bands into a single 3D NumPy array (Bands, Y, X)
+output_array = np.stack([band_sos, band_eos, band_los, band_pop], axis=0)
+
+# Save the raster automatically inheriting the spatial metadata from 'ds'
+# IMPORTANT: Pass nodata=np.nan so QGIS treats the empty pixels as transparent
+save_raster(
+    array=output_array,
+    output_path='Phenology_Metrics.tif',
+    reference_cube=ds,
+    nodata=np.nan
 )
-
-# 1. Copy spatial metadata from original file
-ds_out.rio.write_crs(ds.rio.crs, inplace=True)
-ds_out.rio.write_transform(ds.rio.transform(), inplace=True)
-ds_out.attrs['long_name'] = ('SOS', 'EOS', 'LOS', 'POP')
-
-# 2. THE MAGIC LINE: Tell GIS to treat NaNs as transparent NoData
-ds_out.rio.write_nodata(np.nan, inplace=True)
-
-# 3. Save to disk
-ds_out.rio.to_raster('Phenology_Metrics.tif')
 print("Successfully saved!")
 ```
 
