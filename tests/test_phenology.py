@@ -7,7 +7,7 @@ from unittest.mock import patch
 from cdts.phenology import run_phenology_dask
 import cdts.xarray_api # Registers the accessor
 
-def mock_fit_phenology_batch(values_array, dates_array, curve_type, max_seasons, whittaker_lambda, apply_whittaker, n_jobs):
+def mock_fit_phenology_batch(values_array, dates_array, curve_type, max_seasons, whittaker_lambda, apply_whittaker, n_jobs, **kwargs):
     n_pixels = values_array.shape[0]
     sos = np.full((n_pixels, max_seasons), 100.0, dtype=np.float32)
     eos = np.full((n_pixels, max_seasons), 200.0, dtype=np.float32)
