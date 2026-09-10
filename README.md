@@ -34,7 +34,13 @@ Built with highly optimized C++ extensions (OpenMP and Eigen SIMD) bound to Pyth
 ```bash
 pip install cdts
 ```
-*(Note: Requires a C++14 compatible compiler installed on your system to build the optimized extensions).*
+*(Note: Wheels are provided for Windows, Linux, and macOS. macOS runs in single-threaded mode by default due to Apple Clang lacking OpenMP).*
+
+**For macOS users who want C++ OpenMP multi-threading:**
+```bash
+brew install libomp
+pip install --no-binary cdts cdts
+```
 
 ---
 

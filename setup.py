@@ -28,10 +28,13 @@ ext_modules = [
     ),
 ]
 
-def has_flag(compiler, flagname):
+def has_flag(compiler, flagname, is_omp=False):
     import tempfile
     with tempfile.NamedTemporaryFile('w', suffix='.cpp') as f:
-        f.write('int main (int argc, char **argv) { return 0; }')
+        if is_omp:
+            f.write('#include <omp.h>\nint main (int argc, char **argv) { return 0; }')
+        else:
+            f.write('int main (int argc, char **argv) { return 0; }')
         try:
             compiler.compile([f.name], extra_postargs=[flagname])
         except setuptools.distutils.errors.CompileError:
@@ -56,16 +59,28 @@ class BuildExt(build_ext):
             opts.append('-std=c++17')
             if has_flag(self.compiler, '-fvisibility=hidden'):
                 opts.append('-fvisibility=hidden')
-            if sys.platform != 'darwin' and has_flag(self.compiler, '-fopenmp'):
-                opts.append('-fopenmp')
+            
+            # OpenMP support
+            for ext in self.extensions:
+                if sys.platform == 'darwin':
+                    # macOS Apple Clang needs specific flags for libomp
+                    if has_flag(self.compiler, '-Xpreprocessor', is_omp=True):
+                        opts.append('-Xpreprocessor')
+                        opts.append('-fopenmp')
+                        ext.extra_link_args = ['-lomp']
+                else:
+                    if has_flag(self.compiler, '-fopenmp', is_omp=True):
+                        opts.append('-fopenmp')
+                        ext.extra_link_args = ['-fopenmp']
+                ext.extra_compile_args = opts
+
         elif ct == 'msvc':
             opts.append('/DVERSION_INFO=\\"%s\\"' % self.distribution.get_version())
             opts.append('/std:c++17')
             opts.append('/openmp')
-        for ext in self.extensions:
-            ext.extra_compile_args = opts
-            if ct == 'unix' and sys.platform != 'darwin':
-                ext.extra_link_args = ['-fopenmp']
+            for ext in self.extensions:
+                ext.extra_compile_args = opts
+
         build_ext.build_extensions(self)
 
 setup(

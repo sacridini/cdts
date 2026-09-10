@@ -43,3 +43,20 @@ If you need to modify the C++ backend, use the latest unreleased features, or bu
    ```
 
 This process will invoke `pybind11` and your system's C++ compiler to build the core statistical engines (`src/main.cpp`, `src/landtrendr.cpp`, `src/ccdc.cpp`) and link them with the Eigen3 library.
+
+### Enabling OpenMP on macOS (Apple Silicon & Intel)
+
+By default, the Apple Clang compiler does not include native support for OpenMP. As a result, when installing via standard Wheels or basic source installation, CDTS falls back to single-threaded mode for its C++ mathematical operations on macOS. (Note: Dask still parallelizes effectively at the chunk level).
+
+If you want the maximum possible performance out of the C++ core on macOS, you can enable OpenMP by installing it via Homebrew and compiling CDTS from source:
+
+1. Install the `libomp` library using Homebrew:
+   ```bash
+   brew install libomp
+   ```
+
+2. Install CDTS from source. The `setup.py` script will automatically detect `libomp` and compile with OpenMP support:
+   ```bash
+   pip install --no-binary cdts cdts
+   # or, if cloning from GitHub: pip install -e .
+   ```
