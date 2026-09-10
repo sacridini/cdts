@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "twdtw.h"
 #include "som.h"
+#include "phenology.h"
 
 namespace py = pybind11;
 
@@ -114,4 +115,39 @@ PYBIND11_MODULE(_core, m) {
     py::module_ som = m.def_submodule("som", "SOM C++ implementations");
     som.def("train_som_batch", &cdts::som::train_som_batch, "Train a Batch SOM");
     som.def("predict_bmus", &cdts::som::predict_bmus, "Find BMU for samples");
+
+    // Phenology sub-module
+    py::module_ ph = m.def_submodule("phenology", "Phenology extraction");
+    
+    py::enum_<phenology::CurveType>(ph, "CurveType")
+        .value("BECK", phenology::CurveType::BECK)
+        .value("ELMORE", phenology::CurveType::ELMORE)
+        .value("GU", phenology::CurveType::GU)
+        .value("KLOS", phenology::CurveType::KLOS)
+        .value("ZHANG", phenology::CurveType::ZHANG)
+        .value("AG", phenology::CurveType::AG)
+        .value("DL", phenology::CurveType::DL)
+        .export_values();
+
+    py::enum_<phenology::ExtractionMethod>(ph, "ExtractionMethod")
+        .value("THRESHOLD", phenology::ExtractionMethod::THRESHOLD)
+        .value("DERIVATIVE", phenology::ExtractionMethod::DERIVATIVE)
+        .value("GU", phenology::ExtractionMethod::GU)
+        .value("KLOSTERMAN", phenology::ExtractionMethod::KLOSTERMAN)
+        .export_values();
+
+    ph.def("fit_phenology_batch", &phenology::fit_phenology_batch,
+           "Run phenology extraction on a batch of pixels with OpenMP",
+           py::arg("values_array"), py::arg("dates_array"),
+           py::arg("curve_type"), 
+           py::arg("extraction_method") = 0,
+           py::arg("max_seasons") = 2,
+           py::arg("whittaker_lambda") = 10.0,
+           py::arg("apply_whittaker") = true,
+           py::arg("apply_hants") = false,
+           py::arg("hants_frequencies") = 3,
+           py::arg("hants_threshold") = 0.1,
+           py::arg("min_season_length") = 0,
+           py::arg("min_amplitude") = 0.0,
+           py::arg("n_jobs") = -1);
 }

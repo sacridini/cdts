@@ -16,7 +16,9 @@ class get_pybind_include(object):
 ext_modules = [
     Extension(
         'cdts._core',
-        ['src/main.cpp', 'src/landtrendr.cpp', 'src/ccdc.cpp', 'src/utils.cpp', 'src/twdtw.cpp', 'src/som.cpp'],
+        ['src/main.cpp', 'src/landtrendr.cpp', 'src/ccdc.cpp', 'src/utils.cpp', 
+         'src/twdtw.cpp', 'src/som.cpp', 'src/phenology_math.cpp', 
+         'src/phenology_curves.cpp', 'src/phenology.cpp'],
         include_dirs=[
             get_pybind_include(),
             get_pybind_include(user=True),
@@ -51,14 +53,14 @@ class BuildExt(build_ext):
         opts = self.c_opts.get(ct, [])
         if ct == 'unix':
             opts.append('-DVERSION_INFO="%s"' % self.distribution.get_version())
-            opts.append('-std=c++14')
+            opts.append('-std=c++17')
             if has_flag(self.compiler, '-fvisibility=hidden'):
                 opts.append('-fvisibility=hidden')
             if sys.platform != 'darwin' and has_flag(self.compiler, '-fopenmp'):
                 opts.append('-fopenmp')
         elif ct == 'msvc':
             opts.append('/DVERSION_INFO=\\"%s\\"' % self.distribution.get_version())
-            opts.append('/std:c++14')
+            opts.append('/std:c++17')
             opts.append('/openmp')
         for ext in self.extensions:
             ext.extra_compile_args = opts

@@ -100,6 +100,37 @@ class cdtsAccessor:
             }
         )
         
+    def run_phenology(self, dates: np.ndarray, curve_type: int, max_seasons: int = 2, whittaker_lambda: float = 10.0, apply_whittaker: bool = True, n_jobs: int = -1) -> xr.DataArray:
+        """
+        Runs Phenology extraction on an xarray DataArray using Dask.
+        Assumes DataArray shape: (time, y, x).
+        Returns an xarray DataArray with shape (metric, max_seasons, y, x)
+        where metric is 0: SOS, 1: EOS, 2: LOS, 3: POP.
+        """
+        from cdts.phenology import run_phenology_dask
+        
+        arr = self._obj.data
+        out = run_phenology_dask(
+            arr=arr,
+            dates=dates,
+            curve_type=curve_type,
+            max_seasons=max_seasons,
+            whittaker_lambda=whittaker_lambda,
+            apply_whittaker=apply_whittaker,
+            n_jobs=n_jobs
+        )
+        
+        return xr.DataArray(
+            out,
+            dims=["metric", "season", "y", "x"],
+            coords={
+                "metric": ["SOS", "EOS", "LOS", "POP"],
+                "season": np.arange(max_seasons),
+                "y": self._obj.coords.get("y"),
+                "x": self._obj.coords.get("x")
+            }
+        )
+
     def to_zarr_optimized(self, store_path: str, chunk_size: dict = {"y": 512, "x": 512}) -> None:
         """
         Optimizes and saves the DataArray directly to a Zarr store, ideal for cloud storage (S3/GCS) 
