@@ -149,5 +149,6 @@ PYBIND11_MODULE(_core, m) {
            py::arg("hants_threshold") = 0.1,
            py::arg("min_season_length") = 0,
            py::arg("min_amplitude") = 0.0,
+           py::arg("min_pixel_amplitude") = 0.1,
            py::arg("n_jobs") = -1);
 }

@@ -42,6 +42,7 @@ pybind11::tuple fit_phenology_batch(
     double hants_threshold = 0.1,
     int min_season_length = 0,
     double min_amplitude = 0.0,
+    double min_pixel_amplitude = 0.0,
     int n_jobs = -1
 );
 

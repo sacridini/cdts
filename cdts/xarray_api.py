@@ -100,7 +100,7 @@ class cdtsAccessor:
             }
         )
         
-    def run_phenology(self, dates: np.ndarray, curve_type: int, extraction_method: int = 0, max_seasons: int = 2, whittaker_lambda: float = 10.0, apply_whittaker: bool = True, apply_hants: bool = False, hants_frequencies: int = 3, hants_threshold: float = 0.1, min_season_length: int = 0, min_amplitude: float = 0.0, n_jobs: int = -1) -> xr.DataArray:
+    def run_phenology(self, dates: np.ndarray, curve_type: int, extraction_method: int = 0, max_seasons: int = 2, whittaker_lambda: float = 10.0, apply_whittaker: bool = True, apply_hants: bool = False, hants_frequencies: int = 3, hants_threshold: float = 0.1, min_season_length: int = 0, min_amplitude: float = 0.0, min_pixel_amplitude: float = 0.1, n_jobs: int = -1) -> xr.DataArray:
         """
         Runs Phenology extraction on an xarray DataArray using Dask.
         Assumes DataArray shape: (time, y, x).
@@ -110,6 +110,9 @@ class cdtsAccessor:
         from cdts.phenology import run_phenology_dask
         
         arr = self._obj.data
+        if not isinstance(arr, da.Array):
+            arr = da.from_array(arr)
+            
         out = run_phenology_dask(
             arr=arr,
             dates=dates,
@@ -123,6 +126,7 @@ class cdtsAccessor:
             hants_threshold=hants_threshold,
             min_season_length=min_season_length,
             min_amplitude=min_amplitude,
+            min_pixel_amplitude=min_pixel_amplitude,
             n_jobs=n_jobs
         )
         

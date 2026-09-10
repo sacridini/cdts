@@ -134,6 +134,7 @@ pybind11::tuple fit_phenology_batch(
     double hants_threshold,
     int min_season_length,
     double min_amplitude,
+    double min_pixel_amplitude,
     int n_jobs)
 {
     auto vals_buf = values_array.request();
@@ -194,7 +195,7 @@ pybind11::tuple fit_phenology_batch(
         if (!valid_pixel) continue;
         
         // 1. Skip Logic: Early exit for low amplitude (water, urban, bare soil)
-        if (pixel_max - pixel_min < 0.1) continue;
+        if (pixel_max - pixel_min < min_pixel_amplitude) continue;
         
         std::vector<double> y_smooth = y_raw;
         if (apply_whittaker) {

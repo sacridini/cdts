@@ -17,6 +17,7 @@ def run_phenology_dask(
     hants_threshold: float = 0.1,
     min_season_length: int = 0,
     min_amplitude: float = 0.0,
+    min_pixel_amplitude: float = 0.1,
     n_jobs: int = -1
 ) -> da.Array:
     """
@@ -50,6 +51,7 @@ def run_phenology_dask(
             hants_threshold=hants_threshold,
             min_season_length=min_season_length,
             min_amplitude=min_amplitude,
+            min_pixel_amplitude=min_pixel_amplitude,
             n_jobs=n_jobs
         )
         
