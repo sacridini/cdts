@@ -100,7 +100,9 @@ class cdtsAccessor:
             }
         )
         
-    def run_phenology(self, dates: np.ndarray, curve_type: int, extraction_method: int = 0, max_seasons: int = 2, whittaker_lambda: float = 10.0, apply_whittaker: bool = True, apply_hants: bool = False, hants_frequencies: int = 3, hants_threshold: float = 0.1, min_season_length: int = 0, min_amplitude: float = 0.0, min_pixel_amplitude: float = 0.1, n_jobs: int = -1) -> xr.DataArray:
+    def run_phenology(self, dates: np.ndarray, curve_type: int, extraction_method: int = 0, max_seasons: int = 2, whittaker_lambda: float = 10.0, 
+apply_whittaker: bool = True, apply_hants: bool = False, hants_frequencies: int = 3, hants_threshold: float = 0.1, min_season_length: int = 0, 
+min_amplitude: float = 0.0, min_pixel_amplitude: float = 0.1, return_annual: bool = True, base_year: int = 2001, n_jobs: int = -1) -> xr.DataArray:
         """
         Runs Phenology extraction on an xarray DataArray using Dask.
         Assumes DataArray shape: (time, y, x).
@@ -127,17 +129,21 @@ class cdtsAccessor:
             min_season_length=min_season_length,
             min_amplitude=min_amplitude,
             min_pixel_amplitude=min_pixel_amplitude,
+            return_annual=return_annual,
+            base_year=base_year,
             n_jobs=n_jobs
         )
         
+        dim_name = "year" if return_annual else "season"
+        
         return xr.DataArray(
             out,
-            dims=["metric", "season", "y", "x"],
+            dims=["metric", dim_name, "y", "x"],
             coords={
                 "metric": ["SOS", "EOS", "LOS", "POP"],
-                "season": np.arange(max_seasons),
-                "y": self._obj.coords.get("y"),
-                "x": self._obj.coords.get("x")
+                dim_name: np.arange(base_year, base_year + max_seasons) if return_annual else np.arange(max_seasons),
+                "y": self._obj.coords["y"],
+                "x": self._obj.coords["x"],
             }
         )
 

@@ -18,6 +18,8 @@ def run_phenology_dask(
     min_season_length: int = 0,
     min_amplitude: float = 0.0,
     min_pixel_amplitude: float = 0.1,
+    return_annual: bool = True,
+    base_year: int = 2001,
     n_jobs: int = -1
 ) -> da.Array:
     """
@@ -63,6 +65,32 @@ def run_phenology_dask(
         
         # stack to (4, max_seasons, y, x)
         out = np.stack([sos_3d, eos_3d, los_3d, pop_3d], axis=0)
+        
+        if return_annual:
+            import datetime
+            out_annual = np.full_like(out, np.nan)
+            origin = datetime.datetime(base_year, 1, 1)
+            
+            for m in range(4):
+                for s in range(max_seasons):
+                    for r in range(rows):
+                        for c in range(cols):
+                            val = out[m, s, r, c]
+                            if not np.isnan(val) and val > 0:
+                                try:
+                                    date = origin + datetime.timedelta(days=float(val) - 1)
+                                    year_idx = date.year - base_year
+                                    if 0 <= year_idx < max_seasons:
+                                        # For SOS, EOS, POP, we want DOY
+                                        # For LOS, we keep the original length
+                                        if m == 2: # LOS
+                                            out_annual[m, year_idx, r, c] = val
+                                        else:
+                                            out_annual[m, year_idx, r, c] = date.timetuple().tm_yday
+                                except:
+                                    pass
+            out = out_annual
+
         return out.astype(np.float32)
         
     out = da.map_blocks(
