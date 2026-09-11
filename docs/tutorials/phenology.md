@@ -69,7 +69,7 @@ Once the curve is fitted perfectly, how do we define the "Start", "Peak", and "E
 - **Gu Method (2nd Derivative)**:
   - **`UD`** (Upward), **`SD`** (Senescence Downward), **`DD`** (Downward), **`RD`** (Recovery Downward): Key transition points defined by the local maxima and minima of the curve's 2nd derivative.
 - **Zhang Method (Curvature Rate)**:
-  - **`Greenup`**, **`Maturity`**, **`Senescence`**, **`Dormancy`**: Transition dates extracted using the physical curvature formula $K = f'' / (1 + (f')^2)^{1.5}$, searching for local valleys and peaks of the curvature rate.
+  - **`Greenup`**, **`Maturity`**, **`Senescence`**, **`Dormancy`**: Transition dates extracted using the physical curvature formula `K = f'' / (1 + (f')^2)^1.5`, searching for local valleys and peaks of the curvature rate.
 - **General**:
   - **`LOS`** (Length of Season): Duration of the season in days.
   - **`POP`** (Peak of Season): General peak location based on curve shape max values.
