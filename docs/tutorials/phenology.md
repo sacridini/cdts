@@ -25,9 +25,7 @@ These metrics are crucial for mapping crop types, predicting yields, detecting c
 
 Extracting phenology from noisy, cloud-contaminated satellite time series requires a robust, multi-step mathematical pipeline.
 
-<p align="center">
-  <img src="../assets/phenology_flow.jpg" alt="Phenology Extraction Process" width="800">
-</p>
+![Phenology Extraction Process](../assets/phenology_flow.jpg)
 
 ### 2.1. Time Series Smoothing
 
