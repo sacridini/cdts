@@ -30,7 +30,7 @@ def run_phenology_dask(
     """
     def _phenology_block(block):
         if block.size == 0:
-            return np.zeros((4, max_seasons, block.shape[1], block.shape[2]), dtype=np.float32)
+            return np.zeros((19, max_seasons, block.shape[1], block.shape[2]), dtype=np.float32)
         
         # block is (time, y, x)
         time_steps, rows, cols = block.shape
@@ -40,7 +40,7 @@ def run_phenology_dask(
         values_2d = np.ascontiguousarray(block.reshape(time_steps, pixels).T)
         
         # run batch fitting
-        sos, eos, los, pop = fit_phenology_batch(
+        out_3d = fit_phenology_batch(
             values_array=values_2d,
             dates_array=dates,
             curve_type=curve_type,
@@ -57,21 +57,19 @@ def run_phenology_dask(
             n_jobs=n_jobs
         )
         
-        # reshape outputs to (max_seasons, y, x)
-        sos_3d = sos.T.reshape(max_seasons, rows, cols)
-        eos_3d = eos.T.reshape(max_seasons, rows, cols)
-        los_3d = los.T.reshape(max_seasons, rows, cols)
-        pop_3d = pop.T.reshape(max_seasons, rows, cols)
-        
-        # stack to (4, max_seasons, y, x)
-        out = np.stack([sos_3d, eos_3d, los_3d, pop_3d], axis=0)
+        # out_3d is (19, pixels, max_seasons)
+        # We need (19, max_seasons, rows, cols)
+        # Transpose to (19, max_seasons, pixels) and then reshape
+        out_transposed = out_3d.transpose(0, 2, 1)
+        out = out_transposed.reshape(19, max_seasons, rows, cols)
         
         if return_annual:
             import datetime
             out_annual = np.full_like(out, np.nan)
             origin = datetime.datetime(base_year, 1, 1)
             
-            for m in range(4):
+            # LOS is index 17
+            for m in range(19):
                 for s in range(max_seasons):
                     for r in range(rows):
                         for c in range(cols):
@@ -81,9 +79,7 @@ def run_phenology_dask(
                                     date = origin + datetime.timedelta(days=float(val) - 1)
                                     year_idx = date.year - base_year
                                     if 0 <= year_idx < max_seasons:
-                                        # For SOS, EOS, POP, we want DOY
-                                        # For LOS, we keep the original length
-                                        if m == 2: # LOS
+                                        if m == 17: # LOS
                                             out_annual[m, year_idx, r, c] = val
                                         else:
                                             out_annual[m, year_idx, r, c] = date.timetuple().tm_yday
@@ -98,7 +94,7 @@ def run_phenology_dask(
         arr,
         dtype=np.float32,
         drop_axis=[0], # remove time
-        new_axis=[0, 1], # add metrics (4) and max_seasons
-        chunks=(4, max_seasons, arr.chunks[1], arr.chunks[2])
+        new_axis=[0, 1], # add metrics (19) and max_seasons
+        chunks=(19, max_seasons, arr.chunks[1], arr.chunks[2])
     )
     return out

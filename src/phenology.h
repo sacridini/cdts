@@ -17,19 +17,21 @@ enum class ExtractionMethod {
 };
 
 struct PhenologyMetrics {
-    double sos;
-    double eos;
+    double trs2_sos, trs2_eos;
+    double trs5_sos, trs5_eos;
+    double trs6_sos, trs6_eos;
+    double der_sos, der_pos, der_eos;
+    double gu_ud, gu_sd, gu_dd, gu_rd;
+    double zhang_greenup, zhang_maturity, zhang_senescence, zhang_dormancy;
     double los;
-    double pop; // peak of season
+    double pop;
 };
 
 // Evaluate the fitted curve to find metrics
-PhenologyMetrics extract_metrics(const Eigen::VectorXd& params, CurveType type, const Eigen::VectorXd& t_segment, ExtractionMethod method = ExtractionMethod::THRESHOLD);
+PhenologyMetrics extract_metrics(const Eigen::VectorXd& params, CurveType type, const Eigen::VectorXd& t_segment);
 
-// Batch processing of phenology parameters extraction
-// Returns: A tuple of 4 2D numpy arrays: (sos_arr, eos_arr, los_arr, pop_arr)
-// Each array has shape [n_pixels, max_seasons]
-pybind11::tuple fit_phenology_batch(
+// Returns: A 3D numpy array: (19 metrics, n_pixels, max_seasons)
+pybind11::array_t<double> fit_phenology_batch(
     pybind11::array_t<double> values_array, // 2D: [n_pixels, n_time]
     pybind11::array_t<double> dates_array,  // 1D: [n_time]
     int curve_type_int, 

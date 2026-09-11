@@ -134,14 +134,23 @@ min_amplitude: float = 0.0, min_pixel_amplitude: float = 0.1, return_annual: boo
             n_jobs=n_jobs
         )
         
+        metrics = [
+            "TRS2.sos", "TRS2.eos", "TRS5.sos", "TRS5.eos", "TRS6.sos", "TRS6.eos",
+            "DER.sos", "DER.pos", "DER.eos",
+            "UD", "SD", "DD", "RD",
+            "Greenup", "Maturity", "Senescence", "Dormancy",
+            "LOS", "POP"
+        ]
+        
         dim_name = "year" if return_annual else "season"
+        years = np.arange(base_year, base_year + max_seasons)
         
         return xr.DataArray(
             out,
             dims=["metric", dim_name, "y", "x"],
             coords={
-                "metric": ["SOS", "EOS", "LOS", "POP"],
-                dim_name: np.arange(base_year, base_year + max_seasons) if return_annual else np.arange(max_seasons),
+                "metric": metrics,
+                dim_name: years if return_annual else np.arange(max_seasons),
                 "y": self._obj.coords["y"],
                 "x": self._obj.coords["x"],
             }

@@ -57,10 +57,22 @@ We provide several asymmetric Gaussian and double-logistic functions:
 
 ### 2.3. Metric Extraction Methods
 
-Once the curve is fitted perfectly, how do we define the "Start" and "End" of the season? We provide two industry-standard methods:
+Once the curve is fitted perfectly, how do we define the "Start", "Peak", and "End" of the season? The `cdts` C++ backend calculates and returns **19 distinct phenological variables simultaneously** for every season, covering all major state-of-the-art extraction methodologies at no extra computational cost:
 
-1. **`THRESHOLD` (Amplitude Ratio)**: SOS and EOS are defined as the days when the curve reaches a certain percentage (e.g., 20% or 50%) of its seasonal amplitude.
-2. **`DERIVATIVE` (Maximum Curvature)**: Mathematically more robust. SOS is defined as the point where the rate of change of the curve (the derivative) reaches its local maximum (spring green-up acceleration), and EOS where the derivative reaches its local minimum (senescence deceleration).
+- **Threshold Methods (`TRS`)**:
+  - **`TRS2.sos` / `TRS2.eos`**: Start and End of Season defined when the curve reaches **20%** of its seasonal amplitude.
+  - **`TRS5.sos` / `TRS5.eos`**: Start and End of Season defined at **50%** amplitude.
+  - **`TRS6.sos` / `TRS6.eos`**: Start and End of Season defined at **60%** amplitude.
+- **Derivative Method (`DER`)**:
+  - **`DER.sos` / `DER.eos`**: Mathematically defined as the points where the rate of change of the curve (the 1st derivative) reaches its local maximum (spring green-up acceleration) and local minimum (senescence deceleration).
+  - **`DER.pos`**: The exact day of the peak, where the 1st derivative crosses zero.
+- **Gu Method (2nd Derivative)**:
+  - **`UD`** (Upward), **`SD`** (Senescence Downward), **`DD`** (Downward), **`RD`** (Recovery Downward): Key transition points defined by the local maxima and minima of the curve's 2nd derivative.
+- **Zhang Method (Curvature Rate)**:
+  - **`Greenup`**, **`Maturity`**, **`Senescence`**, **`Dormancy`**: Transition dates extracted using the physical curvature formula $K = f'' / (1 + (f')^2)^{1.5}$, searching for local valleys and peaks of the curvature rate.
+- **General**:
+  - **`LOS`** (Length of Season): Duration of the season in days.
+  - **`POP`** (Peak of Season): General peak location based on curve shape max values.
 
 ---
 
@@ -68,12 +80,14 @@ Once the curve is fitted perfectly, how do we define the "Start" and "End" of th
 
 The `cdts` package natively integrates with `xarray` through a custom accessor (`.cdts.run_phenology`). This abstracts away all the complex array reshaping and memory management, allowing you to process large MODIS/Landsat time series elegantly.
 
+By default, the pipeline automatically maps the continuous days back into calendar DOYs if you pass `return_annual=True`.
+
 ```python
 import rioxarray
 import numpy as np
 import pandas as pd
 import cdts # Automatically registers the .cdts accessor in xarray
-from cdts.io import save_raster
+from cdts._core.phenology import CurveType
 
 # 1. Load the dense time series raster (Shape: Time, Y, X)
 ds = rioxarray.open_rasterio('MODIS_EVI_Series.tif')
@@ -84,31 +98,34 @@ dates_doy = np.array([d.timetuple().tm_yday + (d.year - 2001) * 365 for d in dat
 
 # 3. Run the Phenology Engine directly on the xarray DataArray
 # This leverages Dask internally for parallel out-of-core execution
-print("Extracting phenology metrics...")
+print("Extracting 19 phenology metrics...")
 metrics_da = ds.cdts.run_phenology(
     dates=dates_doy,
-    curve_type=1,             # 1 = BECK
-    extraction_method=2,      # 2 = DERIVATIVE
-    max_seasons=1,            # Extract the main season per pixel
-    whittaker_lambda=2.0,     # Whittaker smoothness parameter
-    apply_whittaker=True,     # Apply Whittaker before fitting
-    min_season_length=3,      # A season must last at least 3 days
-    min_pixel_amplitude=0.01, # Skip dead/water pixels entirely
-    n_jobs=-1                 # Use 100% of CPU cores (OpenMP)
-)
+    curve_type=int(CurveType.BECK), # Use Beck's double logistic
+    max_seasons=25,                 # Process 25 years of data
+    whittaker_lambda=10.0,          # Whittaker smoothness parameter
+    apply_whittaker=True,           # Apply Whittaker before fitting
+    min_season_length=7,            # A season must last at least 7 days
+    min_amplitude=0.0,              
+    min_pixel_amplitude=0.1,        # Skip dead/water pixels entirely
+    return_annual=True,             # Return variables aligned to calendar Years
+    base_year=2001,
+    n_jobs=14                       # Use 14 CPU cores (OpenMP)
+).compute()
 
-# 4. Save to disk using the native io helper
-# metrics_da shape is (metric, max_seasons, y, x). 
-# We slice metric[:] and max_seasons[0] to get a 3D array (4 bands, Y, X)
-output_array = metrics_da.values[:, 0, :, :]
+# 4. Save to disk using rioxarray
+# metrics_da shape is (metric=19, year=25, y, x).
+# We can loop through the 19 variables and export them as 25-band TIF files
+metrics_da.rio.write_crs(ds.rio.crs, inplace=True)
 
-save_raster(
-    array=output_array,
-    output_path='MODIS_Phenology_Metrics.tif',
-    reference_cube=ds,
-    nodata=np.nan # Enforce transparency for NoData in GIS
-)
-print("Successfully saved!")
+for metric_name in metrics_da.metric.values:
+    # Select the specific metric, resulting in a 3D array (year, y, x)
+    single_metric_da = metrics_da.sel(metric=metric_name)
+    
+    # Save a multi-band TIF where each band is a year
+    filename = f"cdts_{metric_name}.tif"
+    single_metric_da.rio.to_raster(filename)
+    print(f"Saved {filename}")
 ```
 
 ---
@@ -118,15 +135,16 @@ print("Successfully saved!")
 ### Multiple Seasons (Double/Triple Cropping)
 In regions with intense agricultural activity (like Mato Grosso, Brazil), a single pixel might feature two or even three distinct crop harvests within a single year (e.g., Soybeans followed by Corn).
 
-To capture these dynamics, simply increase `max_seasons`:
+To capture these dynamics directly without `return_annual=True`, simply increase `max_seasons`:
 ```python
-sos, eos, los, pop = core.phenology.fit_phenology_batch(
+metrics_tensor = ds.cdts.run_phenology(
     # ...
-    max_seasons=3, 
+    max_seasons=3,
+    return_annual=False
     # ...
 )
 ```
-This returns arrays of shape `(n_pixels, 3)`. You can then map `sos[:, 0]` as the first harvest, `sos[:, 1]` as the second (safrinha), and so on.
+This returns arrays of shape `(19_metrics, 3_seasons, Y, X)`. You can then map `season=0` as the first harvest, `season=1` as the second (safrinha), and so on.
 
 ### Adjusting Quality Control Parameters
 - **`whittaker_lambda`**: Higher values create stiffer, smoother curves. Lower values allow the curve to bend sharply to follow the raw data closely. For 16-day composites, values between `1.0` and `5.0` are standard.

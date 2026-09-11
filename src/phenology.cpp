@@ -18,8 +18,16 @@
 
 namespace phenology {
 
-PhenologyMetrics extract_metrics(const Eigen::VectorXd& params, CurveType type, const Eigen::VectorXd& t_segment, ExtractionMethod method) {
-    PhenologyMetrics metrics = {std::nan(""), std::nan(""), std::nan(""), std::nan("")};
+PhenologyMetrics extract_metrics(const Eigen::VectorXd& params, CurveType type, const Eigen::VectorXd& t_segment) {
+    PhenologyMetrics metrics = {
+        std::nan(""), std::nan(""), // trs2
+        std::nan(""), std::nan(""), // trs5
+        std::nan(""), std::nan(""), // trs6
+        std::nan(""), std::nan(""), std::nan(""), // der
+        std::nan(""), std::nan(""), std::nan(""), std::nan(""), // gu
+        std::nan(""), std::nan(""), std::nan(""), std::nan(""), // zhang
+        std::nan(""), std::nan("") // los, pop
+    };
     
     if (t_segment.size() == 0) return metrics;
 
@@ -41,97 +49,110 @@ PhenologyMetrics extract_metrics(const Eigen::VectorXd& params, CurveType type, 
     fvec.maxCoeff(&pop_idx);
     metrics.pop = t_eval(pop_idx);
     
-    Eigen::VectorXd d1(n_pts), d2(n_pts), dk(n_pts), k(n_pts);
-    if (method == ExtractionMethod::DERIVATIVE || method == ExtractionMethod::GU || method == ExtractionMethod::KLOSTERMAN) {
-        for(int i = 0; i < n_pts; ++i) {
-            if(i == 0) d1[i] = (fvec[i+1] - fvec[i]) / (t_eval[i+1] - t_eval[i]);
-            else if(i == n_pts - 1) d1[i] = (fvec[i] - fvec[i-1]) / (t_eval[i] - t_eval[i-1]);
-            else d1[i] = (fvec[i+1] - fvec[i-1]) / (t_eval[i+1] - t_eval[i-1]);
-        }
+    Eigen::VectorXd d1(n_pts), d2(n_pts), d3(n_pts), k(n_pts), dk(n_pts);
+    for(int i = 0; i < n_pts; ++i) {
+        if(i == 0) d1[i] = (fvec[i+1] - fvec[i]) / (t_eval[i+1] - t_eval[i]);
+        else if(i == n_pts - 1) d1[i] = (fvec[i] - fvec[i-1]) / (t_eval[i] - t_eval[i-1]);
+        else d1[i] = (fvec[i+1] - fvec[i-1]) / (t_eval[i+1] - t_eval[i-1]);
     }
     
-    if (method == ExtractionMethod::KLOSTERMAN) {
-        for(int i = 0; i < n_pts; ++i) {
-            if(i == 0) d2[i] = (d1[i+1] - d1[i]) / (t_eval[i+1] - t_eval[i]);
-            else if(i == n_pts - 1) d2[i] = (d1[i] - d1[i-1]) / (t_eval[i] - t_eval[i-1]);
-            else d2[i] = (d1[i+1] - d1[i-1]) / (t_eval[i+1] - t_eval[i-1]);
-            k[i] = d2[i] / std::pow(1.0 + d1[i]*d1[i], 1.5);
-        }
-        for(int i = 0; i < n_pts; ++i) {
-            if(i == 0) dk[i] = (k[i+1] - k[i]) / (t_eval[i+1] - t_eval[i]);
-            else if(i == n_pts - 1) dk[i] = (k[i] - k[i-1]) / (t_eval[i] - t_eval[i-1]);
-            else dk[i] = (k[i+1] - k[i-1]) / (t_eval[i+1] - t_eval[i-1]);
-        }
+    for(int i = 0; i < n_pts; ++i) {
+        if(i == 0) d2[i] = (d1[i+1] - d1[i]) / (t_eval[i+1] - t_eval[i]);
+        else if(i == n_pts - 1) d2[i] = (d1[i] - d1[i-1]) / (t_eval[i] - t_eval[i-1]);
+        else d2[i] = (d1[i+1] - d1[i-1]) / (t_eval[i+1] - t_eval[i-1]);
+        k[i] = d2[i] / std::pow(1.0 + d1[i]*d1[i], 1.5);
+    }
+    
+    for(int i = 0; i < n_pts; ++i) {
+        if(i == 0) d3[i] = (d2[i+1] - d2[i]) / (t_eval[i+1] - t_eval[i]);
+        else if(i == n_pts - 1) d3[i] = (d2[i] - d2[i-1]) / (t_eval[i] - t_eval[i-1]);
+        else d3[i] = (d2[i+1] - d2[i-1]) / (t_eval[i+1] - t_eval[i-1]);
+        
+        if(i == 0) dk[i] = (k[i+1] - k[i]) / (t_eval[i+1] - t_eval[i]);
+        else if(i == n_pts - 1) dk[i] = (k[i] - k[i-1]) / (t_eval[i] - t_eval[i-1]);
+        else dk[i] = (k[i+1] - k[i-1]) / (t_eval[i+1] - t_eval[i-1]);
     }
 
-    if (method == ExtractionMethod::DERIVATIVE) {
-        double max_d1 = -1e9; int sos_idx = 0;
-        for(int i = 0; i <= pop_idx; ++i) { if(d1[i] > max_d1) { max_d1 = d1[i]; sos_idx = i; } }
-        metrics.sos = t_eval(sos_idx);
-        
-        double min_d1 = 1e9; int eos_idx = n_pts - 1;
-        for(int i = pop_idx; i < n_pts; ++i) { if(d1[i] < min_d1) { min_d1 = d1[i]; eos_idx = i; } }
-        metrics.eos = t_eval(eos_idx);
-    } else if (method == ExtractionMethod::GU) {
-        double max_d1 = -1e9; int sos_idx = 0;
-        for(int i = 0; i <= pop_idx; ++i) { if(d1[i] > max_d1) { max_d1 = d1[i]; sos_idx = i; } }
-        
-        double min_d1 = 1e9; int eos_idx = n_pts - 1;
-        for(int i = pop_idx; i < n_pts; ++i) { if(d1[i] < min_d1) { min_d1 = d1[i]; eos_idx = i; } }
-        
-        double y_min_left = fvec.head(pop_idx + 1).minCoeff();
-        double y_min_right = fvec.tail(n_pts - pop_idx).minCoeff();
-        
-        if(std::abs(max_d1) > 1e-6) metrics.sos = t_eval(sos_idx) + (y_min_left - fvec(sos_idx)) / max_d1;
-        else metrics.sos = t_eval(sos_idx);
-        
-        if(std::abs(min_d1) > 1e-6) metrics.eos = t_eval(eos_idx) + (y_min_right - fvec(eos_idx)) / min_d1;
-        else metrics.eos = t_eval(eos_idx);
-    } else if (method == ExtractionMethod::KLOSTERMAN) {
-        double max_dk = -1e9; int sos_idx = 0;
-        for(int i = 0; i <= pop_idx; ++i) { if(dk[i] > max_dk) { max_dk = dk[i]; sos_idx = i; } }
-        metrics.sos = t_eval(sos_idx);
-        
-        double max_dk_right = -1e9; int eos_idx = n_pts - 1;
-        for(int i = pop_idx; i < n_pts; ++i) { if(dk[i] > max_dk_right) { max_dk_right = dk[i]; eos_idx = i; } }
-        metrics.eos = t_eval(eos_idx);
-    } else {
-        // THRESHOLD
-        for (int i = 0; i < pop_idx; ++i) {
-            if (fvec(i) < threshold && fvec(i+1) >= threshold) {
-                double w = (threshold - fvec(i)) / (fvec(i+1) - fvec(i));
-                metrics.sos = t_eval(i) + w * (t_eval(i+1) - t_eval(i));
-                break;
-            }
-        }
-        if (std::isnan(metrics.sos)) metrics.sos = t_eval(0);
-        
-        for (int i = pop_idx; i < n_pts - 1; ++i) {
-            if (fvec(i) >= threshold && fvec(i+1) < threshold) {
-                double w = (threshold - fvec(i)) / (fvec(i+1) - fvec(i));
-                metrics.eos = t_eval(i) + w * (t_eval(i+1) - t_eval(i));
-                break;
-            }
-        }
-        if (std::isnan(metrics.eos)) metrics.eos = t_eval(n_pts - 1);
-    }
+    // 1. DERIVATIVE (DER)
+    double max_d1 = -1e9; int der_sos_idx = 0;
+    for(int i = 0; i <= pop_idx; ++i) { if(d1[i] > max_d1) { max_d1 = d1[i]; der_sos_idx = i; } }
+    metrics.der_sos = t_eval(der_sos_idx);
     
-    metrics.los = metrics.eos - metrics.sos;
-    // std::cout << "Curve: " << (int)type << " | SOS: " << metrics.sos << " | EOS: " << metrics.eos << " | POP: " << metrics.pop << std::endl;
-    // If the fitted curve is degenerate (e.g. completely flat or monotonically decreasing),
-    // the start and end of season will collapse to the same point or overlap.
-    // We reject these as invalid seasons.
+    double min_d1 = 1e9; int der_eos_idx = n_pts - 1;
+    for(int i = pop_idx; i < n_pts; ++i) { if(d1[i] < min_d1) { min_d1 = d1[i]; der_eos_idx = i; } }
+    metrics.der_eos = t_eval(der_eos_idx);
+    metrics.der_pos = metrics.pop;
+    
+    // LOS based on DER (standard CDTS default)
+    metrics.los = metrics.der_eos - metrics.der_sos;
+
+    // 2. THRESHOLDS (TRS2: 20%, TRS5: 50%, TRS6: 60%)
+    double thr2 = min_val + 0.2 * amplitude;
+    double thr5 = min_val + 0.5 * amplitude;
+    double thr6 = min_val + 0.6 * amplitude;
+    
+    auto find_trs = [&](double thr, double& sos_out, double& eos_out) {
+        for (int i = 0; i < pop_idx; ++i) {
+            if (fvec[i] < thr && fvec[i+1] >= thr) {
+                double w = (thr - fvec[i]) / (fvec[i+1] - fvec[i]);
+                sos_out = t_eval[i] + w * (t_eval[i+1] - t_eval[i]);
+                break;
+            }
+        }
+        if (std::isnan(sos_out)) sos_out = t_eval[0];
+
+        for (int i = pop_idx; i < n_pts - 1; ++i) {
+            if (fvec[i] >= thr && fvec[i+1] < thr) {
+                double w = (thr - fvec[i]) / (fvec[i+1] - fvec[i]);
+                eos_out = t_eval[i] + w * (t_eval[i+1] - t_eval[i]);
+                break;
+            }
+        }
+        if (std::isnan(eos_out)) eos_out = t_eval[n_pts - 1];
+    };
+    
+    find_trs(thr2, metrics.trs2_sos, metrics.trs2_eos);
+    find_trs(thr5, metrics.trs5_sos, metrics.trs5_eos);
+    find_trs(thr6, metrics.trs6_sos, metrics.trs6_eos);
+
+    // 3. GU METHOD
+    double max_d2_left = -1e9; int ud_idx = 0;
+    double min_d2_left = 1e9; int sd_idx = 0;
+    for(int i = 0; i <= der_sos_idx; ++i) { if(d2[i] > max_d2_left) { max_d2_left = d2[i]; ud_idx = i; } }
+    for(int i = der_sos_idx; i <= pop_idx; ++i) { if(d2[i] < min_d2_left) { min_d2_left = d2[i]; sd_idx = i; } }
+    metrics.gu_ud = t_eval(ud_idx);
+    metrics.gu_sd = t_eval(sd_idx);
+    
+    double min_d2_right = 1e9; int dd_idx = n_pts - 1;
+    double max_d2_right = -1e9; int rd_idx = n_pts - 1;
+    for(int i = pop_idx; i <= der_eos_idx; ++i) { if(d2[i] < min_d2_right) { min_d2_right = d2[i]; dd_idx = i; } }
+    for(int i = der_eos_idx; i < n_pts; ++i) { if(d2[i] > max_d2_right) { max_d2_right = d2[i]; rd_idx = i; } }
+    metrics.gu_dd = t_eval(dd_idx);
+    metrics.gu_rd = t_eval(rd_idx);
+
+    // 4. ZHANG METHOD
+    double max_k_left = -1e9; int greenup_idx = 0;
+    double min_k_left = 1e9; int maturity_idx = 0;
+    for(int i = 0; i <= der_sos_idx; ++i) { if(k[i] > max_k_left) { max_k_left = k[i]; greenup_idx = i; } }
+    for(int i = der_sos_idx; i <= pop_idx; ++i) { if(k[i] < min_k_left) { min_k_left = k[i]; maturity_idx = i; } }
+    metrics.zhang_greenup = t_eval(greenup_idx);
+    metrics.zhang_maturity = t_eval(maturity_idx);
+    
+    double min_k_right = 1e9; int sen_idx = n_pts - 1;
+    double max_k_right = -1e9; int dorm_idx = n_pts - 1;
+    for(int i = pop_idx; i <= der_eos_idx; ++i) { if(k[i] < min_k_right) { min_k_right = k[i]; sen_idx = i; } }
+    for(int i = der_eos_idx; i < n_pts; ++i) { if(k[i] > max_k_right) { max_k_right = k[i]; dorm_idx = i; } }
+    metrics.zhang_senescence = t_eval(sen_idx);
+    metrics.zhang_dormancy = t_eval(dorm_idx);
+
     if (std::isnan(metrics.los) || metrics.los <= 0.0) {
-        metrics.sos = std::nan("");
-        metrics.eos = std::nan("");
         metrics.los = std::nan("");
-        metrics.pop = std::nan("");
     }
     
     return metrics;
 }
 
-pybind11::tuple fit_phenology_batch(
+pybind11::array_t<double> fit_phenology_batch(
     pybind11::array_t<double> values_array,
     pybind11::array_t<double> dates_array,
     int curve_type_int, 
@@ -165,21 +186,11 @@ pybind11::tuple fit_phenology_batch(
     
     CurveType curve_type = static_cast<CurveType>(curve_type_int);
     
-    pybind11::array_t<double> sos_arr({n_pixels, max_seasons});
-    pybind11::array_t<double> eos_arr({n_pixels, max_seasons});
-    pybind11::array_t<double> los_arr({n_pixels, max_seasons});
-    pybind11::array_t<double> pop_arr({n_pixels, max_seasons});
+    pybind11::array_t<double> out_arr({19, n_pixels, max_seasons});
+    double* out_ptr = static_cast<double*>(out_arr.request().ptr);
     
-    double* sos_ptr = static_cast<double*>(sos_arr.request().ptr);
-    double* eos_ptr = static_cast<double*>(eos_arr.request().ptr);
-    double* los_ptr = static_cast<double*>(los_arr.request().ptr);
-    double* pop_ptr = static_cast<double*>(pop_arr.request().ptr);
-    
-    for (int i = 0; i < n_pixels * max_seasons; ++i) {
-        sos_ptr[i] = std::nan("");
-        eos_ptr[i] = std::nan("");
-        los_ptr[i] = std::nan("");
-        pop_ptr[i] = std::nan("");
+    for (int i = 0; i < 19 * n_pixels * max_seasons; ++i) {
+        out_ptr[i] = std::nan("");
     }
     
     if (n_jobs <= 0) n_jobs = omp_get_max_threads();
@@ -271,18 +282,36 @@ pybind11::tuple fit_phenology_batch(
             }
             
             if (converged) {
-                PhenologyMetrics metrics = extract_metrics(params, curve_type, t_seg, static_cast<ExtractionMethod>(extraction_method));
-                int out_idx = p * max_seasons + s_idx;
-                sos_ptr[out_idx] = metrics.sos;
-                eos_ptr[out_idx] = metrics.eos;
-                los_ptr[out_idx] = metrics.los;
-                pop_ptr[out_idx] = metrics.pop;
+                PhenologyMetrics metrics = extract_metrics(params, curve_type, t_seg);
+                int base_idx = p * max_seasons + s_idx;
+                int stride = n_pixels * max_seasons;
+                
+                out_ptr[0 * stride + base_idx] = metrics.trs2_sos;
+                out_ptr[1 * stride + base_idx] = metrics.trs2_eos;
+                out_ptr[2 * stride + base_idx] = metrics.trs5_sos;
+                out_ptr[3 * stride + base_idx] = metrics.trs5_eos;
+                out_ptr[4 * stride + base_idx] = metrics.trs6_sos;
+                out_ptr[5 * stride + base_idx] = metrics.trs6_eos;
+                out_ptr[6 * stride + base_idx] = metrics.der_sos;
+                out_ptr[7 * stride + base_idx] = metrics.der_pos;
+                out_ptr[8 * stride + base_idx] = metrics.der_eos;
+                out_ptr[9 * stride + base_idx] = metrics.gu_ud;
+                out_ptr[10 * stride + base_idx] = metrics.gu_sd;
+                out_ptr[11 * stride + base_idx] = metrics.gu_dd;
+                out_ptr[12 * stride + base_idx] = metrics.gu_rd;
+                out_ptr[13 * stride + base_idx] = metrics.zhang_greenup;
+                out_ptr[14 * stride + base_idx] = metrics.zhang_maturity;
+                out_ptr[15 * stride + base_idx] = metrics.zhang_senescence;
+                out_ptr[16 * stride + base_idx] = metrics.zhang_dormancy;
+                out_ptr[17 * stride + base_idx] = metrics.los;
+                out_ptr[18 * stride + base_idx] = metrics.pop;
+                
                 s_idx++;
             }
         }
     }
     
-    return pybind11::make_tuple(sos_arr, eos_arr, los_arr, pop_arr);
+    return out_arr;
 }
 
 } // namespace phenology
