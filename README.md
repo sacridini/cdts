@@ -178,10 +178,11 @@ classify_ccdc_stack(
 
 ## Phenology Extraction
 
-Extract phenological metrics (SOS, EOS, LOS, POP) across massive datasets using optimized C++ curve-fitting models (Beck, Elmore, Gu, Zhang, Asymmetric Gaussian, Double Logistic) over Dask clusters.
+Extract 19 simultaneous phenological metrics (Gu, Zhang, Thresholds, Derivatives, LOS, POP) across massive datasets using optimized C++ curve-fitting models (Beck, Elmore, Gu, Zhang, Asymmetric Gaussian, Double Logistic) over Dask clusters.
 
 ```python
 import numpy as np
+from cdts._core.phenology import CurveType
 
 # 1. Provide dates corresponding to the time steps
 dates_julian = np.arange(1, 366, 16) # Day of year
@@ -189,28 +190,28 @@ dates_julian = np.arange(1, 366, 16) # Day of year
 # 2. Run phenology curve fitting natively via the cdts accessor
 pheno_results = cube_16d.cdts.run_phenology(
     dates=dates_julian,
-    curve_type=0,               # Enum mapping to CurveType::BECK
-    extraction_method=1,        # 0=THRESHOLD, 1=DERIVATIVE, 2=GU, 3=KLOSTERMAN
-    max_seasons=2,              # Extract up to 2 growing seasons per year
+    curve_type=int(CurveType.BECK), # Enum mapping to CurveType::BECK
+    max_seasons=2,                  # Extract up to 2 growing seasons per year
     
     # Smoothing Configuration
-    apply_whittaker=False,      # Turn off Whittaker
-    apply_hants=True,           # Use HANTS (Fourier-based) instead
+    apply_whittaker=False,          # Turn off Whittaker
+    apply_hants=True,               # Use HANTS (Fourier-based) instead
     hants_frequencies=3,
     
     # Fine-Grained Season Control
-    min_season_length=90,       # Ignore noisy peaks shorter than 90 days
-    min_amplitude=0.2,          # Ignore seasons with less than 0.2 NDVI growth
+    min_season_length=90,           # Ignore noisy peaks shorter than 90 days
+    min_amplitude=0.2,              # Ignore seasons with less than 0.2 NDVI growth
+    return_annual=False,            # Return as purely sequential seasons
     
-    n_jobs=-1                   # C++ multithreading
+    n_jobs=14                       # C++ multithreading (leave cores for OS)
 )
 
 # Trigger computation (runs C++ optimizer across Dask blocks)
-# Output shape: (metric, season, Y, X)
+# Output shape: (metric=19, season=2, Y, X)
 pheno_array = pheno_results.compute()
 
-# Extract Start of Season (SOS) for the first season
-sos_map = pheno_array.sel(metric="SOS", season=0)
+# Extract Zhang's Greenup transition date for the first season
+greenup_map = pheno_array.sel(metric="Greenup", season=0)
 ```
 
 ## Time-Series Classification (TWDTW)
