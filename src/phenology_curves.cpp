@@ -186,20 +186,27 @@ bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y,
     double y_max = y.maxCoeff();
     double y_amp = std::max(0.01, y_max - y_min);
     
+    double half = (t_max - t_min) / 2.0;
+    if (half <= 0) half = 100.0;
+    double k = 4.0 / half * 2.67;
+    double r_min = k / 1.5;
+    double r_max = k * 6.0;
+    double d_t = half / 4.0;
+    
     Eigen::VectorXd lb, ub;
 
     switch(type) {
         case CurveType::BECK: {
             if(params.size() != 6) params = Eigen::VectorXd::Zero(6);
             lb = Eigen::VectorXd(6); ub = Eigen::VectorXd(6);
-            lb << y_min - 0.5*y_amp, y_min, t_min - 30, 0.0, t_min - 30, 0.0;
-            ub << y_min + 0.5*y_amp, y_max + 0.5*y_amp, t_max + 30, 50.0, t_max + 30, 50.0;
+            lb << y_min - 0.5*y_amp, y_min, t_min, r_min, t_min, r_min;
+            ub << y_min + 0.5*y_amp, y_max + 0.5*y_amp, t_max, r_max, t_max, r_max;
             if((params.array() == 1.0).all() || (params.array() == 0.0).all()) {
                 params = (lb + ub) / 2.0;
                 params(2) = t_min + (t_max - t_min) * 0.25; // SOS timing
                 params(4) = t_min + (t_max - t_min) * 0.75; // EOS timing
-                params(3) = 1.0; // rate
-                params(5) = 1.0; // rate
+                params(3) = k; // rate
+                params(5) = k; // rate
             }
             BeckFunctor functor(t, y, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
@@ -207,14 +214,14 @@ bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y,
         case CurveType::ELMORE: {
             if(params.size() != 7) params = Eigen::VectorXd::Zero(7);
             lb = Eigen::VectorXd(7); ub = Eigen::VectorXd(7);
-            lb << y_min - 0.5*y_amp, y_min, t_min - 30, 0.0, t_min - 30, 0.0, -0.1;
-            ub << y_min + 0.5*y_amp, y_max + 0.5*y_amp, t_max + 30, 50.0, t_max + 30, 50.0, 0.1;
+            lb << y_min - 0.5*y_amp, y_min, t_min, r_min, t_min, r_min, -0.1;
+            ub << y_min + 0.5*y_amp, y_max + 0.5*y_amp, t_max, r_max, t_max, r_max, 0.1;
             if((params.array() == 1.0).all() || (params.array() == 0.0).all()) {
                 params = (lb + ub) / 2.0;
                 params(2) = t_min + (t_max - t_min) * 0.25;
                 params(4) = t_min + (t_max - t_min) * 0.75;
-                params(3) = 1.0;
-                params(5) = 1.0;
+                params(3) = k;
+                params(5) = k;
                 params(6) = 0.0;
             }
             ElmoreFunctor functor(t, y, lb, ub);

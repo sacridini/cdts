@@ -16,59 +16,84 @@ std::vector<double> eigen_whittaker(
     Eigen::VectorXd y_vec = Eigen::Map<const Eigen::VectorXd>(y.data(), n);
     Eigen::VectorXd w_vec;
     if (weights.has_value()) {
-        if (weights->size() != n) {
-            throw std::invalid_argument("Weights must have the same size as y.");
-        }
+        if (weights->size() != n) throw std::invalid_argument("Weights must have the same size as y.");
         w_vec = Eigen::Map<const Eigen::VectorXd>(weights->data(), n);
     } else {
         w_vec = Eigen::VectorXd::Ones(n);
     }
 
-    // Build sparse matrix A = W + lambda * D^T * D
-    // and vector b = W * y
-    Eigen::SparseMatrix<double> A(n, n);
-    std::vector<Eigen::Triplet<double>> triplets;
-    triplets.reserve(n + (n - 2) * 9); // Reserve space for diagonals and differences
+    int iters = 2;
+    int deltaT = 3; 
+    double wfact = 0.5;
+    
+    Eigen::VectorXd yiter = y_vec;
+    Eigen::VectorXd z(n);
+    
+    double ylu_min = y_vec.minCoeff();
+    double ylu_max = y_vec.maxCoeff();
+    double zc = ylu_min + (ylu_max - ylu_min) * 0.5;
 
-    // We add the W matrix (diagonal)
-    for (int i = 0; i < n; ++i) {
-        triplets.push_back({i, i, w_vec(i)});
-    }
+    for (int iter = 0; iter < iters; ++iter) {
+        Eigen::SparseMatrix<double> A(n, n);
+        std::vector<Eigen::Triplet<double>> triplets;
+        triplets.reserve(n + (n - 2) * 9);
+        for (int i = 0; i < n; ++i) triplets.push_back({i, i, w_vec(i)});
+        for (int i = 0; i < n - 2; ++i) {
+            triplets.push_back({i, i, lambda * 1.0});
+            triplets.push_back({i, i+1, lambda * -2.0});
+            triplets.push_back({i, i+2, lambda * 1.0});
+            triplets.push_back({i+1, i, lambda * -2.0});
+            triplets.push_back({i+1, i+1, lambda * 4.0});
+            triplets.push_back({i+1, i+2, lambda * -2.0});
+            triplets.push_back({i+2, i, lambda * 1.0});
+            triplets.push_back({i+2, i+1, lambda * -2.0});
+            triplets.push_back({i+2, i+2, lambda * 1.0});
+        }
+        A.setFromTriplets(triplets.begin(), triplets.end());
+        A.makeCompressed();
 
-    // Add lambda * D^T * D
-    // D is a (n-2) x n second-order difference matrix. 
-    // Row i of D has values: 1 at i, -2 at i+1, 1 at i+2
-    for (int i = 0; i < n - 2; ++i) {
-        triplets.push_back({i, i, lambda * 1.0});
-        triplets.push_back({i, i+1, lambda * -2.0});
-        triplets.push_back({i, i+2, lambda * 1.0});
+        Eigen::VectorXd b = w_vec.cwiseProduct(yiter);
+        Eigen::SimplicialLLT<Eigen::SparseMatrix<double>> solver(A);
+        if (solver.info() != Eigen::Success) throw std::runtime_error("Whittaker decomposition failed");
+        z = solver.solve(b);
+        if (solver.info() != Eigen::Success) throw std::runtime_error("Whittaker solve failed");
+
+        int m = (w_vec.array() > 0.5).count();
+        if (m < 2) m = 2; 
         
-        triplets.push_back({i+1, i, lambda * -2.0});
-        triplets.push_back({i+1, i+1, lambda * 4.0});
-        triplets.push_back({i+1, i+2, lambda * -2.0});
+        Eigen::VectorXd w_ceil = w_vec.array().ceil();
+        double yfitmean = (z.array() * w_ceil.array()).sum() / m;
+        double variance = ((z.array() - yfitmean) * w_ceil.array()).square().sum() / (m - 1);
+        double yfitstd = std::sqrt(std::max(0.0, variance));
         
-        triplets.push_back({i+2, i, lambda * 1.0});
-        triplets.push_back({i+2, i+1, lambda * -2.0});
-        triplets.push_back({i+2, i+2, lambda * 1.0});
+        for (int i = 0; i < n; ++i) {
+            int m1 = std::max(0, i - deltaT);
+            int m2 = std::min(n - 1, i + deltaT);
+            double yi_min = 1e9;
+            double yi_max = -1e9;
+            for (int j = m1; j <= m2; ++j) {
+                if (z(j) < yi_min) yi_min = z(j);
+                if (z(j) > yi_max) yi_max = z(j);
+            }
+            if (y_vec(i) < z(i) - 1e-8) {
+                if (yi_min > yfitmean || iter < 1) {
+                    double ydiff = 0;
+                    if (yi_max - yi_min < 0.8 * yfitstd && yfitstd > 1e-8) {
+                        ydiff = 2.0 * (z(i) - y_vec(i)) / yfitstd;
+                    }
+                    w_vec(i) = wfact * w_vec(i) * std::exp(-ydiff * ydiff);
+                }
+            }
+        }
+        
+        z = z.cwiseMax(ylu_min).cwiseMin(ylu_max);
+        for (int i = 0; i < n; ++i) {
+            if (z(i) > yiter(i) && z(i) > zc) {
+                yiter(i) = z(i);
+            }
+        }
     }
     
-    A.setFromTriplets(triplets.begin(), triplets.end());
-    A.makeCompressed();
-
-    Eigen::VectorXd b = w_vec.cwiseProduct(y_vec);
-
-    // Solve the system A * z = b using Cholesky decomposition for sparse matrices
-    Eigen::SimplicialLLT<Eigen::SparseMatrix<double>> solver;
-    solver.compute(A);
-    if (solver.info() != Eigen::Success) {
-        throw std::runtime_error("Whittaker decomposition failed");
-    }
-
-    Eigen::VectorXd z = solver.solve(b);
-    if (solver.info() != Eigen::Success) {
-        throw std::runtime_error("Whittaker solve failed");
-    }
-
     std::vector<double> result(z.data(), z.data() + n);
     return result;
 }
