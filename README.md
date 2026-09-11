@@ -203,7 +203,7 @@ pheno_results = cube_16d.cdts.run_phenology(
     min_amplitude=0.2,              # Ignore seasons with less than 0.2 NDVI growth
     return_annual=False,            # Return as purely sequential seasons
     
-    n_jobs=14                       # C++ multithreading (leave cores for OS)
+    n_jobs=-1                       # C++ multithreading (leave cores for OS)
 )
 
 # Trigger computation (runs C++ optimizer across Dask blocks)
