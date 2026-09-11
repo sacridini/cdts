@@ -25,16 +25,9 @@ These metrics are crucial for mapping crop types, predicting yields, detecting c
 
 Extracting phenology from noisy, cloud-contaminated satellite time series requires a robust, multi-step mathematical pipeline.
 
-```mermaid
-flowchart TD
-    A[Raw Vegetation Index Time Series] --> B{Time Series Smoothing}
-    B -->|Whittaker / HANTS| C[Smoothed Curve]
-    C --> D[Identify Growing Seasons]
-    D --> E{Curve Fitting Optimization}
-    E -->|Beck / Elmore / Gu / etc.| F[Mathematical Model Fit]
-    F --> G{Metric Extraction}
-    G -->|Threshold / Derivative| H[Final Phenology Metrics: SOS, EOS, POP, LOS]
-```
+<p align="center">
+  <img src="../assets/phenology_flow.jpg" alt="Phenology Extraction Process" width="800">
+</p>
 
 ### 2.1. Time Series Smoothing
 
