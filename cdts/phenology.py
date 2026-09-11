@@ -34,8 +34,8 @@ def run_phenology_dask(
         time_steps, rows, cols = block.shape
         pixels = rows * cols
         
-        # reshape to (pixels, time)
-        values_2d = block.reshape(time_steps, pixels).T
+        # reshape to (pixels, time) and ensure C-contiguous
+        values_2d = np.ascontiguousarray(block.reshape(time_steps, pixels).T)
         
         # run batch fitting
         sos, eos, los, pop = fit_phenology_batch(

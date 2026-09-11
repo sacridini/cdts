@@ -150,5 +150,7 @@ PYBIND11_MODULE(_core, m) {
            py::arg("min_season_length") = 0,
            py::arg("min_amplitude") = 0.0,
            py::arg("min_pixel_amplitude") = 0.1,
+           py::arg("rtrough_max") = 0.6,
+           py::arg("r_min_filter") = 0.02,
            py::arg("n_jobs") = -1);
 }

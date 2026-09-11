@@ -145,6 +145,8 @@ pybind11::tuple fit_phenology_batch(
     int min_season_length,
     double min_amplitude,
     double min_pixel_amplitude,
+    double rtrough_max,
+    double r_min_filter,
     int n_jobs)
 {
     auto vals_buf = values_array.request();
@@ -223,7 +225,7 @@ pybind11::tuple fit_phenology_batch(
             }
         }
         
-        auto seasons = split_growing_seasons(y_smooth, min_season_length, min_amplitude);
+        auto seasons = split_growing_seasons(y_smooth, min_season_length, min_amplitude, rtrough_max, r_min_filter);
         
         int s_idx = 0;
         for (const auto& season : seasons) {
@@ -239,7 +241,7 @@ pybind11::tuple fit_phenology_batch(
             Eigen::VectorXd y_seg(len);
             for (int i = 0; i < len; ++i) {
                 t_seg(i) = t_all(start + i);
-                y_seg(i) = y_smooth[start + i];
+                y_seg(i) = y_raw[start + i];
             }
             
             Eigen::VectorXd params;
@@ -253,7 +255,20 @@ pybind11::tuple fit_phenology_batch(
                 case CurveType::DL: params = Eigen::VectorXd::Ones(6); break;
             }
             
-            bool converged = fit_curve(t_seg, y_seg, params, curve_type);
+            // Iterative fitting with wTSM weights
+            Eigen::VectorXd w_seg = Eigen::VectorXd::Ones(t_seg.size());
+            bool converged = false;
+            
+            // Phenofit default: 2 iterations
+            int iters = 2;
+            for (int iter = 1; iter <= iters; ++iter) {
+                converged = fit_curve(t_seg, y_seg, w_seg, params, curve_type);
+                if (converged && iter < iters) {
+                    Eigen::VectorXd yfit = evaluate_curve(curve_type, params, t_seg);
+                    // nptperyear for MODIS 16-day is 23. wfact default is 0.5
+                    w_seg = eigen_wTSM(y_seg, yfit, w_seg, iter, 23, 0.5);
+                }
+            }
             
             if (converged) {
                 PhenologyMetrics metrics = extract_metrics(params, curve_type, t_seg, static_cast<ExtractionMethod>(extraction_method));

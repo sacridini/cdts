@@ -37,10 +37,10 @@ struct Functor {
 struct BeckFunctor : Functor<double> {
     const Eigen::VectorXd& t;
     const Eigen::VectorXd& y;
+    const Eigen::VectorXd& w;
     const Eigen::VectorXd& lb;
     const Eigen::VectorXd& ub;
-    BeckFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) 
-      : Functor<double>(6, t_.size()), t(t_), y(y_), lb(lb_), ub(ub_) {}
+    BeckFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& w_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) : Functor<double>(6, t_.size()), t(t_), y(y_), w(w_), lb(lb_), ub(ub_) {}
     int operator()(const Eigen::VectorXd &p, Eigen::VectorXd &fvec) const;
 };
 
@@ -48,10 +48,10 @@ struct BeckFunctor : Functor<double> {
 struct ElmoreFunctor : Functor<double> {
     const Eigen::VectorXd& t;
     const Eigen::VectorXd& y;
+    const Eigen::VectorXd& w;
     const Eigen::VectorXd& lb;
     const Eigen::VectorXd& ub;
-    ElmoreFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) 
-      : Functor<double>(7, t_.size()), t(t_), y(y_), lb(lb_), ub(ub_) {}
+    ElmoreFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& w_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) : Functor<double>(7, t_.size()), t(t_), y(y_), w(w_), lb(lb_), ub(ub_) {}
     int operator()(const Eigen::VectorXd &p, Eigen::VectorXd &fvec) const;
 };
 
@@ -59,10 +59,10 @@ struct ElmoreFunctor : Functor<double> {
 struct GuFunctor : Functor<double> {
     const Eigen::VectorXd& t;
     const Eigen::VectorXd& y;
+    const Eigen::VectorXd& w;
     const Eigen::VectorXd& lb;
     const Eigen::VectorXd& ub;
-    GuFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) 
-      : Functor<double>(9, t_.size()), t(t_), y(y_), lb(lb_), ub(ub_) {}
+    GuFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& w_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) : Functor<double>(9, t_.size()), t(t_), y(y_), w(w_), lb(lb_), ub(ub_) {}
     int operator()(const Eigen::VectorXd &p, Eigen::VectorXd &fvec) const;
 };
 
@@ -70,10 +70,10 @@ struct GuFunctor : Functor<double> {
 struct KlosFunctor : Functor<double> {
     const Eigen::VectorXd& t;
     const Eigen::VectorXd& y;
+    const Eigen::VectorXd& w;
     const Eigen::VectorXd& lb;
     const Eigen::VectorXd& ub;
-    KlosFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) 
-      : Functor<double>(13, t_.size()), t(t_), y(y_), lb(lb_), ub(ub_) {}
+    KlosFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& w_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) : Functor<double>(13, t_.size()), t(t_), y(y_), w(w_), lb(lb_), ub(ub_) {}
     int operator()(const Eigen::VectorXd &p, Eigen::VectorXd &fvec) const;
 };
 
@@ -81,10 +81,10 @@ struct KlosFunctor : Functor<double> {
 struct ZhangFunctor : Functor<double> {
     const Eigen::VectorXd& t;
     const Eigen::VectorXd& y;
+    const Eigen::VectorXd& w;
     const Eigen::VectorXd& lb;
     const Eigen::VectorXd& ub;
-    ZhangFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) 
-      : Functor<double>(7, t_.size()), t(t_), y(y_), lb(lb_), ub(ub_) {}
+    ZhangFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& w_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) : Functor<double>(7, t_.size()), t(t_), y(y_), w(w_), lb(lb_), ub(ub_) {}
     int operator()(const Eigen::VectorXd &p, Eigen::VectorXd &fvec) const;
 };
 
@@ -92,10 +92,10 @@ struct ZhangFunctor : Functor<double> {
 struct AGFunctor : Functor<double> {
     const Eigen::VectorXd& t;
     const Eigen::VectorXd& y;
+    const Eigen::VectorXd& w;
     const Eigen::VectorXd& lb;
     const Eigen::VectorXd& ub;
-    AGFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) 
-      : Functor<double>(7, t_.size()), t(t_), y(y_), lb(lb_), ub(ub_) {}
+    AGFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& w_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) : Functor<double>(7, t_.size()), t(t_), y(y_), w(w_), lb(lb_), ub(ub_) {}
     int operator()(const Eigen::VectorXd &p, Eigen::VectorXd &fvec) const;
 };
 
@@ -103,10 +103,10 @@ struct AGFunctor : Functor<double> {
 struct DLFunctor : Functor<double> {
     const Eigen::VectorXd& t;
     const Eigen::VectorXd& y;
+    const Eigen::VectorXd& w;
     const Eigen::VectorXd& lb;
     const Eigen::VectorXd& ub;
-    DLFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) 
-      : Functor<double>(6, t_.size()), t(t_), y(y_), lb(lb_), ub(ub_) {}
+    DLFunctor(const Eigen::VectorXd& t_, const Eigen::VectorXd& y_, const Eigen::VectorXd& w_, const Eigen::VectorXd& lb_, const Eigen::VectorXd& ub_) : Functor<double>(6, t_.size()), t(t_), y(y_), w(w_), lb(lb_), ub(ub_) {}
     int operator()(const Eigen::VectorXd &p, Eigen::VectorXd &fvec) const;
 };
 
@@ -129,7 +129,7 @@ enum class CurveType {
  * @param max_fev Maximum function evaluations
  * @return true if converged, false otherwise
  */
-bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y, 
+bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y, const Eigen::VectorXd& w, 
                Eigen::VectorXd& params, CurveType type, int max_fev = 2000);
 
 Eigen::VectorXd evaluate_curve(CurveType type, const Eigen::VectorXd& params, const Eigen::VectorXd& t);

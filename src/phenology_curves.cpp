@@ -27,7 +27,7 @@ int BeckFunctor::operator()(const Eigen::VectorXd &p_unb, Eigen::VectorXd &fvec)
     for(int i = 0; i < t.size(); ++i) {
         double pred = mn + (mx - mn) * (1.0 / (1.0 + std::exp(-rsp * (t[i] - sos))) + 
                                         1.0 / (1.0 + std::exp(rau * (t[i] - eos))) - 1.0);
-        fvec[i] = pred - y[i];
+        fvec[i] = (pred - y[i]) * std::sqrt(w[i]);
     }
     return 0;
 }
@@ -43,7 +43,7 @@ int ElmoreFunctor::operator()(const Eigen::VectorXd &p_unb, Eigen::VectorXd &fve
     for(int i = 0; i < t.size(); ++i) {
         double pred = mn + (mx - m7 * t[i]) * (1.0 / (1.0 + std::exp(-rsp * (t[i] - sos))) - 
                                                1.0 / (1.0 + std::exp(-rau * (t[i] - eos))));
-        fvec[i] = pred - y[i];
+        fvec[i] = (pred - y[i]) * std::sqrt(w[i]);
     }
     return 0;
 }
@@ -62,7 +62,7 @@ int GuFunctor::operator()(const Eigen::VectorXd &p_unb, Eigen::VectorXd &fvec) c
         double base1 = std::max(1e-8, 1.0 + std::exp(-rsp * (t[i] - sos)));
         double base2 = std::max(1e-8, 1.0 + std::exp(-rau * (t[i] - eos_p)));
         double pred = y0 + (a1 / std::pow(base1, c1)) - (a2 / std::pow(base2, c2));
-        fvec[i] = pred - y[i];
+        fvec[i] = (pred - y[i]) * std::sqrt(w[i]);
     }
     return 0;
 }
@@ -86,7 +86,7 @@ int KlosFunctor::operator()(const Eigen::VectorXd &p_unb, Eigen::VectorXd &fvec)
         double base2 = std::max(1e-8, 1.0 + q2 * std::exp(-B2 * (t[i] - m2)));
         double pred = (a1 * t[i] + b1) + (a2 * t[i] * t[i] + b2 * t[i] + c) * 
                       (1.0 / std::pow(base1, v1) - 1.0 / std::pow(base2, v2));
-        fvec[i] = pred - y[i];
+        fvec[i] = (pred - y[i]) * std::sqrt(w[i]);
     }
     return 0;
 }
@@ -106,7 +106,7 @@ int ZhangFunctor::operator()(const Eigen::VectorXd &p_unb, Eigen::VectorXd &fvec
         } else {
             pred = mn + (mx - mn) / (1.0 + std::exp(rau * (t[i] - eos)));
         }
-        fvec[i] = pred - y[i];
+        fvec[i] = (pred - y[i]) * std::sqrt(w[i]);
     }
     return 0;
 }
@@ -128,7 +128,7 @@ int AGFunctor::operator()(const Eigen::VectorXd &p_unb, Eigen::VectorXd &fvec) c
             double base = std::max(0.0, (t[i] - t0) * rau);
             pred = mn + (mx - mn) * std::exp(-std::pow(base, a5));
         }
-        fvec[i] = pred - y[i];
+        fvec[i] = (pred - y[i]) * std::sqrt(w[i]);
     }
     return 0;
 }
@@ -143,7 +143,7 @@ int DLFunctor::operator()(const Eigen::VectorXd &p_unb, Eigen::VectorXd &fvec) c
     for(int i = 0; i < t.size(); ++i) {
         double pred = mn + (mx - mn) * ( 1.0 / (1.0 + std::exp(-rsp * (t[i] - sos))) - 
                                          1.0 / (1.0 + std::exp(-rau * (t[i] - eos))) );
-        fvec[i] = pred - y[i];
+        fvec[i] = (pred - y[i]) * std::sqrt(w[i]);
     }
     return 0;
 }
@@ -176,7 +176,7 @@ bool optimize_functor(FunctorType& functor, Eigen::VectorXd& params, const Eigen
             info == Eigen::LevenbergMarquardtSpace::CosinusTooSmall);
 }
 
-bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y, 
+bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y, const Eigen::VectorXd& w, 
                Eigen::VectorXd& params, CurveType type, int max_fev) {
     if(t.size() != y.size() || t.size() == 0) return false;
 
@@ -208,7 +208,7 @@ bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y,
                 params(3) = k; // rate
                 params(5) = k; // rate
             }
-            BeckFunctor functor(t, y, lb, ub);
+            BeckFunctor functor(t, y, w, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
         case CurveType::ELMORE: {
@@ -224,7 +224,7 @@ bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y,
                 params(5) = k;
                 params(6) = 0.0;
             }
-            ElmoreFunctor functor(t, y, lb, ub);
+            ElmoreFunctor functor(t, y, w, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
         case CurveType::GU: {
@@ -233,7 +233,7 @@ bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y,
             lb << y_min - 0.5*y_amp, 0.0, 0.0, t_min - 30, 0.0, t_min - 30, 0.0, 0.1, 0.1;
             ub << y_min + 0.5*y_amp, 5.0*y_amp, 5.0*y_amp, t_max + 30, 50.0, t_max + 30, 50.0, 10.0, 10.0;
             if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
-            GuFunctor functor(t, y, lb, ub);
+            GuFunctor functor(t, y, w, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
         case CurveType::KLOS: {
@@ -242,7 +242,7 @@ bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y,
             lb << -1.0, -1.0, -1.0, -1.0, y_min - 1.0, 0.0, 0.0, t_min - 30, t_min - 30, -5.0, -5.0, 0.1, 0.1;
             ub <<  1.0,  1.0,  1.0,  1.0, y_max + 1.0, 50.0, 50.0, t_max + 30, t_max + 30,  5.0,  5.0, 10.0, 10.0;
             if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
-            KlosFunctor functor(t, y, lb, ub);
+            KlosFunctor functor(t, y, w, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
         case CurveType::ZHANG: {
@@ -251,7 +251,7 @@ bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y,
             lb << t_min, y_min - 0.5*y_amp, y_min, t_min - 30, 0.0, t_min - 30, 0.0;
             ub << t_max, y_min + 0.5*y_amp, y_max + 0.5*y_amp, t_max + 30, 50.0, t_max + 30, 50.0;
             if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
-            ZhangFunctor functor(t, y, lb, ub);
+            ZhangFunctor functor(t, y, w, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
         case CurveType::AG: {
@@ -260,7 +260,7 @@ bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y,
             lb << t_min, y_min - 0.5*y_amp, y_min, 0.0, 0.1, 0.0, 0.1;
             ub << t_max, y_min + 0.5*y_amp, y_max + 0.5*y_amp, 50.0, 10.0, 50.0, 10.0;
             if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
-            AGFunctor functor(t, y, lb, ub);
+            AGFunctor functor(t, y, w, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
         case CurveType::DL: {
@@ -269,7 +269,7 @@ bool fit_curve(const Eigen::VectorXd& t, const Eigen::VectorXd& y,
             lb << y_min - 0.5*y_amp, y_min, t_min - 30, 0.0, t_min - 30, 0.0;
             ub << y_min + 0.5*y_amp, y_max + 0.5*y_amp, t_max + 30, 50.0, t_max + 30, 50.0;
             if((params.array() == 1.0).all() || (params.array() == 0.0).all()) params = (lb + ub) / 2.0;
-            DLFunctor functor(t, y, lb, ub);
+            DLFunctor functor(t, y, w, lb, ub);
             return optimize_functor(functor, params, lb, ub, max_fev);
         }
     }
