@@ -7,12 +7,18 @@ from unittest.mock import patch
 from cdts.phenology import run_phenology_dask
 import cdts.xarray_api # Registers the accessor
 
-def mock_fit_phenology_batch(values_array, dates_array, curve_type, max_seasons, whittaker_lambda, apply_whittaker, n_jobs, **kwargs):
+def mock_fit_phenology_batch(values_array, dates_array, curve_type, extraction_method, max_seasons, whittaker_lambda, apply_whittaker, apply_hants, hants_frequencies, hants_threshold, min_season_length, min_amplitude, min_pixel_amplitude, n_jobs, **kwargs):
     n_pixels = values_array.shape[0]
-    sos = np.full((n_pixels, max_seasons), 100.0, dtype=np.float32)
-    eos = np.full((n_pixels, max_seasons), 200.0, dtype=np.float32)
-    los = np.full((n_pixels, max_seasons), 100.0, dtype=np.float32)
-    pop = np.full((n_pixels, max_seasons), 150.0, dtype=np.float32)
+    sos = np.zeros((n_pixels, max_seasons), dtype=np.float32)
+    eos = np.zeros((n_pixels, max_seasons), dtype=np.float32)
+    los = np.zeros((n_pixels, max_seasons), dtype=np.float32)
+    pop = np.zeros((n_pixels, max_seasons), dtype=np.float32)
+    for s in range(max_seasons):
+        # 100.0 days + s * 365 days ensures each season lands in a different year
+        sos[:, s] = 100.0 + s * 365.25
+        eos[:, s] = 200.0 + s * 365.25
+        los[:, s] = 100.0
+        pop[:, s] = 150.0 + s * 365.25
     return sos, eos, los, pop
 
 @patch('cdts.phenology.fit_phenology_batch', side_effect=mock_fit_phenology_batch)
@@ -51,12 +57,14 @@ def test_xarray_accessor_phenology(mock_fit):
     res = ds.cdts.run_phenology(dates=dates, curve_type=1, max_seasons=2)
     
     assert isinstance(res, xr.DataArray)
-    assert res.dims == ("metric", "season", "y", "x")
+    assert res.dims == ("metric", "year", "y", "x")
     assert res.shape == (4, 2, rows, cols)
     
     res_computed = res.compute()
-    assert res_computed.loc[{"metric": "SOS"}].values.mean() == 100.0
-    assert res_computed.loc[{"metric": "EOS"}].values.mean() == 200.0
+    sos_mean = res_computed.loc[{"metric": "SOS"}].values.mean()
+    assert 99.0 <= sos_mean <= 101.0
+    eos_mean = res_computed.loc[{"metric": "EOS"}].values.mean()
+    assert 199.0 <= eos_mean <= 201.0
 
 def test_real_phenology_extraction_advanced_params():
     """
@@ -116,3 +124,19 @@ def test_real_phenology_extraction_advanced_params():
     ).compute()
     
     assert res_gu.shape == (4, max_seasons, rows, cols)
+
+@patch('cdts.phenology.fit_phenology_batch', side_effect=mock_fit_phenology_batch)
+def test_xarray_accessor_phenology_no_annual(mock_fit):
+    time_steps = 20
+    rows = 5
+    cols = 5
+
+    data = da.random.random((time_steps, rows, cols), chunks=(time_steps, 5, 5))
+    ds = xr.DataArray(data, dims=["time", "y", "x"], coords={"y": np.arange(rows), "x": np.arange(cols)})
+    dates = np.arange(time_steps)
+
+    res = ds.cdts.run_phenology(dates=dates, curve_type=1, max_seasons=3, return_annual=False)
+
+    assert isinstance(res, xr.DataArray)
+    assert res.dims == ("metric", "season", "y", "x")
+    assert res.shape == (4, 3, rows, cols)
