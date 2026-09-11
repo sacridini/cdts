@@ -37,8 +37,13 @@ pip install cdts
 *(Note: Wheels are provided for Windows, Linux, and macOS. macOS runs in single-threaded mode by default due to Apple Clang lacking OpenMP).*
 
 **For macOS users who want C++ OpenMP multi-threading:**
+Apple's default Clang compiler disables OpenMP. To achieve maximum performance and enable multi-threading, you must install the `libomp` library and manually export the compilation flags *before* forcing a local compilation:
+
 ```bash
 brew install libomp
+export CFLAGS="-I$(brew --prefix libomp)/include"
+export CXXFLAGS="-I$(brew --prefix libomp)/include"
+export LDFLAGS="-L$(brew --prefix libomp)/lib -lomp"
 pip install --no-binary cdts cdts
 ```
 
