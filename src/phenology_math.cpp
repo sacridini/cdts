@@ -33,6 +33,14 @@ std::vector<double> eigen_whittaker(
     double ylu_max = y_vec.maxCoeff();
     double zc = ylu_min + (ylu_max - ylu_min) * 0.5;
 
+    // The pentadiagonal sparsity pattern below depends only on `n`, which is the same
+    // for every pixel processed by a given OpenMP thread within a batch (fixed time
+    // series length). analyzePattern() (fill-reducing ordering + symbolic factorization)
+    // is the expensive part relative to the numeric factorize() for this band structure,
+    // so cache it per-thread instead of redoing it for every pixel and every iteration.
+    thread_local int cached_whittaker_n = -1;
+    thread_local Eigen::SimplicialLLT<Eigen::SparseMatrix<double>> whittaker_solver;
+
     for (int iter = 0; iter < iters; ++iter) {
         Eigen::SparseMatrix<double> A(n, n);
         std::vector<Eigen::Triplet<double>> triplets;
@@ -53,10 +61,15 @@ std::vector<double> eigen_whittaker(
         A.makeCompressed();
 
         Eigen::VectorXd b = w_vec.cwiseProduct(yiter);
-        Eigen::SimplicialLLT<Eigen::SparseMatrix<double>> solver(A);
-        if (solver.info() != Eigen::Success) throw std::runtime_error("Whittaker decomposition failed");
-        z = solver.solve(b);
-        if (solver.info() != Eigen::Success) throw std::runtime_error("Whittaker solve failed");
+
+        if (cached_whittaker_n != n) {
+            whittaker_solver.analyzePattern(A);
+            cached_whittaker_n = n;
+        }
+        whittaker_solver.factorize(A);
+        if (whittaker_solver.info() != Eigen::Success) throw std::runtime_error("Whittaker decomposition failed");
+        z = whittaker_solver.solve(b);
+        if (whittaker_solver.info() != Eigen::Success) throw std::runtime_error("Whittaker solve failed");
 
         int m = (w_vec.array() > 0.5).count();
         if (m < 2) m = 2; 

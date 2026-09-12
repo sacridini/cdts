@@ -64,27 +64,44 @@ def run_phenology_dask(
         out = out_transposed.reshape(19, max_seasons, rows, cols)
         
         if return_annual:
-            import datetime
             out_annual = np.full_like(out, np.nan)
-            origin = datetime.datetime(base_year, 1, 1)
-            
-            # LOS is index 17
-            for m in range(19):
-                for s in range(max_seasons):
-                    for r in range(rows):
-                        for c in range(cols):
-                            val = out[m, s, r, c]
-                            if not np.isnan(val) and val > 0:
-                                try:
-                                    date = origin + datetime.timedelta(days=float(val) - 1)
-                                    year_idx = date.year - base_year
-                                    if 0 <= year_idx < max_seasons:
-                                        if m == 17: # LOS
-                                            out_annual[m, year_idx, r, c] = val
-                                        else:
-                                            out_annual[m, year_idx, r, c] = date.timetuple().tm_yday
-                                except:
-                                    pass
+
+            # `val` encodes a date as "days since `base_year`-01-01, 1-indexed"
+            # (i.e. datetime(base_year, 1, 1) + timedelta(days=val - 1)), matching
+            # the C++ core's day numbering. Vectorized with numpy datetime64 instead
+            # of a pure-Python per-pixel loop, since this runs per Dask block and
+            # scales with total pixel count across the whole (potentially global) cube.
+            valid = np.isfinite(out) & (out > 0)
+            if np.any(valid):
+                m_idx, s_idx, r_idx, c_idx = np.nonzero(valid)
+                vals = out[valid]
+
+                epoch = np.datetime64(f"{base_year}-01-01", "D")
+                # timedelta(days=val - 1) only ever carries a sub-day remainder,
+                # so the calendar date depends solely on floor(val - 1) days.
+                day_offset = np.floor(vals).astype(np.int64) - 1
+                event_dates = epoch + day_offset.astype("timedelta64[D]")
+
+                years = event_dates.astype("datetime64[Y]").astype(np.int64) + 1970
+                year_idx = years - base_year
+
+                year_start = event_dates.astype("datetime64[Y]")
+                doy = (event_dates - year_start).astype(np.int64) + 1  # 1-based day-of-year
+
+                in_range = (year_idx >= 0) & (year_idx < max_seasons)
+                m_idx, r_idx, c_idx = m_idx[in_range], r_idx[in_range], c_idx[in_range]
+                year_idx = year_idx[in_range]
+                doy = doy[in_range]
+                vals = vals[in_range]
+
+                is_los = (m_idx == 17)  # LOS stores the raw duration, not a date
+                store_val = np.where(is_los, vals, doy.astype(np.float64))
+
+                # For a given (m, r, c), later seasons must win ties on the same
+                # calendar year — matches the original loop's `for s in range(...)` order,
+                # which `np.nonzero` preserves (C-order over (m, s, r, c)).
+                out_annual[m_idx, year_idx, r_idx, c_idx] = store_val
+
             out = out_annual
 
         return out.astype(np.float32)
