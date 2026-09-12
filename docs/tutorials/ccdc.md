@@ -6,11 +6,9 @@
 
 Instead of looking at data on an annual basis (like LandTrendr), CCDC models the natural seasonal phenology of the landscape using harmonic (Fourier) regression. When a sequence of new observations deviates significantly from this established harmonic model, CCDC registers a "structural break"—a change in land cover.
 
-### Background and References
-Developed by Zhe Zhu and Curtis Woodcock, CCDC is particularly powerful because it can detect changes at any time of the year and immediately provide harmonic coefficients that describe the new land cover state, which are excellent features for Random Forest classification.
+### Background
 
-- **Original CCDC Paper**: [Zhu, Z. and Woodcock, C.E., 2014. Continuous change detection and classification of land cover using all available Landsat data. Remote sensing of Environment, 144, pp.152-171.](https://doi.org/10.1016/j.rse.2014.01.011)
-- **COLD Algorithm (Evolution of CCDC)**: [Zhu, Z., Zhang, J., Yang, Z., Aljaddani, A.H., Cohen, W.B., Qiu, S. and Zhou, C., 2020. Continuous monitoring of land disturbance based on Landsat time series. Remote Sensing of Environment, 238, p.111116.](https://doi.org/10.1016/j.rse.2019.03.009)
+Developed by Zhe Zhu and Curtis Woodcock (see [References](#7-references)), CCDC is particularly powerful because it can detect changes at any time of the year and immediately provide harmonic coefficients that describe the new land cover state, which are excellent features for Random Forest classification. The **COLD** variant (also referenced below) simply increases the number of consecutive anomalies required to flag a break, trading sensitivity for robustness.
 
 The `cdts` Python package implements the core harmonic modeling and break detection mathematically identical to the original C/C++ and MATLAB implementations, but wraps it in a modern, scalable architecture using `dask` and `xarray`.
 
@@ -163,3 +161,10 @@ print(f"Synthetic image shape: {synthetic_img.shape}")
 - **High-Quality QA Masks**: CCDC is extremely sensitive to missed clouds and cloud shadows, which will be falsely identified as land cover changes. Ensure your QA masks are rigorous (consider using the `Fmask` or `Tmask` algorithms).
 - **Data Density**: CCDC thrives on dense time series data. Harmonized Landsat and Sentinel-2 (HLS) data or multi-sensor virtual constellations work best.
 - **Minimum Observations**: Ensure `min_obs` is large enough to capture at least one full annual cycle (e.g., 12 to 15 observations) before allowing a model break.
+
+---
+
+## 7. References
+
+- Zhu, Z., & Woodcock, C. E. (2014). Continuous change detection and classification of land cover using all available Landsat data. **Remote Sensing of Environment**, 144, 152–171. [https://doi.org/10.1016/j.rse.2014.01.011](https://doi.org/10.1016/j.rse.2014.01.011)
+- Zhu, Z., Zhang, J., Yang, Z., Aljaddani, A. H., Cohen, W. B., Qiu, S., & Zhou, C. (2020). Continuous monitoring of land disturbance based on Landsat time series (COLD). **Remote Sensing of Environment**, 238, 111116. [https://doi.org/10.1016/j.rse.2019.03.009](https://doi.org/10.1016/j.rse.2019.03.009)

@@ -1,6 +1,6 @@
 # Self-Organizing Maps (SOM)
 
-CDTS includes a highly optimized, multi-threaded C++ implementation of the **Batch Self-Organizing Map (Batch SOM)** algorithm. It is specifically designed to handle large Earth Observation data cubes efficiently using OpenMP and Eigen (SIMD vectorization).
+CDTS includes a highly optimized, multi-threaded C++ implementation of the **Batch Self-Organizing Map (Batch SOM)** algorithm, based on the model originally proposed by Kohonen (1990) (see [References](#references)). It is specifically designed to handle large Earth Observation data cubes efficiently using OpenMP and Eigen (SIMD vectorization).
 
 Self-Organizing Maps are unsupervised neural networks used to reduce the dimensionality of your data, clustering similar temporal profiles into a 2D grid. It is incredibly useful for discovering land cover patterns without prior training data.
 
@@ -50,3 +50,9 @@ Both `train_som_batch` and `predict_bmus` expose the `n_jobs` parameter to contr
 - `n_jobs = -1` (Default): Uses `max_threads - 1`. Your machine will stay responsive during heavy training.
 - `n_jobs = 4`: Forces the use of exactly 4 cores.
 - `n_jobs = 1`: Disables OpenMP (runs sequentially, great for debugging).
+
+---
+
+## References
+
+- Kohonen, T. (1990). The self-organizing map. **Proceedings of the IEEE**, 78(9), 1464–1480. [https://doi.org/10.1109/5.58325](https://doi.org/10.1109/5.58325)

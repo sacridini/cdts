@@ -4,12 +4,12 @@ While traditional algorithms like LandTrendr and CCDC rely on pixel-based statis
 
 ## 1. Available Architectures
 
-The module exposes several advanced architectures ready to be trained or fine-tuned:
+The module exposes several advanced architectures ready to be trained or fine-tuned (see [References](#references) for the original papers behind each):
 
-*   **UTAE & LTAE**: U-Net with Temporal Attention Encoder (UTAE) and Lightweight Temporal Attention Encoder (LTAE). Excellent for processing irregularly sampled time-series (handling cloud gaps inherently) while maintaining spatial context.
-*   **TempCNN**: Temporal Convolutional Neural Networks, a highly efficient 1D CNN for pixel-based time-series classification.
-*   **Siamese Change Detector**: A bi-temporal architecture designed to take two images (pre and post-event) and output a change probability map. Uses contrastive representation learning.
-*   **GeoFoundationViT**: A Vision Transformer wrapper designed to load weights from large geospatial foundation models (like IBM/NASA Prithvi or similar Masked Auto-Encoders) for downstream tasks.
+*   **UTAE & LTAE**: U-Net with Temporal Attention Encoder (UTAE) and Lightweight Temporal Attention Encoder (LTAE), from Garnot & Landrieu. Excellent for processing irregularly sampled time-series (handling cloud gaps inherently) while maintaining spatial context.
+*   **TempCNN**: Temporal Convolutional Neural Networks (Pelletier *et al.*), a highly efficient 1D CNN for pixel-based time-series classification.
+*   **Siamese Change Detector**: A bi-temporal architecture (Daudt *et al.*) designed to take two images (pre and post-event) and output a change probability map. Uses contrastive representation learning.
+*   **GeoFoundationViT**: A Vision Transformer wrapper designed to load weights from large geospatial foundation models — such as IBM/NASA's Prithvi (Jakubik *et al.*) or SatMAE-style Masked Auto-Encoders (Cong *et al.*) — for downstream tasks.
 
 ## 2. Preparing the Dataset
 
@@ -73,10 +73,10 @@ Imbalanced classes are very common in change detection (where "change" is a rare
 ```python
 from cdts.ai.losses import FocalLoss, TverskyLoss
 
-# Focal Loss heavily penalizes hard-to-classify examples (like rare change pixels)
+# Focal Loss (Lin et al., 2017) heavily penalizes hard-to-classify examples (like rare change pixels)
 criterion = FocalLoss(alpha=0.25, gamma=2.0)
 
-# Tversky Loss allows tuning the penalty for False Positives vs False Negatives
+# Tversky Loss (Salehi et al., 2017) allows tuning the penalty for False Positives vs False Negatives
 # criterion = TverskyLoss(alpha=0.7, beta=0.3)
 ```
 
@@ -140,3 +140,16 @@ with torch.no_grad():
 ```
 
 > **Pro Tip:** When running inference over massive geographical areas, use `xarray` or `rasterio` windows to chunk the data into manageable sizes (e.g., `256x256`), run them through the model, and mosaic the results back together.
+
+---
+
+## References
+
+- Garnot, V. S. F., & Landrieu, L. (2021). Panoptic segmentation of satellite image time series with convolutional temporal attention networks. In **Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)** (pp. 4852–4861). [https://doi.org/10.1109/ICCV48922.2021.00483](https://doi.org/10.1109/ICCV48922.2021.00483)
+- Garnot, V. S. F., Landrieu, L., Giordano, S., & Chehata, N. (2020). Satellite image time series classification with pixel-set encoders and temporal self-attention. In **Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)** (pp. 12322–12331). [https://doi.org/10.1109/CVPR42600.2020.01234](https://doi.org/10.1109/CVPR42600.2020.01234)
+- Pelletier, C., Webb, G. I., & Petitjean, F. (2019). Temporal convolutional neural network for the classification of satellite image time series. **Remote Sensing**, 11(5), 523. [https://doi.org/10.3390/rs11050523](https://doi.org/10.3390/rs11050523)
+- Daudt, R. C., Le Saux, B., & Boulch, A. (2018). Fully convolutional siamese networks for change detection. In **2018 25th IEEE International Conference on Image Processing (ICIP)** (pp. 4063–4067). [https://doi.org/10.1109/ICIP.2018.8451652](https://doi.org/10.1109/ICIP.2018.8451652)
+- Jakubik, J., Roy, S., Phillips, C. E., Fraccaro, P., Godwin, D., Zadrozny, B., et al. (2023). *Foundation models for generalist geospatial artificial intelligence*. arXiv:2310.18660. [https://arxiv.org/abs/2310.18660](https://arxiv.org/abs/2310.18660)
+- Cong, Y., Khanna, S., Meng, C., Liu, P., Rozi, E., He, Y., Burke, M., Lobell, D., & Ermon, S. (2022). SatMAE: Pre-training transformers for temporal and multi-spectral satellite imagery. In **Advances in Neural Information Processing Systems 35 (NeurIPS 2022)**.
+- Lin, T.-Y., Goyal, P., Girshick, R., He, K., & Dollár, P. (2017). Focal loss for dense object detection. In **2017 IEEE International Conference on Computer Vision (ICCV)** (pp. 2999–3007). [https://doi.org/10.1109/ICCV.2017.324](https://doi.org/10.1109/ICCV.2017.324)
+- Salehi, S. S. M., Erdogmus, D., & Gholipour, A. (2017). Tversky loss function for image segmentation using 3D fully convolutional deep networks. In **Machine Learning in Medical Imaging (MLMI 2017)** (pp. 379–387). [https://doi.org/10.1007/978-3-319-67389-9_44](https://doi.org/10.1007/978-3-319-67389-9_44)

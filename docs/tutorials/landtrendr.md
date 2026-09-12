@@ -4,11 +4,11 @@
 
 **LandTrendr** (Landsat-based detection of Trends in Disturbance and Recovery) is a highly influential trajectory-based algorithm designed to extract both abrupt changes (like deforestation or fire) and gradual changes (like forest degradation, disease, or recovery) from annual satellite imagery.
 
-### Background and References
-Originally developed by Robert Kennedy et al., LandTrendr works by reducing complex, noisy, annual time series data into a sequence of simplified straight-line segments. It minimizes the residual error between the actual satellite observations and the simplified straight-line model, essentially "filtering out" inter-annual noise (like slight phenological differences or minor atmospheric effects) to reveal the true underlying landscape dynamics.
+### Background
 
-- **Original Paper**: [Kennedy, R.E., Yang, Z. and Cohen, W.B., 2010. Detecting trends in forest disturbance and recovery using yearly Landsat time series: 1. LandTrendr—Temporal segmentation algorithms. Remote Sensing of Environment, 114(12), pp.2897-2910.](https://doi.org/10.1016/j.rse.2010.07.008)
-- **Google Earth Engine Implementation**: The algorithm is also natively available in GEE. Learn more at the [eMapR Lab GitHub](https://github.com/eMapR/LT-GEE).
+Originally developed by Robert Kennedy *et al.* (see [References](#5-references)), LandTrendr works by reducing complex, noisy, annual time series data into a sequence of simplified straight-line segments. It minimizes the residual error between the actual satellite observations and the simplified straight-line model, essentially "filtering out" inter-annual noise (like slight phenological differences or minor atmospheric effects) to reveal the true underlying landscape dynamics.
+
+The algorithm is also natively available in Google Earth Engine — see the [eMapR Lab GitHub](https://github.com/eMapR/LT-GEE).
 
 By integrating LandTrendr into **CDTS**, you gain the ability to run this powerful algorithm locally, on HPC clusters, or natively on massive GeoTIFF stacks without being constrained by cloud-platform quotas.
 
@@ -184,3 +184,9 @@ plt.show()
 1. **Index Selection**: While NBR is the standard for forest disturbance, Tasseled Cap Wetness (TCW) or Tasseled Cap Angle (TCA) are extremely effective. NDVI is generally less sensitive to structural forest changes but good for agricultural monitoring.
 2. **Out-of-Core Processing**: If your input GeoTIFF is larger than your available RAM, use `cdts.raster.run_landtrendr_image` instead of `run_landtrendr_array`. The image-based function automatically chunks the raster and processes it in blocks, keeping memory usage strictly bounded.
 3. **Overfitting**: A `max_segments` value of 6 is empirically proven to be optimal for a 30-year time series. Increasing it to 8 or 10 on a 30-year stack will lead to the algorithm overfitting noise, resulting in false positive disturbances.
+
+---
+
+## 5. References
+
+- Kennedy, R. E., Yang, Z., & Cohen, W. B. (2010). Detecting trends in forest disturbance and recovery using yearly Landsat time series: 1. LandTrendr—Temporal segmentation algorithms. **Remote Sensing of Environment**, 114(12), 2897–2910. [https://doi.org/10.1016/j.rse.2010.07.008](https://doi.org/10.1016/j.rse.2010.07.008)

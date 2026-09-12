@@ -1,6 +1,6 @@
 # TWDTW (Time-Weighted Dynamic Time Warping)
 
-`cdts` features an incredibly optimized C++ implementation of Time-Weighted Dynamic Time Warping (TWDTW), designed specifically for satellite image time series classification.
+`cdts` features an incredibly optimized C++ implementation of Time-Weighted Dynamic Time Warping (TWDTW), designed specifically for satellite image time series classification, based on the method proposed by Maus *et al.* (2016) (see [References](#references)).
 
 ## Features
 
@@ -62,3 +62,10 @@ classes_map, dist_map, class_names = classify_twdtw(cube, dates, patterns, n_job
 ### Multivariate TWDTW
 
 Just pass a 2D array `(Time, Bands)` for a single series, or a 4D array `(Y, X, Time, Bands)` for a batch. The C++ engine automatically switches to Eigen SIMD Euclidean distance for spatial mapping!
+
+---
+
+## References
+
+- Maus, V., Camara, G., Cartaxo, R., Sanchez, A., Ramos, F. M., & de Queiroz, G. R. (2016). A time-weighted dynamic time warping method for land-use and land-cover mapping. **IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing**, 9(8), 3729–3739. [https://doi.org/10.1109/JSTARS.2016.2517118](https://doi.org/10.1109/JSTARS.2016.2517118)
+- Keogh, E., & Ratanamahatana, C. A. (2005). Exact indexing of dynamic time warping. **Knowledge and Information Systems**, 7(3), 358–386. [https://doi.org/10.1007/s10115-004-0154-9](https://doi.org/10.1007/s10115-004-0154-9)

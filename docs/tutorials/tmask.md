@@ -6,12 +6,11 @@ While algorithms like LandTrendr and CCDC are incredibly powerful for detecting 
 
 **Tmask (Time-series based Automated Cloud Masking)** solves this by using the temporal dimension. By understanding the natural seasonal phenology of a pixel across time, it can accurately identify anomalies that represent missed clouds or shadows.
 
-### Background and References
-Developed alongside CCDC by Zhe Zhu and Curtis Woodcock, Tmask estimates a robust harmonic (Fourier) baseline for the Green and SWIR (Shortwave Infrared) bands. 
+### Background
+
+Developed alongside CCDC by Zhe Zhu and Curtis Woodcock (see [References](#4-references)), Tmask estimates a robust harmonic (Fourier) baseline for the Green and SWIR (Shortwave Infrared) bands.
 - **Clouds** generally exhibit abnormally high reflectance in the Green band compared to the seasonal expectation.
 - **Shadows** exhibit abnormally low reflectance in the SWIR band compared to the seasonal expectation.
-
-- **Original Paper**: [Zhu, Z. and Woodcock, C.E., 2014. Automated cloud, cloud shadow, and snow detection in multitemporal Landsat data: An algorithm designed specifically for monitoring land cover change. Remote Sensing of Environment, 152, pp.217-234.](https://doi.org/10.1016/j.rse.2014.06.012)
 
 ---
 
@@ -99,3 +98,9 @@ save_raster(
 1. **Input Data**: Tmask works best as a *secondary* pass. It is highly recommended to apply a preliminary mask (like the standard Landsat QA_PIXEL or Sentinel-2 SCL) to remove obvious thick clouds, and then use Tmask to catch the subtle, missed shadows and thin cirrus clouds that escaped the first pass.
 2. **Minimum Observations**: Because Tmask relies on robust harmonic regression (`HuberRegressor`), it requires a minimum number of clear observations across the year to establish a baseline. If a pixel has fewer than 5 valid observations, the algorithm defaults to accepting all remaining pixels as clear.
 3. **Computational Cost**: Fitting robust regression models for every pixel is computationally intensive. Consider using parallel processing (like Dask) or chunking when applying Tmask to massive regional datasets.
+
+---
+
+## 4. References
+
+- Zhu, Z., & Woodcock, C. E. (2014). Automated cloud, cloud shadow, and snow detection in multitemporal Landsat data: An algorithm designed specifically for monitoring land cover change. **Remote Sensing of Environment**, 152, 217–234. [https://doi.org/10.1016/j.rse.2014.06.012](https://doi.org/10.1016/j.rse.2014.06.012)
