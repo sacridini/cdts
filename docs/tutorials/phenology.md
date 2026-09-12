@@ -2,7 +2,7 @@
 
 The `cdts` package features an incredibly fast and highly optimized C++ backend for **Phenology Extraction**, designed specifically to handle large-scale Earth Observation datasets. This module allows you to monitor and extract cyclical patterns in vegetation dynamics—essential for agriculture, forestry, and climate change studies.
 
-Built heavily on robust concepts adapted from state-of-the-art tools (like the R package `phenofit`), our implementation leverages **Eigen** for sparse linear algebra and **OpenMP** for native multi-threading. This allows the extraction of land surface phenology metrics from gigabytes of satellite time series with unparalleled speed, bypassing the Python Global Interpreter Lock (GIL).
+The smoothing, curve-fitting, and multi-method metric-extraction methodology implemented here is based on the R package [`phenofit`](https://github.com/eco-hydro/phenofit) (Kong *et al.*, 2022 — see [References](#7-references)), reimplemented from scratch in C++ on top of **Eigen** for sparse linear algebra and **OpenMP** for native multi-threading. This allows the extraction of land surface phenology metrics from gigabytes — or terabytes, at global scale — of satellite time series with unparalleled speed, bypassing the Python Global Interpreter Lock (GIL).
 
 ---
 
@@ -121,6 +121,117 @@ for metric_name in metrics_da.metric.values:
 
 ---
 
+## 4. Real-World Walkthrough: Detecting Late-Planting Anomalies (Drought Signal) in Soybean Fields
+
+This section walks through a complete, realistic problem end-to-end: **an analyst wants to know whether soybean fields in a Mato Grosso municipality (Brazil) show anomalously delayed green-up in a candidate drought year, compared to a multi-year baseline** — a common early-warning question for agricultural monitoring and drought impact assessment. Late green-up (a positive SOS anomaly, in days) is a classic remote signal of delayed planting caused by late onset of the rainy season.
+
+The workflow chains three `cdts` building blocks: `build_time_series` (STAC ingestion) → `regularize_time_series` (temporal regularization) → `.cdts.run_phenology` (metric extraction), all lazy until `.compute()` is called — so it scales from a single tile to a whole state without changing the code.
+
+### Step 1 — Build a multi-year Sentinel-2 cube for the area of interest
+
+```python
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import cdts
+from cdts import regularize_time_series
+from cdts._core.phenology import CurveType
+
+# Multi-year window covering the baseline + the candidate drought year (2021)
+cube_raw = cdts.build_time_series(
+    source="earth_search",
+    collection="sentinel-2-l2a",
+    tiles=["21LWH"],              # A Sentinel-2 MGRS tile over Mato Grosso cropland
+    start_date="2019-07-01",
+    end_date="2022-06-30",        # 3 full crop years: 2019/20, 2020/21, 2021/22
+    bands=["red", "nir"],
+    apply_cloud_mask=True,        # Drops clouds/shadows using the SCL band automatically
+)
+```
+
+### Step 2 — Compute NDVI and regularize to 16-day composites
+
+Phenology curve-fitting expects a reasonably dense, evenly-spaced time axis — raw STAC revisits are irregular (5–12 days, with cloud gaps). We compute NDVI first (single-band, so `method="median"` is the right choice — `medoid` needs a `band` dimension to compare against) and then regularize:
+
+```python
+ndvi_raw = (cube_raw.sel(band="nir") - cube_raw.sel(band="red")) / (
+    cube_raw.sel(band="nir") + cube_raw.sel(band="red")
+)
+
+ndvi_16d = regularize_time_series(ndvi_raw, freq="16D", method="median")
+```
+
+### Step 3 — Run the phenology engine across all three crop years at once
+
+```python
+# Build the continuous day-numbering the C++ core expects: days since `base_year`-01-01.
+dates_pd = pd.to_datetime(ndvi_16d.time.values)
+base_year = int(dates_pd.year.min())
+dates_doy = np.array(
+    [d.timetuple().tm_yday + (d.year - base_year) * 365 for d in dates_pd],
+    dtype=np.float64,
+)
+n_years = int(dates_pd.year.max()) - base_year + 1
+
+pheno = ndvi_16d.cdts.run_phenology(
+    dates=dates_doy,
+    curve_type=int(CurveType.BECK),
+    max_seasons=n_years,        # one slot per calendar year in the window
+    apply_whittaker=True,
+    whittaker_lambda=5.0,       # a bit looser than default: S2 NDVI is noisier than MODIS
+    min_season_length=45,       # ignore green-ups shorter than ~45 days (noise, not a crop cycle)
+    min_amplitude=0.15,
+    min_pixel_amplitude=0.15,   # skip forest/water/urban pixels entirely — huge speedup at scale
+    return_annual=True,         # aligns each detected season to a calendar year
+    base_year=base_year,
+    n_jobs=-1,
+).compute()
+```
+
+### Step 4 — Compute the SOS anomaly for the candidate drought year
+
+We use `DER.sos` (derivative-based Start of Season — see [Section 2.3](#23-metric-extraction-methods)) and compare the target year against the mean of the other years in the window:
+
+```python
+sos = pheno.sel(metric="DER.sos")   # dims: (year, y, x), values in day-of-year
+
+target_year = 2021
+baseline_years = [y for y in sos.year.values if y != target_year]
+
+baseline_mean_sos = sos.sel(year=baseline_years).mean(dim="year", skipna=True)
+target_sos = sos.sel(year=target_year)
+
+# Positive = later green-up than the baseline (a delayed-planting / drought signal)
+sos_anomaly_days = target_sos - baseline_mean_sos
+```
+
+### Step 5 — Visualize and export
+
+```python
+fig, ax = plt.subplots(figsize=(8, 6))
+sos_anomaly_days.plot(
+    ax=ax, cmap="RdBu_r", vmin=-30, vmax=30,
+    cbar_kwargs={"label": "SOS anomaly (days, + = later green-up)"},
+)
+ax.set_title(f"Planting Delay Anomaly — {target_year} vs. {baseline_years} baseline")
+plt.savefig("sos_anomaly_2021.png", dpi=150, bbox_inches="tight")
+
+# Export as a GeoTIFF for use in QGIS or further zonal statistics
+sos_anomaly_days.rio.write_crs(ndvi_16d.rio.crs, inplace=True)
+sos_anomaly_days.rio.to_raster(f"sos_anomaly_{target_year}.tif")
+```
+
+### Interpreting the result
+
+- **Anomaly > +15 days**: green-up notably delayed relative to the baseline — worth cross-checking against rainfall onset records for that season; a classic drought/late-planting signal.
+- **Anomaly < -15 days**: notably earlier green-up — can indicate irrigation, an earlier-maturing cultivar, or a shift toward double-cropping.
+- **`NaN` pixels**: no season passed the `min_amplitude` / `min_season_length` filters in at least one of the years being compared (e.g., fallow land, pasture, or a rotation year) — `xarray`'s alignment propagates this automatically, no special handling needed.
+- This is a **remote-sensing signal, not ground truth** — always validate against field records or known planting calendars before drawing operational conclusions.
+
+Because every step here (`build_time_series`, `regularize_time_series`, `run_phenology`) is Dask-backed, the exact same code scales from one MGRS tile to an entire state or country simply by widening `bbox`/`tiles` — only the chunk count (and wall-clock time) changes.
+
+---
+
 ## 5. Advanced Configuration & Double Cropping
 
 ### Multiple Seasons (Double/Triple Cropping)
@@ -160,3 +271,19 @@ The `cdts` phenology engine is engineered to maximize performance:
   export LDFLAGS="-L$(brew --prefix libomp)/lib -lomp"
   pip install cdts
   ```
+
+---
+
+## 7. References
+
+The methodology of this module — the smoothing methods, the iterative curve-fitting scheme, and the simultaneous multi-method metric extraction — is based on the R package **`phenofit`**:
+
+- Kong, D., McVicar, T. R., Xiao, M., Zhang, Y., Peña-Arancibia, J. L., Filippa, G., Xie, Y., & Gu, X. (2022). *phenofit*: An R package for extracting vegetation phenology from time series remote sensing. **Methods in Ecology and Evolution**, 13(7), 1508–1527. [https://doi.org/10.1111/2041-210X.13870](https://doi.org/10.1111/2041-210X.13870)
+
+The individual curve-fitting models and extraction methods available via `curve_type` and `extraction_method` (Section 2) originate from:
+
+- Beck, P. S. A., Atzberger, C., Høgda, K. A., Johansen, B., & Skidmore, A. K. (2006). Improved monitoring of vegetation dynamics at very high latitudes: A new method using MODIS NDVI. **Remote Sensing of Environment**, 100(3), 321–334. [https://doi.org/10.1016/j.rse.2005.10.021](https://doi.org/10.1016/j.rse.2005.10.021)
+- Zhang, X., Friedl, M. A., Schaaf, C. B., Strahler, A. H., Hodges, J. C. F., Gao, F., Reed, B. C., & Huete, A. (2003). Monitoring vegetation phenology using MODIS. **Remote Sensing of Environment**, 84(3), 471–475. [https://doi.org/10.1016/S0034-4257(02)00135-9](https://doi.org/10.1016/S0034-4257(02)00135-9)
+- Gu, L., Post, W. M., Baldocchi, D. D., Black, T. A., Suyker, A. E., Verma, S. B., Vesala, T., & Wofsy, S. C. (2009). Characterizing the seasonal dynamics of plant community photosynthesis across a range of vegetation types. In A. Noormets (Ed.), *Phenology of Ecosystem Processes* (pp. 35–58). Springer. [https://doi.org/10.1007/978-1-4419-0026-5_2](https://doi.org/10.1007/978-1-4419-0026-5_2)
+- Elmore, A. J., Guinn, S. M., Minsley, B. J., & Richardson, A. D. (2012). Landscape controls on the timing of spring, autumn, and growing season length in mid-Atlantic forests. **Global Change Biology**, 18(2), 656–674. [https://doi.org/10.1111/j.1365-2486.2011.02521.x](https://doi.org/10.1111/j.1365-2486.2011.02521.x)
+- Klosterman, S. T., Hufkens, K., Gray, J. M., Melaas, E., Sonnentag, O., Lavine, I., Mitchell, L., Norman, R., Friedl, M. A., & Richardson, A. D. (2014). Evaluating remote sensing of deciduous forest phenology at multiple spatial scales using PhenoCam imagery. **Biogeosciences**, 11(16), 4305–4320. [https://doi.org/10.5194/bg-11-4305-2014](https://doi.org/10.5194/bg-11-4305-2014)
