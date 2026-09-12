@@ -1,0 +1,1570 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Continuous monitoring of land cover and land use using dense time series">
+      
+      
+      
+        <link rel="canonical" href="https://sacridini.github.io/cdts/tutorials/phenology/">
+      
+      
+        <link rel="prev" href="../twdtw/">
+      
+      
+        <link rel="next" href="../som/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Phenology Extraction - CDTS</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#phenology-extraction" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="CDTS" class="md-header__button md-logo" aria-label="CDTS" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            CDTS
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Phenology Extraction
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="deep-orange"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/sacridini/cdts" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    sacridini/cdts
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../landtrendr/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../cli/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  CLI Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../api/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API Reference
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="CDTS" class="md-nav__button md-logo" aria-label="CDTS" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    CDTS
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/sacridini/cdts" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    sacridini/cdts
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../landtrendr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LandTrendr
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ccdc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CCDC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tmask/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tmask
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../twdtw/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TWDTW (Time-Weighted DTW)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phenology Extraction
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phenology Extraction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-what-is-land-surface-phenology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. What is Land Surface Phenology?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-the-extraction-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The Extraction Workflow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. The Extraction Workflow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-time-series-smoothing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1. Time Series Smoothing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-curve-fitting-levenberg-marquardt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2. Curve Fitting (Levenberg-Marquardt)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-metric-extraction-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3. Metric Extraction Methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-practical-example-processing-a-raster-end-to-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Practical Example: Processing a Raster (End-to-End)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-real-world-walkthrough-detecting-late-planting-anomalies-drought-signal-in-soybean-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Real-World Walkthrough: Detecting Late-Planting Anomalies (Drought Signal) in Soybean Fields
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Real-World Walkthrough: Detecting Late-Planting Anomalies (Drought Signal) in Soybean Fields">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-build-a-multi-year-sentinel-2-cube-for-the-area-of-interest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 — Build a multi-year Sentinel-2 cube for the area of interest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-compute-ndvi-and-regularize-to-16-day-composites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 — Compute NDVI and regularize to 16-day composites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-run-the-phenology-engine-across-all-three-crop-years-at-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 — Run the phenology engine across all three crop years at once
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-compute-the-sos-anomaly-for-the-candidate-drought-year" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 — Compute the SOS anomaly for the candidate drought year
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5-visualize-and-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 — Visualize and export
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interpreting-the-result" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interpreting the result
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-advanced-configuration-double-cropping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Advanced Configuration &amp; Double Cropping
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Advanced Configuration &amp; Double Cropping">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#multiple-seasons-doubletriple-cropping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple Seasons (Double/Triple Cropping)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adjusting-quality-control-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adjusting Quality Control Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-execution-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Execution Performance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../som/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SOM (Self-Organizing Maps)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stac-downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    STAC & ARD Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI & Deep Learning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gee-downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Google Earth Engine (GEE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parallel-cloud-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parallel & Cloud Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../distributed_landtrendr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributed LandTrendr (Dask)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../distributed_ccdc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributed CCDC (Dask)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="phenology-extraction">Phenology Extraction</h1>
+<p>The <code>cdts</code> package features an incredibly fast and highly optimized C++ backend for <strong>Phenology Extraction</strong>, designed specifically to handle large-scale Earth Observation datasets. This module allows you to monitor and extract cyclical patterns in vegetation dynamics—essential for agriculture, forestry, and climate change studies.</p>
+<p>The smoothing, curve-fitting, and multi-method metric-extraction methodology implemented here is based on the R package <a href="https://github.com/eco-hydro/phenofit"><code>phenofit</code></a> (Kong <em>et al.</em>, 2022 — see <a href="#7-references">References</a>), reimplemented from scratch in C++ on top of <strong>Eigen</strong> for sparse linear algebra and <strong>OpenMP</strong> for native multi-threading. This allows the extraction of land surface phenology metrics from gigabytes — or terabytes, at global scale — of satellite time series with unparalleled speed, bypassing the Python Global Interpreter Lock (GIL).</p>
+<hr />
+<h2 id="1-what-is-land-surface-phenology">1. What is Land Surface Phenology?</h2>
+<p>Phenology is the study of periodic biological events in the animal and plant world as influenced by the environment, especially seasonal variations in temperature and precipitation. In remote sensing, <strong>Land Surface Phenology (LSP)</strong> refers to the seasonal pattern of variation in vegetated land surfaces observed from satellite imagery.</p>
+<p>By analyzing vegetation indices (such as EVI or NDVI) over time, we can extract key phenological metrics:</p>
+<ul>
+<li><strong>SOS (Start of Season)</strong>: The start of the vegetative cycle (e.g., spring green-up or planting).</li>
+<li><strong>POP (Peak of Season)</strong>: The moment of maximum vegetative vigor (maximum canopy closure).</li>
+<li><strong>EOS (End of Season)</strong>: The end of the vegetative cycle (senescence or harvesting).</li>
+<li><strong>LOS (Length of Season)</strong>: The duration of the growing season, calculated as <code>EOS - SOS</code>.</li>
+</ul>
+<p>These metrics are crucial for mapping crop types, predicting yields, detecting climate-induced shifts in ecosystems, and monitoring double-cropping agricultural systems.</p>
+<hr />
+<h2 id="2-the-extraction-workflow">2. The Extraction Workflow</h2>
+<p>Extracting phenology from noisy, cloud-contaminated satellite time series requires a robust, multi-step mathematical pipeline.</p>
+<p><img alt="Phenology Extraction Process" src="../../assets/phenology_flow.jpg" /></p>
+<h3 id="21-time-series-smoothing">2.1. Time Series Smoothing</h3>
+<p>Raw satellite data is often noisy due to atmospheric interference, clouds, or sensor errors. The first step is to smooth the curve to extract the general seasonal trend.
+- <strong>Whittaker Smoother</strong>: We use a highly optimized Sparse Matrix implementation of the Whittaker smoother. It balances fidelity to the original data with the smoothness of the resulting curve, controlled by a <code>lambda</code> parameter.
+- <strong>HANTS (Harmonic Analysis of Time Series)</strong>: An alternative smoothing method that models the time series using sine and cosine waves (Fourier analysis), which is highly effective at removing cloud gaps.</p>
+<h3 id="22-curve-fitting-levenberg-marquardt">2.2. Curve Fitting (Levenberg-Marquardt)</h3>
+<p>Once the general shape of the growing season is identified, we fit a mathematical model to it. This allows us to continuously evaluate the curve at any given day. The optimization is done using the <strong>Levenberg-Marquardt</strong> non-linear least squares algorithm.</p>
+<p>We provide several asymmetric Gaussian and double-logistic functions:
+- <strong><code>BECK</code> (Beck et al., 2006)</strong>: Excellent for general forest and crop phenology.
+- <strong><code>ELMORE</code> (Elmore et al., 2012)</strong>: Handles varying winter backgrounds effectively.
+- <strong><code>GU</code> (Gu et al., 2009)</strong>: Uses an advanced recovery model.
+- <strong><code>KLOSTERMAN</code> (Klosterman et al., 2014)</strong>: Uses analytical geometry to detect transition dates.
+- <strong><code>ZHANG</code> (Zhang et al., 2003)</strong>: A piecewise logistic model.
+- <strong><code>AG</code></strong>: Standard Asymmetric Gaussian.
+- <strong><code>DL</code></strong>: Standard Double Logistic.</p>
+<h3 id="23-metric-extraction-methods">2.3. Metric Extraction Methods</h3>
+<p>Once the curve is fitted perfectly, how do we define the "Start", "Peak", and "End" of the season? The <code>cdts</code> C++ backend calculates and returns <strong>19 distinct phenological variables simultaneously</strong> for every season, covering all major state-of-the-art extraction methodologies at no extra computational cost:</p>
+<ul>
+<li><strong>Threshold Methods (<code>TRS</code>)</strong>:</li>
+<li><strong><code>TRS2.sos</code> / <code>TRS2.eos</code></strong>: Start and End of Season defined when the curve reaches <strong>20%</strong> of its seasonal amplitude.</li>
+<li><strong><code>TRS5.sos</code> / <code>TRS5.eos</code></strong>: Start and End of Season defined at <strong>50%</strong> amplitude.</li>
+<li><strong><code>TRS6.sos</code> / <code>TRS6.eos</code></strong>: Start and End of Season defined at <strong>60%</strong> amplitude.</li>
+<li><strong>Derivative Method (<code>DER</code>)</strong>:</li>
+<li><strong><code>DER.sos</code> / <code>DER.eos</code></strong>: Mathematically defined as the points where the rate of change of the curve (the 1st derivative) reaches its local maximum (spring green-up acceleration) and local minimum (senescence deceleration).</li>
+<li><strong><code>DER.pos</code></strong>: The exact day of the peak, where the 1st derivative crosses zero.</li>
+<li><strong>Gu Method (2nd Derivative)</strong>:</li>
+<li><strong><code>UD</code></strong> (Upward), <strong><code>SD</code></strong> (Senescence Downward), <strong><code>DD</code></strong> (Downward), <strong><code>RD</code></strong> (Recovery Downward): Key transition points defined by the local maxima and minima of the curve's 2nd derivative.</li>
+<li><strong>Zhang Method (Curvature Rate)</strong>:</li>
+<li><strong><code>Greenup</code></strong>, <strong><code>Maturity</code></strong>, <strong><code>Senescence</code></strong>, <strong><code>Dormancy</code></strong>: Transition dates extracted using the physical curvature formula <code>K = f'' / (1 + (f')^2)^1.5</code>, searching for local valleys and peaks of the curvature rate.</li>
+<li><strong>General</strong>:</li>
+<li><strong><code>LOS</code></strong> (Length of Season): Duration of the season in days.</li>
+<li><strong><code>POP</code></strong> (Peak of Season): General peak location based on curve shape max values.</li>
+</ul>
+<hr />
+<h2 id="3-practical-example-processing-a-raster-end-to-end">3. Practical Example: Processing a Raster (End-to-End)</h2>
+<p>The <code>cdts</code> package natively integrates with <code>xarray</code> through a custom accessor (<code>.cdts.run_phenology</code>). This abstracts away all the complex array reshaping and memory management, allowing you to process large MODIS/Landsat time series elegantly.</p>
+<p>By default, the pipeline automatically maps the continuous days back into calendar DOYs if you pass <code>return_annual=True</code>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">rioxarray</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cdts</span> <span class="c1"># Automatically registers the .cdts accessor in xarray</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts._core.phenology</span><span class="w"> </span><span class="kn">import</span> <span class="n">CurveType</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># 1. Load the dense time series raster (Shape: Time, Y, X)</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">rioxarray</span><span class="o">.</span><span class="n">open_rasterio</span><span class="p">(</span><span class="s1">'MODIS_EVI_Series.tif'</span><span class="p">)</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># 2. Prepare the Time Array (Continuous Day of Year)</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">dates</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="s1">'2001-01-01'</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="n">ds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">freq</span><span class="o">=</span><span class="s1">'16D'</span><span class="p">)</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">dates_doy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">timetuple</span><span class="p">()</span><span class="o">.</span><span class="n">tm_yday</span> <span class="o">+</span> <span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">year</span> <span class="o">-</span> <span class="mi">2001</span><span class="p">)</span> <span class="o">*</span> <span class="mi">365</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dates</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="c1"># 3. Run the Phenology Engine directly on the xarray DataArray</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="c1"># This leverages Dask internally for parallel out-of-core execution</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Extracting 19 phenology metrics..."</span><span class="p">)</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="n">metrics_da</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">cdts</span><span class="o">.</span><span class="n">run_phenology</span><span class="p">(</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">dates</span><span class="o">=</span><span class="n">dates_doy</span><span class="p">,</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">curve_type</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">CurveType</span><span class="o">.</span><span class="n">BECK</span><span class="p">),</span> <span class="c1"># Use Beck's double logistic</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">max_seasons</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>                 <span class="c1"># Process 25 years of data</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="n">whittaker_lambda</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>          <span class="c1"># Whittaker smoothness parameter</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="n">apply_whittaker</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>           <span class="c1"># Apply Whittaker before fitting</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="n">min_season_length</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>            <span class="c1"># A season must last at least 7 days</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    <span class="n">min_amplitude</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>              
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>    <span class="n">min_pixel_amplitude</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>        <span class="c1"># Skip dead/water pixels entirely</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    <span class="n">return_annual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>             <span class="c1"># Return variables aligned to calendar Years</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    <span class="n">base_year</span><span class="o">=</span><span class="mi">2001</span><span class="p">,</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    <span class="n">n_jobs</span><span class="o">=</span><span class="mi">14</span>                       <span class="c1"># Use 14 CPU cores (OpenMP)</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="c1"># 4. Save to disk using rioxarray</span>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="c1"># metrics_da shape is (metric=19, year=25, y, x).</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="c1"># We can loop through the 19 variables and export them as 25-band TIF files</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="n">metrics_da</span><span class="o">.</span><span class="n">rio</span><span class="o">.</span><span class="n">write_crs</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">rio</span><span class="o">.</span><span class="n">crs</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="k">for</span> <span class="n">metric_name</span> <span class="ow">in</span> <span class="n">metrics_da</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>    <span class="c1"># Select the specific metric, resulting in a 3D array (year, y, x)</span>
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>    <span class="n">single_metric_da</span> <span class="o">=</span> <span class="n">metrics_da</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">metric</span><span class="o">=</span><span class="n">metric_name</span><span class="p">)</span>
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>    <span class="c1"># Save a multi-band TIF where each band is a year</span>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>    <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"cdts_</span><span class="si">{</span><span class="n">metric_name</span><span class="si">}</span><span class="s2">.tif"</span>
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>    <span class="n">single_metric_da</span><span class="o">.</span><span class="n">rio</span><span class="o">.</span><span class="n">to_raster</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Saved </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span></code></pre></div>
+<hr />
+<h2 id="4-real-world-walkthrough-detecting-late-planting-anomalies-drought-signal-in-soybean-fields">4. Real-World Walkthrough: Detecting Late-Planting Anomalies (Drought Signal) in Soybean Fields</h2>
+<p>This section walks through a complete, realistic problem end-to-end: <strong>an analyst wants to know whether soybean fields in a Mato Grosso municipality (Brazil) show anomalously delayed green-up in a candidate drought year, compared to a multi-year baseline</strong> — a common early-warning question for agricultural monitoring and drought impact assessment. Late green-up (a positive SOS anomaly, in days) is a classic remote signal of delayed planting caused by late onset of the rainy season.</p>
+<p>The workflow chains three <code>cdts</code> building blocks: <code>build_time_series</code> (STAC ingestion) → <code>regularize_time_series</code> (temporal regularization) → <code>.cdts.run_phenology</code> (metric extraction), all lazy until <code>.compute()</code> is called — so it scales from a single tile to a whole state without changing the code.</p>
+<h3 id="step-1-build-a-multi-year-sentinel-2-cube-for-the-area-of-interest">Step 1 — Build a multi-year Sentinel-2 cube for the area of interest</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cdts</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts</span><span class="w"> </span><span class="kn">import</span> <span class="n">regularize_time_series</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts._core.phenology</span><span class="w"> </span><span class="kn">import</span> <span class="n">CurveType</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1"># Multi-year window covering the baseline + the candidate drought year (2021)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">cube_raw</span> <span class="o">=</span> <span class="n">cdts</span><span class="o">.</span><span class="n">build_time_series</span><span class="p">(</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">source</span><span class="o">=</span><span class="s2">"earth_search"</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">collection</span><span class="o">=</span><span class="s2">"sentinel-2-l2a"</span><span class="p">,</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="n">tiles</span><span class="o">=</span><span class="p">[</span><span class="s2">"21LWH"</span><span class="p">],</span>              <span class="c1"># A Sentinel-2 MGRS tile over Mato Grosso cropland</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="n">start_date</span><span class="o">=</span><span class="s2">"2019-07-01"</span><span class="p">,</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    <span class="n">end_date</span><span class="o">=</span><span class="s2">"2022-06-30"</span><span class="p">,</span>        <span class="c1"># 3 full crop years: 2019/20, 2020/21, 2021/22</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>    <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="s2">"red"</span><span class="p">,</span> <span class="s2">"nir"</span><span class="p">],</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>    <span class="n">apply_cloud_mask</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>        <span class="c1"># Drops clouds/shadows using the SCL band automatically</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="step-2-compute-ndvi-and-regularize-to-16-day-composites">Step 2 — Compute NDVI and regularize to 16-day composites</h3>
+<p>Phenology curve-fitting expects a reasonably dense, evenly-spaced time axis — raw STAC revisits are irregular (5–12 days, with cloud gaps). We compute NDVI first (single-band, so <code>method="median"</code> is the right choice — <code>medoid</code> needs a <code>band</code> dimension to compare against) and then regularize:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">ndvi_raw</span> <span class="o">=</span> <span class="p">(</span><span class="n">cube_raw</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">band</span><span class="o">=</span><span class="s2">"nir"</span><span class="p">)</span> <span class="o">-</span> <span class="n">cube_raw</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">band</span><span class="o">=</span><span class="s2">"red"</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">cube_raw</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">band</span><span class="o">=</span><span class="s2">"nir"</span><span class="p">)</span> <span class="o">+</span> <span class="n">cube_raw</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">band</span><span class="o">=</span><span class="s2">"red"</span><span class="p">)</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="p">)</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">ndvi_16d</span> <span class="o">=</span> <span class="n">regularize_time_series</span><span class="p">(</span><span class="n">ndvi_raw</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">"16D"</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"median"</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="step-3-run-the-phenology-engine-across-all-three-crop-years-at-once">Step 3 — Run the phenology engine across all three crop years at once</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Build the continuous day-numbering the C++ core expects: days since `base_year`-01-01.</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">dates_pd</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">ndvi_16d</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">base_year</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dates_pd</span><span class="o">.</span><span class="n">year</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">dates_doy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">timetuple</span><span class="p">()</span><span class="o">.</span><span class="n">tm_yday</span> <span class="o">+</span> <span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">year</span> <span class="o">-</span> <span class="n">base_year</span><span class="p">)</span> <span class="o">*</span> <span class="mi">365</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dates_pd</span><span class="p">],</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">n_years</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dates_pd</span><span class="o">.</span><span class="n">year</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">-</span> <span class="n">base_year</span> <span class="o">+</span> <span class="mi">1</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">pheno</span> <span class="o">=</span> <span class="n">ndvi_16d</span><span class="o">.</span><span class="n">cdts</span><span class="o">.</span><span class="n">run_phenology</span><span class="p">(</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="n">dates</span><span class="o">=</span><span class="n">dates_doy</span><span class="p">,</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="n">curve_type</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">CurveType</span><span class="o">.</span><span class="n">BECK</span><span class="p">),</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="n">max_seasons</span><span class="o">=</span><span class="n">n_years</span><span class="p">,</span>        <span class="c1"># one slot per calendar year in the window</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="n">apply_whittaker</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>    <span class="n">whittaker_lambda</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>       <span class="c1"># a bit looser than default: S2 NDVI is noisier than MODIS</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>    <span class="n">min_season_length</span><span class="o">=</span><span class="mi">45</span><span class="p">,</span>       <span class="c1"># ignore green-ups shorter than ~45 days (noise, not a crop cycle)</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>    <span class="n">min_amplitude</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>    <span class="n">min_pixel_amplitude</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span>   <span class="c1"># skip forest/water/urban pixels entirely — huge speedup at scale</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    <span class="n">return_annual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>         <span class="c1"># aligns each detected season to a calendar year</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>    <span class="n">base_year</span><span class="o">=</span><span class="n">base_year</span><span class="p">,</span>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>    <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+</span></code></pre></div>
+<h3 id="step-4-compute-the-sos-anomaly-for-the-candidate-drought-year">Step 4 — Compute the SOS anomaly for the candidate drought year</h3>
+<p>We use <code>DER.sos</code> (derivative-based Start of Season — see <a href="#23-metric-extraction-methods">Section 2.3</a>) and compare the target year against the mean of the other years in the window:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">sos</span> <span class="o">=</span> <span class="n">pheno</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">metric</span><span class="o">=</span><span class="s2">"DER.sos"</span><span class="p">)</span>   <span class="c1"># dims: (year, y, x), values in day-of-year</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">target_year</span> <span class="o">=</span> <span class="mi">2021</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">baseline_years</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">sos</span><span class="o">.</span><span class="n">year</span><span class="o">.</span><span class="n">values</span> <span class="k">if</span> <span class="n">y</span> <span class="o">!=</span> <span class="n">target_year</span><span class="p">]</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">baseline_mean_sos</span> <span class="o">=</span> <span class="n">sos</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="n">baseline_years</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s2">"year"</span><span class="p">,</span> <span class="n">skipna</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">target_sos</span> <span class="o">=</span> <span class="n">sos</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="n">target_year</span><span class="p">)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="c1"># Positive = later green-up than the baseline (a delayed-planting / drought signal)</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="n">sos_anomaly_days</span> <span class="o">=</span> <span class="n">target_sos</span> <span class="o">-</span> <span class="n">baseline_mean_sos</span>
+</span></code></pre></div>
+<h3 id="step-5-visualize-and-export">Step 5 — Visualize and export</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">sos_anomaly_days</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"RdBu_r"</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=-</span><span class="mi">30</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">cbar_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"label"</span><span class="p">:</span> <span class="s2">"SOS anomaly (days, + = later green-up)"</span><span class="p">},</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">)</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Planting Delay Anomaly — </span><span class="si">{</span><span class="n">target_year</span><span class="si">}</span><span class="s2"> vs. </span><span class="si">{</span><span class="n">baseline_years</span><span class="si">}</span><span class="s2"> baseline"</span><span class="p">)</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"sos_anomaly_2021.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">"tight"</span><span class="p">)</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="c1"># Export as a GeoTIFF for use in QGIS or further zonal statistics</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="n">sos_anomaly_days</span><span class="o">.</span><span class="n">rio</span><span class="o">.</span><span class="n">write_crs</span><span class="p">(</span><span class="n">ndvi_16d</span><span class="o">.</span><span class="n">rio</span><span class="o">.</span><span class="n">crs</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="n">sos_anomaly_days</span><span class="o">.</span><span class="n">rio</span><span class="o">.</span><span class="n">to_raster</span><span class="p">(</span><span class="sa">f</span><span class="s2">"sos_anomaly_</span><span class="si">{</span><span class="n">target_year</span><span class="si">}</span><span class="s2">.tif"</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="interpreting-the-result">Interpreting the result</h3>
+<ul>
+<li><strong>Anomaly &gt; +15 days</strong>: green-up notably delayed relative to the baseline — worth cross-checking against rainfall onset records for that season; a classic drought/late-planting signal.</li>
+<li><strong>Anomaly &lt; -15 days</strong>: notably earlier green-up — can indicate irrigation, an earlier-maturing cultivar, or a shift toward double-cropping.</li>
+<li><strong><code>NaN</code> pixels</strong>: no season passed the <code>min_amplitude</code> / <code>min_season_length</code> filters in at least one of the years being compared (e.g., fallow land, pasture, or a rotation year) — <code>xarray</code>'s alignment propagates this automatically, no special handling needed.</li>
+<li>This is a <strong>remote-sensing signal, not ground truth</strong> — always validate against field records or known planting calendars before drawing operational conclusions.</li>
+</ul>
+<p>Because every step here (<code>build_time_series</code>, <code>regularize_time_series</code>, <code>run_phenology</code>) is Dask-backed, the exact same code scales from one MGRS tile to an entire state or country simply by widening <code>bbox</code>/<code>tiles</code> — only the chunk count (and wall-clock time) changes.</p>
+<hr />
+<h2 id="5-advanced-configuration-double-cropping">5. Advanced Configuration &amp; Double Cropping</h2>
+<h3 id="multiple-seasons-doubletriple-cropping">Multiple Seasons (Double/Triple Cropping)</h3>
+<p>In regions with intense agricultural activity (like Mato Grosso, Brazil), a single pixel might feature two or even three distinct crop harvests within a single year (e.g., Soybeans followed by Corn).</p>
+<p>To capture these dynamics directly without <code>return_annual=True</code>, simply increase <code>max_seasons</code>:
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">metrics_tensor</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">cdts</span><span class="o">.</span><span class="n">run_phenology</span><span class="p">(</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="c1"># ...</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">max_seasons</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">return_annual</span><span class="o">=</span><span class="kc">False</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="c1"># ...</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="p">)</span>
+</span></code></pre></div>
+This returns arrays of shape <code>(19_metrics, 3_seasons, Y, X)</code>. You can then map <code>season=0</code> as the first harvest, <code>season=1</code> as the second (safrinha), and so on.</p>
+<h3 id="adjusting-quality-control-parameters">Adjusting Quality Control Parameters</h3>
+<ul>
+<li><strong><code>whittaker_lambda</code></strong>: Higher values create stiffer, smoother curves. Lower values allow the curve to bend sharply to follow the raw data closely. For 16-day composites, values between <code>1.0</code> and <code>5.0</code> are standard.</li>
+<li><strong><code>min_season_length</code></strong>: Useful for filtering out high-frequency noise spikes that mistakenly look like a very short 2-day growing season.</li>
+<li><strong><code>min_amplitude</code></strong>: Prevents the optimizer from fitting curves on background noise (e.g., bare soil that fluctuates slightly with rain). If the peak of the smoothed curve minus the base is less than this value, the season is rejected.</li>
+</ul>
+<hr />
+<h2 id="6-execution-performance">6. Execution Performance</h2>
+<p>The <code>cdts</code> phenology engine is engineered to maximize performance:
+1. <strong>No GIL</strong>: The <code>fit_phenology_batch</code> completely releases the Python Global Interpreter Lock.
+2. <strong>OpenMP C++</strong>: Pixel loops are chunked and scheduled dynamically across all logical CPU cores.
+3. <strong>No Dynamic Allocation</strong>: Temporary vectors inside the optimization loop are pre-allocated and map directly to memory via Eigen.</p>
+<p><strong>Operating System Notes:</strong>
+- <strong>Windows / Linux</strong>: OpenMP multi-threading works perfectly out of the box with <code>pip install cdts</code>.
+- <strong>macOS (Apple Silicon / Intel)</strong>: Apple's default Clang compiler disables OpenMP. To achieve maximum performance, install the library (<code>brew install libomp</code>) and export the compilation flags <em>before</em> installing the package:
+  <div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CFLAGS</span><span class="o">=</span><span class="s2">"-I</span><span class="k">$(</span>brew<span class="w"> </span>--prefix<span class="w"> </span>libomp<span class="k">)</span><span class="s2">/include"</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">CXXFLAGS</span><span class="o">=</span><span class="s2">"-I</span><span class="k">$(</span>brew<span class="w"> </span>--prefix<span class="w"> </span>libomp<span class="k">)</span><span class="s2">/include"</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">LDFLAGS</span><span class="o">=</span><span class="s2">"-L</span><span class="k">$(</span>brew<span class="w"> </span>--prefix<span class="w"> </span>libomp<span class="k">)</span><span class="s2">/lib -lomp"</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>pip<span class="w"> </span>install<span class="w"> </span>cdts
+</span></code></pre></div></p>
+<hr />
+<h2 id="7-references">7. References</h2>
+<p>The methodology of this module — the smoothing methods, the iterative curve-fitting scheme, and the simultaneous multi-method metric extraction — is based on the R package <strong><code>phenofit</code></strong>:</p>
+<ul>
+<li>Kong, D., McVicar, T. R., Xiao, M., Zhang, Y., Peña-Arancibia, J. L., Filippa, G., Xie, Y., &amp; Gu, X. (2022). <em>phenofit</em>: An R package for extracting vegetation phenology from time series remote sensing. <strong>Methods in Ecology and Evolution</strong>, 13(7), 1508–1527. <a href="https://doi.org/10.1111/2041-210X.13870">https://doi.org/10.1111/2041-210X.13870</a></li>
+</ul>
+<p>The individual curve-fitting models and extraction methods available via <code>curve_type</code> and <code>extraction_method</code> (Section 2) originate from:</p>
+<ul>
+<li>Beck, P. S. A., Atzberger, C., Høgda, K. A., Johansen, B., &amp; Skidmore, A. K. (2006). Improved monitoring of vegetation dynamics at very high latitudes: A new method using MODIS NDVI. <strong>Remote Sensing of Environment</strong>, 100(3), 321–334. <a href="https://doi.org/10.1016/j.rse.2005.10.021">https://doi.org/10.1016/j.rse.2005.10.021</a></li>
+<li>Zhang, X., Friedl, M. A., Schaaf, C. B., Strahler, A. H., Hodges, J. C. F., Gao, F., Reed, B. C., &amp; Huete, A. (2003). Monitoring vegetation phenology using MODIS. <strong>Remote Sensing of Environment</strong>, 84(3), 471–475. <a href="https://doi.org/10.1016/S0034-4257(02)00135-9">https://doi.org/10.1016/S0034-4257(02)00135-9</a></li>
+<li>Gu, L., Post, W. M., Baldocchi, D. D., Black, T. A., Suyker, A. E., Verma, S. B., Vesala, T., &amp; Wofsy, S. C. (2009). Characterizing the seasonal dynamics of plant community photosynthesis across a range of vegetation types. In A. Noormets (Ed.), <em>Phenology of Ecosystem Processes</em> (pp. 35–58). Springer. <a href="https://doi.org/10.1007/978-1-4419-0026-5_2">https://doi.org/10.1007/978-1-4419-0026-5_2</a></li>
+<li>Elmore, A. J., Guinn, S. M., Minsley, B. J., &amp; Richardson, A. D. (2012). Landscape controls on the timing of spring, autumn, and growing season length in mid-Atlantic forests. <strong>Global Change Biology</strong>, 18(2), 656–674. <a href="https://doi.org/10.1111/j.1365-2486.2011.02521.x">https://doi.org/10.1111/j.1365-2486.2011.02521.x</a></li>
+<li>Klosterman, S. T., Hufkens, K., Gray, J. M., Melaas, E., Sonnentag, O., Lavine, I., Mitchell, L., Norman, R., Friedl, M. A., &amp; Richardson, A. D. (2014). Evaluating remote sensing of deciduous forest phenology at multiple spatial scales using PhenoCam imagery. <strong>Biogeosciences</strong>, 11(16), 4305–4320. <a href="https://doi.org/10.5194/bg-11-4305-2014">https://doi.org/10.5194/bg-11-4305-2014</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "toc.integrate", "search.suggest", "search.highlight", "search.share"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
