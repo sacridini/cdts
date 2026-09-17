@@ -35,6 +35,17 @@ To run the tests with coverage reporting, execute:
 pytest --cov=cdts tests/
 ```
 
+## Building the Docs Locally
+
+Documentation lives under `docs/` and is built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/). To preview your changes before opening a pull request:
+
+```bash
+pip install mkdocs-material
+mkdocs serve
+```
+
+This starts a local server (by default at `http://127.0.0.1:8000`) that live-reloads as you edit any `.md` file or `mkdocs.yml`. Before opening a PR, also run `mkdocs build --strict` once — it fails on broken internal links and navigation errors that a plain `mkdocs build` (what CI runs) only logs as warnings.
+
 ## Pull Request Process
 
 1. Create a new branch for your feature or bug fix.

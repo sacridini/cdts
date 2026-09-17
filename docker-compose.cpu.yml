@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  cdts:
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    container_name: cdts_runtime_cpu
+    ports:
+      - "8888:8888"
+    volumes:
+      - .:/app  # Maps your local code into the container for live editing

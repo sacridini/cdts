@@ -12,6 +12,18 @@ pip install cdts
 
 This command automatically installs all required Python dependencies, including `xarray`, `dask`, `scikit-learn`, `rasterio`, `torch`, and `pystac-client`.
 
+!!! note "macOS: Apple Silicon vs. Intel"
+    Prebuilt wheels are published for whichever architecture GitHub Actions' `macos-latest` runner uses at build time, which is Apple Silicon (`arm64`) as of this writing. If `pip install cdts` on an Intel Mac reports no matching distribution, pip will fall back to building from source automatically — see [Installing from Source](#installing-from-source) below for the compiler prerequisites that requires.
+
+## Verifying the Installation
+
+Once installed, confirm the package and its CLI are working:
+
+```bash
+python -c "from importlib.metadata import version; print(version('cdts'))"
+cdts --help
+```
+
 ## Optional Dependencies
 
 For development and running tests, you can install the optional development dependencies:
@@ -28,6 +40,10 @@ If you need to modify the C++ backend, use the latest unreleased features, or bu
 
 *   Python 3.9+
 *   A C++ Compiler supporting C++14 (GCC, Clang, or MSVC)
+*   **macOS only:** the Xcode Command Line Tools provide the Clang compiler used to build the extension. Install them first if you haven't already:
+    ```bash
+    xcode-select --install
+    ```
 
 ### Instructions
 
@@ -60,3 +76,23 @@ If you want the maximum possible performance out of the C++ core on macOS, you c
    pip install --no-binary cdts cdts
    # or, if cloning from GitHub: pip install -e .
    ```
+
+### OpenMP on Windows and Linux
+
+Unlike macOS, Windows (MSVC) and Linux (GCC) ship with native OpenMP support, so no extra steps are needed — `setup.py` enables it automatically for both a standard `pip install cdts` (wheel) and a source install.
+
+## GPU Acceleration for `cdts.ai`
+
+The deep learning models in `cdts.ai` (`UTAE`, `LTAE`/`LightTAE`, `TempCNN`, `Siamese Change Detector`, `GeoFoundationViT`) are plain PyTorch `nn.Module`s and run on whatever device you move them to — none of them hard-code CUDA.
+
+*   **NVIDIA GPUs (Linux/Windows):** the standard `pip install cdts` installs a `torch` build with CUDA support where available. Use `torch.device("cuda")` as usual.
+*   **Apple Silicon (M1–M4):** PyTorch's Metal (`mps`) backend gives you native GPU acceleration on macOS — no CUDA or extra install needed, since it ships in the same `torch` package:
+    ```python
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    model = model.to(device)
+    ```
+    Every tutorial in [AI & Deep Learning](../tutorials/ai.md) picks `"cuda"` vs. `"cpu"` in its example — swap in the snippet above on macOS to use the GPU.
+*   **CPU fallback:** works everywhere, just slower.
+
+!!! note "Docker and MPS"
+    The [Docker image](docker.md) is built on a CUDA base image and has no access to Apple's Metal APIs. To use `mps` acceleration on macOS, install CDTS natively with `pip` rather than through Docker.

@@ -57,16 +57,18 @@ nav:
       - Docker: getting-started/docker.md
       - Contributing: getting-started/contributing.md
   - Tutorials:
-      - LandTrendr: tutorials/landtrendr.md
-      - CCDC: tutorials/ccdc.md
-      - Tmask: tutorials/tmask.md
-      - TWDTW (Time-Weighted DTW): tutorials/twdtw.md
-      - Phenology Extraction: tutorials/phenology.md
-      - Mann-Kendall Trend Test: tutorials/mann_kendall.md
-      - BFAST Monitor: tutorials/bfast_monitor.md
-      - BFAST Lite: tutorials/bfast_lite.md
-      - SOM (Self-Organizing Maps): tutorials/som.md
-      - STAC & ARD Integration: tutorials/stac-downloads.md
+      - Overview: tutorials/index.md
+      - Trajectory & Change Detection:
+          - LandTrendr: tutorials/landtrendr.md
+          - CCDC: tutorials/ccdc.md
+          - Tmask: tutorials/tmask.md
+          - BFAST Monitor: tutorials/bfast_monitor.md
+          - BFAST Lite: tutorials/bfast_lite.md
+      - Time-Series Analysis:
+          - TWDTW (Time-Weighted DTW): tutorials/twdtw.md
+          - Phenology Extraction: tutorials/phenology.md
+          - Mann-Kendall Trend Test: tutorials/mann_kendall.md
+          - SOM (Self-Organizing Maps): tutorials/som.md
       - AI & Deep Learning:
           - Overview: tutorials/ai.md
           - LTAE & LightTAE: tutorials/ltae.md
@@ -74,7 +76,10 @@ nav:
           - TempCNN: tutorials/tempcnn.md
           - Siamese Change Detector: tutorials/siamese.md
           - GeoFoundationViT: tutorials/geo_foundation_vit.md
-      - Google Earth Engine (GEE): tutorials/gee-downloads.md
-      - Parallel & Cloud Processing: tutorials/parallel-cloud-processing.md
+      - Data Acquisition & Integration:
+          - STAC & ARD Integration: tutorials/stac-downloads.md
+          - Google Earth Engine (GEE): tutorials/gee-downloads.md
+      - Infrastructure:
+          - Parallel & Cloud Processing: tutorials/parallel-cloud-processing.md
   - CLI Reference: cli.md
   - API Reference: api.md
