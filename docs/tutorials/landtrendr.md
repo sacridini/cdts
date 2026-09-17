@@ -184,9 +184,111 @@ plt.show()
 1. **Index Selection**: While NBR is the standard for forest disturbance, Tasseled Cap Wetness (TCW) or Tasseled Cap Angle (TCA) are extremely effective. NDVI is generally less sensitive to structural forest changes but good for agricultural monitoring.
 2. **Out-of-Core Processing**: If your input GeoTIFF is larger than your available RAM, use `cdts.raster.run_landtrendr_image` instead of `run_landtrendr_array`. The image-based function automatically chunks the raster and processes it in blocks, keeping memory usage strictly bounded.
 3. **Overfitting**: A `max_segments` value of 6 is empirically proven to be optimal for a 30-year time series. Increasing it to 8 or 10 on a 30-year stack will lead to the algorithm overfitting noise, resulting in false positive disturbances.
+4. **Chunking is everything for distributed runs**: spatial chunking (e.g. `chunks={'time': -1, 'y': 512, 'x': 512}`) is mandatory, since LandTrendr needs the full time series per pixel to run the temporal segmentation. `cdts.build_time_series` chunks reasonably by default, but you may need to rechunk depending on your cluster's RAM per worker.
+5. **Avoid `.compute()` on large cubes**: it pulls all the resulting data back into the RAM of your single head node/laptop. Use `.to_zarr()` or `cdts.save_raster()` to sink data directly from the workers to disk/cloud instead.
+6. **Prefer Zarr over GeoTIFF for multi-machine writes**: GeoTIFFs can cause write-locks; cloud-native Zarr writes concurrently in chunks.
 
 ---
 
-## 5. References
+## 5. Distributed Processing with Dask
+
+CDTS is built on top of `xarray` and `dask`, which means it natively scales from a single machine to a distributed cluster of multiple machines (an on-premise HPC, AWS, GCP, or a Kubernetes cluster). This section walks through an end-to-end workflow for running LandTrendr at a massive spatial scale using multiple machines via `dask.distributed`.
+
+### 5.1. Setting up the Dask Cluster
+
+To process across multiple machines, you don't need to hardcode the IPs of all machines in your script. Dask uses a **Scheduler-Worker** architecture:
+
+1. **The Scheduler** (e.g., `192.168.0.100`) coordinates the work.
+2. **The Workers** (the other machines) connect to the Scheduler to ask for work.
+
+**On the Main Machine (Scheduler):**
+```bash
+dask scheduler
+# It will print out its address, e.g., tcp://192.168.0.100:8786
+```
+
+**On the Worker Machines:**
+Open a terminal on each machine and connect it to the scheduler. **This is where you configure the cores and memory for each machine:**
+```bash
+dask worker tcp://192.168.0.100:8786 --nworkers 4 --nthreads 2 --memory-limit 16GB
+```
+*(In this example, the machine dedicates 4 processes, 2 threads each, and a 16GB RAM limit to the cluster.)*
+
+In your script, you only need to connect your `Client` to the Scheduler. The image is divided automatically into "chunks" (e.g., blocks of 512x512 pixels), and the Scheduler automatically sends different chunks to different worker machines as they become available.
+
+### 5.2. End-to-End Example
+
+The following script connects to a remote cluster, lazily loads a massive STAC catalog, runs LandTrendr across all machines, and saves the result directly to a Cloud Storage bucket in parallel using Zarr.
+
+```python
+import xarray as xr
+from dask.distributed import Client
+import cdts
+
+# 1. Connect to the multi-node Dask Cluster
+# Replace with your actual Dask scheduler address
+scheduler_address = 'tcp://192.168.0.100:8786'
+client = Client(scheduler_address)
+print(f"Connected to Cluster! Dashboard: {client.dashboard_link}")
+
+# 2. Lazily load a massive spatial extent from AWS Earth Search
+# Note: Because we use Dask, the data is NOT downloaded yet.
+# Only the metadata is parsed.
+cube = cdts.build_time_series(
+    source='earth_search',
+    collection='sentinel-2-l2a',
+    bbox=[-63.0, -11.0, -62.0, -10.0],  # Massive area
+    start_date='2017-01-01',
+    end_date='2023-12-31',
+    bands=['red', 'nir'],
+    resolution=10
+)
+
+# 3. Calculate a vegetation index (e.g., NDVI)
+# This operation is lazy and added to the Dask computation graph.
+ndvi = (cube.sel(band='nir') - cube.sel(band='red')) / (cube.sel(band='nir') + cube.sel(band='red'))
+ndvi = ndvi.expand_dims(band=['NDVI'])
+
+# 4. Regularize to an annual composite (Medoid)
+# The `medoid` method is robust against clouds and shadows.
+annual_cube = cdts.regularize_time_series(ndvi, freq='1Y', method='medoid')
+
+# 5. Define LandTrendr execution
+# xarray will distribute the apply_ufunc operations across the workers.
+lt_results = cdts.run_landtrendr(
+    annual_cube,
+    max_segments=6,
+    spike_threshold=0.9,
+    recovery_threshold=0.25,
+    pval_threshold=0.05,
+    best_model_proportion=0.75,
+    min_observations_needed=6
+)
+
+# 6. Extract Disturbance Events (YOD, Magnitude, Duration)
+events = cdts.extract_events(
+    lt_results,
+    event_type="loss",
+    sort_by="greatest",
+    min_magnitude=0.1,
+    min_duration=1
+)
+
+# Convert events dictionary to an xarray Dataset for distributed saving
+events_ds = xr.Dataset({
+    k: (['y', 'x'], v) for k, v in events.items()
+})
+
+# 7. Execute and Save in Parallel (Zarr)
+# .to_zarr() is highly recommended for distributed writes to cloud buckets (S3/GCS)
+# This is the moment computation actually triggers across all machines!
+events_ds.to_zarr('s3://my-bucket/landtrendr_results.zarr', mode='w')
+
+print("Distributed processing complete!")
+```
+
+---
+
+## 6. References
 
 - Kennedy, R. E., Yang, Z., & Cohen, W. B. (2010). Detecting trends in forest disturbance and recovery using yearly Landsat time series: 1. LandTrendr—Temporal segmentation algorithms. **Remote Sensing of Environment**, 114(12), 2897–2910. [https://doi.org/10.1016/j.rse.2010.07.008](https://doi.org/10.1016/j.rse.2010.07.008)

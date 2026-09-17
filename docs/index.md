@@ -33,5 +33,16 @@ CDTS relies on the SpatioTemporal Asset Catalog (STAC) standard and can pull tim
 
 ## Tutorials
 
-*   [Distributed Processing with LandTrendr and Dask](tutorials/distributed_landtrendr.md)
-*   [Distributed Processing with CCDC and Dask](tutorials/distributed_ccdc.md)
+*   [LandTrendr](tutorials/landtrendr.md)
+*   [CCDC](tutorials/ccdc.md)
+*   [Tmask](tutorials/tmask.md)
+*   [TWDTW (Time-Weighted DTW)](tutorials/twdtw.md)
+*   [Phenology Extraction](tutorials/phenology.md)
+*   [Mann-Kendall Trend Test](tutorials/mann_kendall.md)
+*   [BFAST Monitor](tutorials/bfast_monitor.md)
+*   [BFAST Lite](tutorials/bfast_lite.md)
+*   [SOM (Self-Organizing Maps)](tutorials/som.md)
+*   [STAC & ARD Integration](tutorials/stac-downloads.md)
+*   [AI & Deep Learning](tutorials/ai.md)
+*   [Google Earth Engine (GEE)](tutorials/gee-downloads.md)
+*   [Parallel & Cloud Processing](tutorials/parallel-cloud-processing.md)

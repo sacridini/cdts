@@ -389,7 +389,7 @@ run_landtrendr_image(
 
 ### `cdts.raster.run_landtrendr_array`
 
-Executes the LandTrendr algorithm in memory on a 3D NumPy array stack `(Time, Rows, Cols)`. It utilizes a C++ backend with OpenMP to distribute pixel trajectories across CPU cores for extremely rapid batch execution.
+Executes the LandTrendr algorithm in memory on a 3D NumPy array stack `(Time, Rows, Cols)`. It utilizes a C++ backend with OpenMP to distribute pixel trajectories across CPU cores for extremely rapid batch execution. Also available as `DataArray.cdts.run_landtrendr(years, max_segments=6, pval_threshold=0.05, n_jobs=-1)` for lazy, Dask-backed execution.
 
 **Parameters**
 
@@ -510,7 +510,7 @@ run_ccdc_image(
 
 ### `cdts.raster.run_ccdc_array`
 
-Applies the CCDC algorithm across a multi-dimensional array `(Bands, Time, Rows, Cols)`. It utilizes a C++ backend with OpenMP to distribute pixels across CPU cores for extremely rapid batch execution.
+Applies the CCDC algorithm across a multi-dimensional array `(Bands, Time, Rows, Cols)`. It utilizes a C++ backend with OpenMP to distribute pixels across CPU cores for extremely rapid batch execution. Also available as `DataArray.cdts.run_ccdc(dates, qa_stack=None, max_segments=6, return_coefs=True, conseq_anom=3, n_jobs=-1)` for lazy, Dask-backed execution.
 
 **Parameters**
 
@@ -587,7 +587,7 @@ classify_ccdc_stack(
 
 ### `cdts.phenology.run_phenology_dask`
 
-Pixel-wise phenology curve fitting (Whittaker/HANTS smoothing + Levenberg-Marquardt curve fitting) across a Dask array's time axis, reimplemented in C++/Eigen/OpenMP from the methodology of the R package [`phenofit`](https://github.com/eco-hydro/phenofit) (Kong *et al.*, 2022). Extracts **21 metrics per season** (19 phenological dates/derived metrics + per-season R2 and RMSE goodness-of-fit) in a single pass. See the [Phenology tutorial](tutorials/phenology.md) for the full metric definitions, curve models, and a real-world walkthrough. Also available as `DataArray.cdts.run_phenology(...)` (see below).
+Pixel-wise phenology curve fitting (Whittaker/HANTS smoothing + Levenberg-Marquardt curve fitting) across a Dask array's time axis, reimplemented in C++/Eigen/OpenMP from the methodology of the R package [`phenofit`](https://github.com/eco-hydro/phenofit) (Kong *et al.*, 2022). Extracts **21 metrics per season** (19 phenological dates/derived metrics + per-season R2 and RMSE goodness-of-fit) in a single pass. See the [Phenology tutorial](tutorials/phenology.md) for the full metric definitions, curve models, and a real-world walkthrough. Also available as `DataArray.cdts.run_phenology(...)`.
 
 **Parameters**
 
@@ -845,7 +845,7 @@ cdts.generate_landtrendr_accuracy_dashboard(
 
 ### `cdts.trend.run_mann_kendall_dask`
 
-Pixel-wise Mann-Kendall trend test + Theil-Sen slope estimator across a Dask array's time axis, ported from [`pymannkendall`](https://github.com/mmhs013/pymannkendall) to a C++/OpenMP backend for per-pixel throughput. See the [Mann-Kendall tutorial](tutorials/mann_kendall.md) for the full method comparison and a real-world walkthrough. Also available as `DataArray.cdts.run_mann_kendall(...)` (see below).
+Pixel-wise Mann-Kendall trend test + Theil-Sen slope estimator across a Dask array's time axis, ported from [`pymannkendall`](https://github.com/mmhs013/pymannkendall) to a C++/OpenMP backend for per-pixel throughput. See the [Mann-Kendall tutorial](tutorials/mann_kendall.md) for the full method comparison and a real-world walkthrough. Also available as `DataArray.cdts.run_mann_kendall(...)`.
 
 **Parameters**
 
@@ -878,7 +878,7 @@ significant = trend_out[1] == 1.0  # 'h' row
 
 ### `cdts.bfast.run_bfast_monitor_dask`
 
-Pixel-wise near-real-time structural change monitoring (`bfastmonitor`), ported from the R package [`bfast`](https://github.com/bfast2/bfast) and its [`strucchangeRcpp`](https://github.com/bfast2/strucchangeRcpp) dependency's OLS-MOSUM monitoring process (Chu, Stinchcombe & White, 1996) to a C++/OpenMP backend, with the same Dask distribution strategy as `run_mann_kendall_dask`. Fits a trend + harmonic model on a stable history period, then flags the first point in the subsequent monitoring period where the residual fluctuation process crosses a significance boundary — "is a disturbance happening right now". See the [BFAST Monitor tutorial](tutorials/bfast_monitor.md) for the full method background, scope (only `type="OLS-MOSUM"` and `history="all"` are implemented — no STL, no Bai-Perron multi-breakpoint search), and a documented false-positive-rate caveat. Also available as `DataArray.cdts.run_bfast_monitor(...)` (see below).
+Pixel-wise near-real-time structural change monitoring (`bfastmonitor`), ported from the R package [`bfast`](https://github.com/bfast2/bfast) and its [`strucchangeRcpp`](https://github.com/bfast2/strucchangeRcpp) dependency's OLS-MOSUM monitoring process (Chu, Stinchcombe & White, 1996) to a C++/OpenMP backend, with the same Dask distribution strategy as `run_mann_kendall_dask`. Fits a trend + harmonic model on a stable history period, then flags the first point in the subsequent monitoring period where the residual fluctuation process crosses a significance boundary — "is a disturbance happening right now". See the [BFAST Monitor tutorial](tutorials/bfast_monitor.md) for the full method background, scope (only `type="OLS-MOSUM"` and `history="all"` are implemented — no STL, no Bai-Perron multi-breakpoint search), and a documented false-positive-rate caveat. Also available as `DataArray.cdts.run_bfast_monitor(...)`.
 
 **Parameters**
 
@@ -1286,24 +1286,24 @@ model = GeoFoundationViT(
 ```
 
 
-## cdts.xarray_api
+## Xarray Accessor Utilities
 
-CDTS registers an Xarray accessor under .cdts for lazy, Dask-backed execution.
+CDTS registers an Xarray accessor under `.cdts` for lazy, Dask-backed execution. Every algorithm's own section above already documents its `DataArray.cdts.run_...(...)` accessor form alongside the plain array/Dask-array entry point (look for "Also available as..." in each section) — this section covers the one accessor method that has no other home.
 
-### DataArray.cdts.run_ccdc(dates, qa_stack=None, max_segments=6, return_coefs=True, conseq_anom=3, n_jobs=-1)
-Runs CCDC algorithm across a distributed Dask array.
+### `DataArray.cdts.to_zarr_optimized`
 
-### DataArray.cdts.run_landtrendr(years, max_segments=6, pval_threshold=0.05, n_jobs=-1)
-Runs LandTrendr algorithm across a distributed Dask array.
+Rechunks a `DataArray` to sensible spatial tile sizes and writes it to a [Zarr](https://zarr.dev/) store with consolidated metadata — useful as a final step after a pixel-wise algorithm (LandTrendr, CCDC, Mann-Kendall, BFAST, ...) to get a cloud-friendly, chunk-aligned output ready for repeated partial reads (e.g. from S3/GCS) instead of a single large in-memory array.
 
-### DataArray.cdts.run_phenology(dates, curve_type, extraction_method=0, max_seasons=2, whittaker_lambda=10.0, apply_whittaker=True, apply_hants=False, hants_frequencies=3, hants_threshold=0.1, min_season_length=0, min_amplitude=0.0, min_pixel_amplitude=0.1, return_annual=True, base_year=2001, n_jobs=-1, weights=None, season_retry=True)
-Runs phenology curve-fitting and metric extraction across a distributed Dask array. See [`cdts.phenology.run_phenology_dask`](#cdtsphenologyrun_phenology_dask) above and the [Phenology tutorial](tutorials/phenology.md).
+**Parameters**
 
-### DataArray.cdts.run_mann_kendall(method='hamed_rao', alpha=0.05, lag=None, period=1, min_valid=4, n_jobs=-1)
-Runs the Mann-Kendall trend test + Theil-Sen slope across the time dimension. See [`cdts.trend.run_mann_kendall_dask`](#cdtstrendrun_mann_kendall_dask) above and the [Mann-Kendall tutorial](tutorials/mann_kendall.md).
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `store_path` | `str` | **Required** | Path or URL of the Zarr store to write (local path, or a fsspec-compatible URL like `s3://...`). |
+| `chunk_size` | `dict` | `{"y": 512, "x": 512}` | Target chunk sizes per spatial dimension. |
 
-### DataArray.cdts.run_bfast_monitor(start_time, monitor_start_time, frequency, order=3, h=0.25, period=10, alpha=0.05, min_valid=10, n_jobs=-1)
-Runs near-real-time structural change monitoring (bfastmonitor) across the time dimension. See [`cdts.bfast.run_bfast_monitor_dask`](#cdtsbfastrun_bfast_monitor_dask) above and the [BFAST Monitor tutorial](tutorials/bfast_monitor.md).
+**Usage Example**
 
-### DataArray.cdts.to_zarr_optimized(store_path, chunk_size=dict(y=512, x=512))
-Optimizes spatial chunking and saves the DataArray to Zarr with consolidated metadata.
+```python
+# result: a (metric, y, x) DataArray from any cdts.cdts.run_...() accessor
+result.cdts.to_zarr_optimized("output/trend_result.zarr", chunk_size={"y": 512, "x": 512})
+```
