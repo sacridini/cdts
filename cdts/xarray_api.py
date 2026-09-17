@@ -262,8 +262,8 @@ weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
         cdts.bfast.bfl_metric_names).
 
         See cdts.bfast.run_bfast_lite_dask for the full parameter
-        documentation and scope notes (no STL decomposition; the classic
-        iterative bfast() is not yet implemented).
+        documentation and scope notes (no STL decomposition; see
+        run_bfast for the classic iterative bfast()).
         """
         from cdts.bfast import run_bfast_lite_dask, bfl_metric_names
 
@@ -281,6 +281,44 @@ weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
             dims=["metric", "y", "x"],
             coords={
                 "metric": bfl_metric_names(max_breaks_output),
+                "y": self._obj.coords.get("y"),
+                "x": self._obj.coords.get("x"),
+            }
+        )
+
+    def run_bfast(self, start_time: float, frequency: int, order: int = 3, h: float = 0.15,
+                  max_breaks_trend: int = 5, max_breaks_season: int = 5, max_iter: int = 10,
+                  level: float = 0.05, min_valid: int = 20, n_jobs: int = -1) -> xr.DataArray:
+        """
+        Classic iterative trend+season break detection (bfast) across the
+        time dimension. Assumes DataArray shape: (time, y, x). Returns a
+        DataArray with dim "metric": n_trend_breaks, n_season_breaks,
+        magnitude, time, n_iter, n_valid, valid,
+        trend_breakpoint_idx_1..max_breaks_trend,
+        season_breakpoint_idx_1..max_breaks_season (see
+        cdts.bfast.bf_metric_names).
+
+        See cdts.bfast.run_bfast_dask for the full parameter documentation
+        and scope notes (season="harmonic" and breaks="BIC" only,
+        decomp="stl" only).
+        """
+        from cdts.bfast import run_bfast_dask, bf_metric_names
+
+        arr = self._obj.data
+        if not isinstance(arr, da.Array):
+            arr = da.from_array(arr)
+
+        out = run_bfast_dask(
+            arr, start_time=start_time, frequency=frequency, order=order, h=h,
+            max_breaks_trend=max_breaks_trend, max_breaks_season=max_breaks_season,
+            max_iter=max_iter, level=level, min_valid=min_valid, n_jobs=n_jobs,
+        )
+
+        return xr.DataArray(
+            out,
+            dims=["metric", "y", "x"],
+            coords={
+                "metric": bf_metric_names(max_breaks_trend, max_breaks_season),
                 "y": self._obj.coords.get("y"),
                 "x": self._obj.coords.get("x"),
             }

@@ -25,7 +25,7 @@ Built with highly optimized C++ extensions (OpenMP and Eigen SIMD) bound to Pyth
   - **Batch SOM** (Self-Organizing Maps): Unsupervised multi-threaded clustering of massive spectral-temporal arrays.
   - **CCDC / COLD**: Continuous Change Detection and Classification via robust harmonic modeling.
   - **LandTrendr**: Trajectory-based disturbance and recovery detection.
-  - **BFAST Monitor & BFAST Lite**: Near-real-time monitoring and single-pass multiple-breakpoint detection (ported from R's `bfast`/`strucchangeRcpp`).
+  - **BFAST, BFAST Monitor & BFAST Lite**: Classic iterative trend+season break detection, near-real-time monitoring, and single-pass multiple-breakpoint detection (ported from R's `bfast`/`strucchangeRcpp`).
   - **Phenology Extraction**: 19 simultaneous phenological metrics from optimized curve-fitting models (Beck, Elmore, Gu, Zhang, Asymmetric Gaussian, Double Logistic), with QA-based per-observation weighting.
   - **Mann-Kendall / Theil-Sen**: Pixel-wise non-parametric trend test and slope estimation for detecting statistically significant greening/browning trends.
 - **Deep Learning (`cdts.ai`):** Pre-built PyTorch architectures tailored for spatio-temporal Earth Observation (U-TAE, TempCNN, Siamese Networks), plus wrappers for Geospatial Foundation Models (ViT).

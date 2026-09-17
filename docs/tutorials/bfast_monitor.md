@@ -8,7 +8,7 @@
 
 ### Scope of this port
 
-Only `bfastmonitor()`'s default monitoring process (`type="OLS-MOSUM"`) and `history="all"` (the entire pre-monitoring period used as the stable history) are implemented. R's default `history="ROC"` (which auto-trims unstable older history via a reversed-CUSUM test) and `history="BP"` are **not** ported, nor are the classic iterative `bfast()`/`bfastlite()` (both additionally need STL decomposition and/or the Bai-Perron optimal-breakpoint dynamic program — a separate, larger port).
+Only `bfastmonitor()`'s default monitoring process (`type="OLS-MOSUM"`) and `history="all"` (the entire pre-monitoring period used as the stable history) are implemented. R's default `history="ROC"` (which auto-trims unstable older history via a reversed-CUSUM test) and `history="BP"` are **not** ported. See the [BFAST](bfast.md) and [BFAST Lite](bfast_lite.md) tutorials for the classic iterative `bfast()` and single-pass `bfastlite()`, respectively.
 
 !!! warning "`history=\"all\"` has a higher false-positive rate than the nominal `alpha` in practice"
     Cross-validated directly against R: on 50 pure-noise (no injected break) synthetic series at `alpha=0.05`, R's own `bfastmonitor(..., history="all")` flagged a "break" on **~44%** of them — not the ~5% the significance level suggests — and `cdts` matched this (~42%) exactly. This is a property of `bfastmonitor` itself with an untrimmed history, not a port bug (it's presumably why R defaults to `history="ROC"` instead). Prefer a genuinely stable, disturbance-free history window when calling this, and treat single detections with the same caution you'd apply to any `alpha=0.05` test run many times (i.e. correct for multiple comparisons across your pixels, or raise `alpha`/tune `h`/`period`).

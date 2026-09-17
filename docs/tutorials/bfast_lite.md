@@ -10,7 +10,7 @@
 
 Ported: the default `breaks="LWZ"` model-selection criterion (Liu, Wu & Zidek, 1997) choosing the optimal number of breaks automatically, over the same `response ~ trend + harmon` design matrix as [BFAST Monitor](bfast_monitor.md#2-background-what-the-model-fits), fit via [Brown-Durbin-Evans recursive residuals](https://en.wikipedia.org/wiki/CUSUM) for an O(n²) (not O(n³)) segment-RSS table.
 
-Not (yet) ported: the classic iterative `bfast()` (which additionally needs STL decomposition of the series into trend/season/remainder, and separately detects breaks in each component across converging iterations) - a separate, larger follow-up.
+Not ported here: the classic iterative `bfast()` (which additionally needs STL decomposition of the series into trend/season/remainder, and separately detects breaks in each component across converging iterations) - see the [BFAST tutorial](bfast.md) for that.
 
 ## 3. Using bfastlite in CDTS
 

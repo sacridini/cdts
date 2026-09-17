@@ -11,10 +11,9 @@
 // Scope of this port (see docs/tutorials/bfast_monitor.md for the full
 // rationale): only the default `type="OLS-MOSUM"` monitoring process and
 // `history="all"` (the entire pre-monitoring period as the stable history,
-// no ROC/BP auto-trimming of unstable older history) are implemented. The
-// classic iterative `bfast()` and `bfastlite()` (which both additionally
-// need STL decomposition and/or the Bai-Perron optimal-breakpoint dynamic
-// program) are a separate, future port.
+// no ROC/BP auto-trimming of unstable older history) are implemented. See
+// bfast.h for the classic iterative `bfast()` and bfast_lite.h for the
+// single-pass `bfastlite()`.
 
 namespace cdts {
 namespace bfastmonitor {

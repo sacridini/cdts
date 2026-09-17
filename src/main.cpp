@@ -10,6 +10,7 @@
 #include "mann_kendall.h"
 #include "bfast_monitor.h"
 #include "bfast_lite.h"
+#include "bfast.h"
 
 namespace py = pybind11;
 
@@ -231,5 +232,35 @@ PYBIND11_MODULE(_core, m) {
            "Run bfastlite on a batch of pixels with OpenMP",
            py::arg("values_array"), py::arg("start_time"), py::arg("frequency"),
            py::arg("order") = 3, py::arg("h") = 0.15, py::arg("max_breaks_output") = 5,
+           py::arg("min_valid") = 20, py::arg("n_jobs") = -1);
+
+    // bfast sub-module (the classic iterative trend+season break detection)
+    py::module_ bf = m.def_submodule("bfast", "bfast: classic iterative trend+season break detection");
+
+    py::class_<cdts::bfast::BFResult>(bf, "BFResult")
+        .def(py::init<>())
+        .def_readwrite("n_trend_breaks", &cdts::bfast::BFResult::n_trend_breaks)
+        .def_readwrite("n_season_breaks", &cdts::bfast::BFResult::n_season_breaks)
+        .def_readwrite("magnitude", &cdts::bfast::BFResult::magnitude)
+        .def_readwrite("time", &cdts::bfast::BFResult::time)
+        .def_readwrite("n_iter", &cdts::bfast::BFResult::n_iter)
+        .def_readwrite("n_valid", &cdts::bfast::BFResult::n_valid)
+        .def_readwrite("valid", &cdts::bfast::BFResult::valid)
+        .def_readwrite("trend_breakpoint_idx", &cdts::bfast::BFResult::trend_breakpoint_idx)
+        .def_readwrite("season_breakpoint_idx", &cdts::bfast::BFResult::season_breakpoint_idx);
+
+    bf.def("bfast", &cdts::bfast::bfast,
+           "Run bfast on a single pixel time series (unit-testing helper)",
+           py::arg("y"), py::arg("start_time"), py::arg("frequency"),
+           py::arg("order") = 3, py::arg("h") = 0.15,
+           py::arg("max_breaks_trend") = 5, py::arg("max_breaks_season") = 5,
+           py::arg("max_iter") = 10, py::arg("level") = 0.05);
+
+    bf.def("fit_bfast_batch", &cdts::bfast::fit_bfast_batch,
+           "Run bfast on a batch of pixels with OpenMP",
+           py::arg("values_array"), py::arg("start_time"), py::arg("frequency"),
+           py::arg("order") = 3, py::arg("h") = 0.15,
+           py::arg("max_breaks_trend") = 5, py::arg("max_breaks_season") = 5,
+           py::arg("max_iter") = 10, py::arg("level") = 0.05,
            py::arg("min_valid") = 20, py::arg("n_jobs") = -1);
 }

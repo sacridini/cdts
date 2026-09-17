@@ -62,6 +62,7 @@ nav:
           - LandTrendr: tutorials/landtrendr.md
           - CCDC: tutorials/ccdc.md
           - Tmask: tutorials/tmask.md
+          - BFAST: tutorials/bfast.md
           - BFAST Monitor: tutorials/bfast_monitor.md
           - BFAST Lite: tutorials/bfast_lite.md
       - Time-Series Analysis:
