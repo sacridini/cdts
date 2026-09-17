@@ -1036,16 +1036,28 @@ dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
 
 ### `cdts.ai.UTAE`
 
-U-Net with Temporal Attention Encoder, for multi-temporal, multi-spectral satellite imagery *segmentation*.
+U-Net with Temporal Attention Encoder, for multi-temporal, multi-spectral satellite imagery *segmentation*. Ported layer-for-layer from the official reference implementation ([VSainteuf/utae-paps](https://github.com/VSainteuf/utae-paps), MIT License) of Garnot & Landrieu (2021), "Panoptic Segmentation of Satellite Image Time Series with Convolutional Temporal Attention Networks", [doi:10.1109/ICCV48922.2021.00483](https://doi.org/10.1109/ICCV48922.2021.00483). A multi-scale U-Net encodes each frame independently (weights shared across time), an L-TAE fuses the bottleneck across time into a feature map plus per-head attention maps, and those same attention maps (resampled per scale) weight the temporal aggregation of every decoder skip connection.
 
-> **Not yet paper-faithful.** This is currently a simplified stand-in (single conv encoder/decoder pair + a lightweight custom temporal fusion block), not a full port of Garnot & Landrieu (2021), "Panoptic Segmentation of Satellite Image Time Series with Convolutional Temporal Attention Networks" (U-TAE's real multi-scale U-Net encoder with temporally-pooled skip connections). A paper-faithful rewrite is planned; there is no `sits` equivalent to cross-validate against, since `sits`'s temporal attention models (`LTAE`/`LightTAE` below) operate per-pixel rather than on full spatial feature maps.
+**Verified against the official implementation:** building both with identical weights (`load_state_dict`, keys match by name — no translation table needed) and the same input reproduces its output **bit-for-bit exactly** (`max abs diff = 0.0`), including the padded-sequence code path (`pad_value`/`pad_mask`, for variable-length/irregularly-sampled series).
 
 **Parameters**
 
 | Argument | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
-| `in_channels` | `int` | **Required** | Number of input spectral bands. |
-| `num_classes`| `int` | `5` | Number of output segmentation classes. |
+| `input_dim` | `int` | **Required** | Number of input spectral bands. |
+| `encoder_widths` | `list[int]` | `[64, 64, 64, 128]` | Channel widths of the encoder stages, top (highest resolution) to bottom. Also sets the number of downsampling steps (`len - 1`). |
+| `decoder_widths` | `list[int]` | `[32, 32, 64, 128]` | Same, for the decoder. Must be the same length as `encoder_widths`, and its last element must equal `encoder_widths[-1]`. |
+| `out_conv` | `list[int]` | `[32, 20]` | Channel widths of the final output conv stack; the last value is the number of output classes. |
+| `str_conv_k`, `str_conv_s`, `str_conv_p` | `int` | `4`, `2`, `1` | Kernel size, stride, and padding of the strided up/down convolutions. |
+| `agg_mode` | `str` | `'att_group'` | Skip-connection temporal aggregation: `'att_group'` (attention-weighted, grouped by head — default), `'att_mean'` (attention-weighted, averaged across heads), or `'mean'` (plain temporal average excluding padded dates). |
+| `encoder_norm` | `str` | `'group'` | Normalization in the encoder: `'group'` (GroupNorm), `'batch'`, or `'instance'`. |
+| `n_head` | `int` | `16` | Attention heads in the bottleneck L-TAE. |
+| `d_model` | `int` | `256` | L-TAE's internal projection width (must be divisible by `n_head`). |
+| `d_k` | `int` | `4` | L-TAE's key/query dimension per head. |
+| `encoder` | `bool` | `False` | If `True`, return `(features, feature_maps)` instead of class scores. |
+| `return_maps` | `bool` | `False` | If `True`, also return the list of per-scale decoder feature maps. |
+| `pad_value` | `float` | `0` | Value used to mark padded (missing) timesteps — frames entirely equal to this are skipped in the encoder and excluded from temporal aggregation. |
+| `padding_mode` | `str` | `'reflect'` | Spatial padding mode passed to the conv layers. |
 
 **Usage Example**
 
@@ -1053,12 +1065,15 @@ U-Net with Temporal Attention Encoder, for multi-temporal, multi-spectral satell
 import torch
 from cdts.ai import UTAE
 
-model = UTAE(in_channels=6, num_classes=10)
+model = UTAE(input_dim=6, out_conv=[32, 10])
+model.eval()
 
-# Dummy Data: (Batch, Time, Bands, H, W), plus a per-timestep dates tensor
+# (Batch, Time, Bands, H, W), plus per-sample/per-timestep acquisition dates (Batch, Time)
 X = torch.randn(2, 12, 6, 128, 128)
-dates = torch.arange(12, dtype=torch.float32)
-predictions = model(X, dates) # Output shape: (2, 10, 128, 128)
+batch_positions = torch.arange(12, dtype=torch.float32).unsqueeze(0).expand(2, -1)
+
+with torch.no_grad():
+    predictions = model(X, batch_positions=batch_positions)  # (2, 10, 128, 128)
 ```
 
 ### `cdts.ai.LTAE`

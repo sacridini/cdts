@@ -14,14 +14,16 @@ print("Downloading Cube...")
 cube_data = np.nan_to_num(cube.compute().values)
 dates = cube.time.dt.dayofyear.values
 
-tensor_cube = torch.tensor(cube_data, dtype=torch.float32).unsqueeze(0)
-tensor_dates = torch.tensor(dates, dtype=torch.float32)
+tensor_cube = torch.tensor(cube_data, dtype=torch.float32).unsqueeze(0)  # (1, T, C, H, W)
+tensor_dates = torch.tensor(dates, dtype=torch.float32).unsqueeze(0)  # (1, T)
 
 print("Initializing U-TAE...")
-model = UTAE(in_channels=6, num_classes=5)
+model = UTAE(input_dim=6, out_conv=[32, 5])
+model.eval()
 
 print("Running Forward Pass with Temporal Attention...")
-logits = model(tensor_cube, tensor_dates)
+with torch.no_grad():
+    logits = model(tensor_cube, batch_positions=tensor_dates)
 predictions = torch.argmax(logits, dim=1).squeeze().numpy().astype(np.uint8)
 
 out_tif = os.path.join("data", "utae_prediction.tif")

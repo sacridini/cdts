@@ -30,9 +30,19 @@ def test_lighttae():
 
 
 def test_utae():
-    model = UTAE(in_channels=6, num_classes=3)
+    model = UTAE(
+        input_dim=6,
+        encoder_widths=[8, 16, 32],
+        decoder_widths=[8, 16, 32],
+        out_conv=[16, 3],
+        n_head=4,
+        d_model=32,
+        d_k=4,
+    )
+    model.eval()
 
-    x = torch.randn(2, 5, 6, 8, 8)  # (B, T, C, H, W)
-    dates = torch.arange(5, dtype=torch.float32)
-    out = model(x, dates)
-    assert out.shape == (2, 3, 8, 8)
+    x = torch.randn(2, 5, 6, 16, 16)  # (batch, seq_len, input_dim, H, W)
+    batch_positions = torch.arange(5, dtype=torch.float32).unsqueeze(0).expand(2, -1)
+    with torch.no_grad():
+        out = model(x, batch_positions=batch_positions)
+    assert out.shape == (2, 3, 16, 16)

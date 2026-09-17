@@ -7,7 +7,7 @@ While traditional algorithms like LandTrendr and CCDC rely on pixel-based statis
 The module exposes several advanced architectures ready to be trained or fine-tuned (see [References](#references) for the original papers behind each):
 
 *   **LTAE & LightTAE**: Lightweight Temporal Attention Encoder (Garnot & Landrieu, 2020) — `LTAE` is the reusable temporal-fusion block (learned "master query" multi-head attention over a sequence), `LightTAE` is the full pixel time-series classifier (spatial MLP encoder -> `LTAE` -> MLP decoder). Ported layer-for-layer from the R package [`sits`](https://github.com/e-sensing/sits)'s `sits_lighttae()` so trained weights are portable between the two — validated to match `sits`'s output within float32 tolerance.
-*   **UTAE**: U-Net with Temporal Attention Encoder, for spatio-temporal *segmentation* (not just per-pixel classification). **Currently a simplified stand-in**, not yet a faithful port of Garnot & Landrieu (2021) — it uses its own lightweight internal fusion block rather than U-TAE's multi-scale U-Net + temporally-pooled skip connections. A paper-faithful rewrite is planned; there is no `sits` equivalent to validate it against (`sits`'s temporal attention models operate per-pixel, not on full spatial feature maps).
+*   **UTAE**: U-Net with Temporal Attention Encoder, for spatio-temporal *segmentation* (not just per-pixel classification, unlike LightTAE). Ported layer-for-layer from the official reference implementation ([VSainteuf/utae-paps](https://github.com/VSainteuf/utae-paps)) of Garnot & Landrieu (2021) — a multi-scale U-Net whose bottleneck L-TAE attention maps also weight every decoder skip connection. Validated against the official implementation with identical weights and input: **bit-for-bit exact match** (`max abs diff = 0.0`), including the padded-sequence (irregular sampling) code path.
 *   **TempCNN**: Temporal Convolutional Neural Networks (Pelletier *et al.*), a highly efficient 1D CNN for pixel-based time-series classification.
 *   **Siamese Change Detector**: A bi-temporal architecture (Daudt *et al.*) designed to take two images (pre and post-event) and output a change probability map. Uses contrastive representation learning.
 *   **GeoFoundationViT**: A Vision Transformer wrapper designed to load weights from large geospatial foundation models — such as IBM/NASA's Prithvi (Jakubik *et al.*) or SatMAE-style Masked Auto-Encoders (Cong *et al.*) — for downstream tasks.
@@ -58,12 +58,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 ```
 
-**UTAE** (currently a simplified stand-in - see [Section 1](#1-available-architectures)) expects a 5D tensor of shape `(Batch, Time, Bands, Height, Width)` plus a tensor of acquisition dates:
+**UTAE** expects a 5D tensor of shape `(Batch, Time, Bands, Height, Width)` plus a `(Batch, Time)` tensor of acquisition dates for its positional encoding:
 
 ```python
 from cdts.ai import UTAE
 
-model = UTAE(in_channels=6, num_classes=10)
+model = UTAE(input_dim=6, out_conv=[32, 10])
 model = model.to(device)
 ```
 
@@ -129,10 +129,10 @@ model.eval()
 
 # Example new data: 1 batch, 12 time steps, 6 bands, 256x256 patch
 new_data = torch.rand(1, 12, 6, 256, 256).to(device)
-new_dates = torch.arange(12, dtype=torch.float32).to(device)
+new_dates = torch.arange(12, dtype=torch.float32).unsqueeze(0).to(device)  # (Batch, Time)
 
 with torch.no_grad():
-    predictions = model(new_data, new_dates)  # UTAE.forward(x, dates) - LightTAE.forward(x) takes no dates
+    predictions = model(new_data, batch_positions=new_dates)  # UTAE.forward(x, batch_positions) - LightTAE.forward(x) takes no dates
     
     # Get the predicted class for each pixel
     predicted_classes = torch.argmax(predictions, dim=1)
