@@ -963,6 +963,8 @@ final_classification = np.where(dist_map < 15.0, classes_map, -1)
 
 A Batch Self-Organizing Map accelerated by C++/OpenMP/Eigen, for unsupervised clustering and dimensionality reduction of time-series/spectral features (e.g. discovering trajectory clusters without labeled training data, or filtering noisy training samples before supervised classification).
 
+**Note on cross-validation against `sits`:** `sits_som_map()`'s default `mode="online"` is algorithmically different from this Batch SOM (sequential, one-sample-at-a-time updates vs. batch weighted-average updates), so identical codebooks/BMU assignments aren't possible even with matched hyperparameters. `sits_som_map(mode="batch", distance="euclidean")` *is* the directly comparable algorithm (both wrap a Euclidean batch SOM), and was used for a statistical comparison instead: on the same synthetic labeled dataset (4 Gaussian blobs, 6 features), both reach **100% neuron-majority-label purity** on well-separated clusters, and **~62-65% purity with comparable quantization error** (same order of magnitude) on deliberately overlapping clusters — i.e. `cdts`'s SOM performs comparably to `sits`'s on the same clustering task, as expected from two independent batch-SOM implementations, without claiming numerically identical output.
+
 **Constructor Parameters**
 
 | Argument | Type | Default | Description |
@@ -1034,17 +1036,16 @@ dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
 
 ### `cdts.ai.UTAE`
 
-U-Net with Temporal Attention Encoder. A deep learning architecture specialized for multi-temporal, multi-spectral satellite imagery segmentation. Ideal for processing variable-length time-series with missing data (clouds).
+U-Net with Temporal Attention Encoder, for multi-temporal, multi-spectral satellite imagery *segmentation*.
+
+> **Not yet paper-faithful.** This is currently a simplified stand-in (single conv encoder/decoder pair + a lightweight custom temporal fusion block), not a full port of Garnot & Landrieu (2021), "Panoptic Segmentation of Satellite Image Time Series with Convolutional Temporal Attention Networks" (U-TAE's real multi-scale U-Net encoder with temporally-pooled skip connections). A paper-faithful rewrite is planned; there is no `sits` equivalent to cross-validate against, since `sits`'s temporal attention models (`LTAE`/`LightTAE` below) operate per-pixel rather than on full spatial feature maps.
 
 **Parameters**
 
 | Argument | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
-| `input_dim` | `int` | **Required** | Number of input spectral bands. |
-| `encoder_widths` | `list` | `[64, 64, 64, 128]` | Channel dimensions for each layer of the encoder. |
-| `decoder_widths` | `list` | `[32, 32, 64, 128]` | Channel dimensions for the decoder. |
-| `out_conv` | `list` | `[32, 2]` | Dimensions of the final output layers (last item is number of classes). |
-| `agg_mode` | `str` | `'att_group'`| Strategy for temporal aggregation. |
+| `in_channels` | `int` | **Required** | Number of input spectral bands. |
+| `num_classes`| `int` | `5` | Number of output segmentation classes. |
 
 **Usage Example**
 
@@ -1052,15 +1053,68 @@ U-Net with Temporal Attention Encoder. A deep learning architecture specialized 
 import torch
 from cdts.ai import UTAE
 
-# Initialize a UTAE for 10-class segmentation with 4 spectral bands
-model = UTAE(
-    input_dim=4,
-    out_conv=[32, 10]
-)
+model = UTAE(in_channels=6, num_classes=10)
 
-# Dummy Data: (Batch, Time, Bands, H, W)
-X = torch.randn(2, 12, 4, 128, 128)
-predictions = model(X) # Output shape: (2, 10, 128, 128)
+# Dummy Data: (Batch, Time, Bands, H, W), plus a per-timestep dates tensor
+X = torch.randn(2, 12, 6, 128, 128)
+dates = torch.arange(12, dtype=torch.float32)
+predictions = model(X, dates) # Output shape: (2, 10, 128, 128)
+```
+
+### `cdts.ai.LTAE`
+
+Lightweight Temporal Attention Encoder (L-TAE) — the reusable temporal-fusion block from Garnot & Landrieu (2020), [doi:10.48550/arXiv.2007.00586](https://arxiv.org/abs/2007.00586). Ported layer-for-layer from `sits`'s `.torch_light_temporal_attention_encoder` (`R/api_torch_psetae.R`), so trained weights are portable between the two: `LayerNorm -> Conv1d(1x1) -> LayerNorm -> sinusoidal positional encoding -> multi-head attention with a single learned "master query" per head (not computed from the input, unlike standard self-attention) -> MLP decoder -> Dropout -> LayerNorm`. Takes a `(batch, seq_len, in_channels)` sequence and returns a `(batch, n_neurons[-1])` fused embedding.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `in_channels` | `int` | `128` | Input feature dimension per timestep. |
+| `day_offsets` | `list[float]` | **Required** | The fixed timeline (day counts from the first observation) this instance is built for — like `n_times` in `TempCNN`, an `LTAE` instance is tied to one sequence length for its lifetime (matches `sits`'s `timeline` parameter). |
+| `n_heads` | `int` | `16` | Number of attention heads. |
+| `n_neurons` | `tuple[int,...]` | `(256, 128)` | Width of the internal 1x1 conv projection (`n_neurons[0]`, the attention `d_model`) followed by the decoder MLP's hidden dims. |
+| `dropout_rate` | `float` | `0.2` | Dropout rate before the final `LayerNorm`. |
+
+**Usage Example**
+
+```python
+from cdts.ai import LTAE
+
+day_offsets = list(range(0, 36 * 16, 16))  # 36 steps, 16-day composites
+ltae = LTAE(in_channels=128, day_offsets=day_offsets)
+
+x = torch.randn(4, 36, 128)  # (batch, seq_len, in_channels)
+fused = ltae(x)  # (4, 128)
+```
+
+### `cdts.ai.LightTAE`
+
+The full pixel-level time-series classifier built around `LTAE`: `PixelSpatialEncoder (per-pixel MLP) -> LTAE -> MLP decoder to class logits`. Ported layer-for-layer from `sits`'s `sits_lighttae()` (`R/sits_lighttae.R`) — this is the model directly comparable to a trained `sits_lighttae()` output, unlike the bare `LTAE` block above. Verified against `sits`: building both models with identical weights and the same input reproduces `sits`'s output within float32 tolerance (max abs diff ~1.2e-7).
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `n_bands` | `int` | **Required** | Number of spectral bands per pixel. |
+| `day_offsets` | `list[float]` | **Required** | Fixed timeline (day counts from the first observation) — see `LTAE` above. |
+| `n_labels` | `int` | **Required** | Number of output classes. |
+| `layers_spatial_encoder` | `tuple[int,...]` | `(32, 64, 128)` | Widths of the per-pixel MLP spatial encoder. |
+| `n_heads` | `int` | `16` | Attention heads, passed through to `LTAE`. |
+| `n_neurons` | `tuple[int,...]` | `(256, 128)` | Passed through to `LTAE`. |
+| `dropout_rate` | `float` | `0.2` | Passed through to `LTAE`. |
+| `dim_input_decoder` | `int` | `128` | Input width of the decoder MLP (must match `n_neurons[-1]`). |
+| `dim_layers_decoder` | `tuple[int,...]` | `(64, 32)` | Decoder MLP hidden dims; `n_labels` is appended as the final layer automatically. |
+
+**Usage Example**
+
+```python
+from cdts.ai import LightTAE
+
+day_offsets = list(range(0, 36 * 16, 16))
+model = LightTAE(n_bands=6, day_offsets=day_offsets, n_labels=5)
+
+x = torch.randn(8, 36, 6)  # (batch, n_times, n_bands)
+logits = model(x)  # (8, 5)
 ```
 
 ### `cdts.ai.TempCNN`

@@ -6,7 +6,8 @@ While traditional algorithms like LandTrendr and CCDC rely on pixel-based statis
 
 The module exposes several advanced architectures ready to be trained or fine-tuned (see [References](#references) for the original papers behind each):
 
-*   **UTAE & LTAE**: U-Net with Temporal Attention Encoder (UTAE) and Lightweight Temporal Attention Encoder (LTAE), from Garnot & Landrieu. Excellent for processing irregularly sampled time-series (handling cloud gaps inherently) while maintaining spatial context.
+*   **LTAE & LightTAE**: Lightweight Temporal Attention Encoder (Garnot & Landrieu, 2020) — `LTAE` is the reusable temporal-fusion block (learned "master query" multi-head attention over a sequence), `LightTAE` is the full pixel time-series classifier (spatial MLP encoder -> `LTAE` -> MLP decoder). Ported layer-for-layer from the R package [`sits`](https://github.com/e-sensing/sits)'s `sits_lighttae()` so trained weights are portable between the two — validated to match `sits`'s output within float32 tolerance.
+*   **UTAE**: U-Net with Temporal Attention Encoder, for spatio-temporal *segmentation* (not just per-pixel classification). **Currently a simplified stand-in**, not yet a faithful port of Garnot & Landrieu (2021) — it uses its own lightweight internal fusion block rather than U-TAE's multi-scale U-Net + temporally-pooled skip connections. A paper-faithful rewrite is planned; there is no `sits` equivalent to validate it against (`sits`'s temporal attention models operate per-pixel, not on full spatial feature maps).
 *   **TempCNN**: Temporal Convolutional Neural Networks (Pelletier *et al.*), a highly efficient 1D CNN for pixel-based time-series classification.
 *   **Siamese Change Detector**: A bi-temporal architecture (Daudt *et al.*) designed to take two images (pre and post-event) and output a change probability map. Uses contrastive representation learning.
 *   **GeoFoundationViT**: A Vision Transformer wrapper designed to load weights from large geospatial foundation models — such as IBM/NASA's Prithvi (Jakubik *et al.*) or SatMAE-style Masked Auto-Encoders (Cong *et al.*) — for downstream tasks.
@@ -40,29 +41,29 @@ dataloader = DataLoader(
 
 ## 3. Instantiating a Model
 
-Let's instantiate the **UTAE** (U-Net with Temporal Attention Encoder). This model expects a 5D tensor of shape `(Batch, Time, Bands, Height, Width)` and an optional tensor of acquisition dates to calculate temporal positional encoding.
+**LightTAE** is the model directly comparable to `sits_lighttae()`: it expects a 3D tensor of shape `(Batch, Time, Bands)` (per-pixel time series) and a fixed `day_offsets` timeline (day counts from the first observation) at construction time.
+
+```python
+from cdts.ai import LightTAE
+
+day_offsets = list(range(0, 36 * 16, 16))  # 36 steps, 16-day composites
+
+model = LightTAE(
+    n_bands=6,
+    day_offsets=day_offsets,
+    n_labels=10,
+)
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = model.to(device)
+```
+
+**UTAE** (currently a simplified stand-in - see [Section 1](#1-available-architectures)) expects a 5D tensor of shape `(Batch, Time, Bands, Height, Width)` plus a tensor of acquisition dates:
 
 ```python
 from cdts.ai import UTAE
 
-# Initialize UTAE for a 10-class segmentation problem with 6 input bands
-model = UTAE(
-    input_dim=6,
-    encoder_widths=[64, 64, 64, 128],
-    decoder_widths=[32, 32, 64, 128],
-    out_conv=[32, 10], # Final output layer for 10 classes
-    str_conv_k=4,
-    str_conv_s=2,
-    str_conv_p=1,
-    agg_mode="att_group", 
-    encoder_norm="group",
-    n_head=16, 
-    d_model=256, 
-    d_k=4
-)
-
-# Move model to GPU if available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = UTAE(in_channels=6, num_classes=10)
 model = model.to(device)
 ```
 
@@ -128,9 +129,10 @@ model.eval()
 
 # Example new data: 1 batch, 12 time steps, 6 bands, 256x256 patch
 new_data = torch.rand(1, 12, 6, 256, 256).to(device)
+new_dates = torch.arange(12, dtype=torch.float32).to(device)
 
 with torch.no_grad():
-    predictions = model(new_data)
+    predictions = model(new_data, new_dates)  # UTAE.forward(x, dates) - LightTAE.forward(x) takes no dates
     
     # Get the predicted class for each pixel
     predicted_classes = torch.argmax(predictions, dim=1)
