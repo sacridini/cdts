@@ -911,6 +911,37 @@ disturbed = out[5] == 1.0        # 'has_break' row
 break_idx = out[1]               # 'breakpoint_idx' row
 ```
 
+### `cdts.bfast.run_bfast_lite_dask`
+
+Pixel-wise single-pass multiple-breakpoint detection (`bfastlite`), ported from the R package [`bfast`](https://github.com/bfast2/bfast) and its [`strucchangeRcpp`](https://github.com/bfast2/strucchangeRcpp) dependency's `breakpoints()` (the Bai & Perron, 2003 optimal multiple-breakpoint dynamic program, via Brown-Durbin-Evans recursive residuals) to a C++/OpenMP backend, with the same Dask distribution strategy as `run_bfast_monitor_dask`. Unlike `run_bfast_monitor_dask` (single break/no-break, near-real-time), this retrospectively segments the *whole* series into an optimal number of pieces (chosen by minimizing the LWZ model-selection criterion, matching bfastlite's own default `breaks="LWZ"`). See the [BFAST Lite tutorial](tutorials/bfast_lite.md) for the full method background, scope (no STL — the classic iterative `bfast()` isn't ported), and validation details. Also available as `DataArray.cdts.run_bfast_lite(...)`.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `arr` | `dask.array.Array` | **Required** | Input array, shape `(time, y, x)`, same synthetic/regular time convention as `run_bfast_monitor_dask`. |
+| `start_time` | `float` | **Required** | The series' start time (e.g. `2010.0`). |
+| `frequency` | `int` | **Required** | Observations per year. |
+| `order` | `int` | `3` | Harmonic order for the seasonal regressors. |
+| `h` | `float` | `0.15` | Minimum segment size as a fraction of the series length. Unlike `run_bfast_monitor_dask`'s `h`, this is a free fraction (no critical-value-table grid restriction). |
+| `max_breaks_output` | `int` | `5` | Maximum number of breakpoints to report per pixel (also caps the search depth attempted, alongside the theoretical bound). |
+| `min_valid` | `int` | `20` | Pixels with fewer non-NaN observations than this are returned as invalid. |
+| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. `-1` reserves one core (`max(1, cpu_count - 1)`), so the host stays responsive. |
+
+**Output**: array of shape `(5 + max_breaks_output, y, x)` — rows `n_breaks, rss, lwz, n_valid, valid, breakpoint_idx_1, ..., breakpoint_idx_{max_breaks_output}` (see `cdts.bfast.bfl_metric_names(max_breaks_output)`). Breakpoint slots past `n_breaks` are `NaN`.
+
+**Usage Example**
+
+```python
+from cdts.bfast import run_bfast_lite_dask
+
+# arr: dask.array.Array, shape (time, y, x), 16-day composites from 2010
+out = run_bfast_lite_dask(arr, start_time=2010.0, frequency=23).compute()
+
+n_breaks = out[0]
+first_break_idx = out[5]  # NaN where n_breaks == 0
+```
+
 ## Time-Series Classification (TWDTW)
 
 ### `cdts.twdtw.run_twdtw`

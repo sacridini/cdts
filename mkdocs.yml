@@ -24,7 +24,7 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
-    
+
     # Palette toggle for light mode
     - scheme: default
       primary: teal
@@ -64,6 +64,7 @@ nav:
       - Phenology Extraction: tutorials/phenology.md
       - Mann-Kendall Trend Test: tutorials/mann_kendall.md
       - BFAST Monitor: tutorials/bfast_monitor.md
+      - BFAST Lite: tutorials/bfast_lite.md
       - SOM (Self-Organizing Maps): tutorials/som.md
       - STAC & ARD Integration: tutorials/stac-downloads.md
       - AI & Deep Learning: tutorials/ai.md

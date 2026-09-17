@@ -9,6 +9,7 @@
 #include "phenology.h"
 #include "mann_kendall.h"
 #include "bfast_monitor.h"
+#include "bfast_lite.h"
 
 namespace py = pybind11;
 
@@ -208,4 +209,27 @@ PYBIND11_MODULE(_core, m) {
            py::arg("frequency"), py::arg("order") = 3, py::arg("h") = 0.25,
            py::arg("period") = 10, py::arg("alpha") = 0.05, py::arg("min_valid") = 10,
            py::arg("n_jobs") = -1);
+
+    // bfastlite sub-module
+    py::module_ bfl = m.def_submodule("bfastlite", "bfastlite: single-pass multiple-breakpoint detection");
+
+    py::class_<cdts::bfastlite::BFLResult>(bfl, "BFLResult")
+        .def(py::init<>())
+        .def_readwrite("n_breaks", &cdts::bfastlite::BFLResult::n_breaks)
+        .def_readwrite("rss", &cdts::bfastlite::BFLResult::rss)
+        .def_readwrite("lwz", &cdts::bfastlite::BFLResult::lwz)
+        .def_readwrite("n_valid", &cdts::bfastlite::BFLResult::n_valid)
+        .def_readwrite("valid", &cdts::bfastlite::BFLResult::valid)
+        .def_readwrite("breakpoint_idx", &cdts::bfastlite::BFLResult::breakpoint_idx);
+
+    bfl.def("bfast_lite", &cdts::bfastlite::bfast_lite,
+           "Run bfastlite on a single pixel time series (unit-testing helper)",
+           py::arg("y"), py::arg("start_time"), py::arg("frequency"),
+           py::arg("order") = 3, py::arg("h") = 0.15, py::arg("max_breaks_output") = 5);
+
+    bfl.def("fit_bfast_lite_batch", &cdts::bfastlite::fit_bfast_lite_batch,
+           "Run bfastlite on a batch of pixels with OpenMP",
+           py::arg("values_array"), py::arg("start_time"), py::arg("frequency"),
+           py::arg("order") = 3, py::arg("h") = 0.15, py::arg("max_breaks_output") = 5,
+           py::arg("min_valid") = 20, py::arg("n_jobs") = -1);
 }

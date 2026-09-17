@@ -3,6 +3,7 @@ import dask.array as da
 from typing import Optional
 
 from cdts._core.bfastmonitor import fit_bfast_monitor_batch
+from cdts._core.bfastlite import fit_bfast_lite_batch
 
 # breakpoint, breakpoint_idx, magnitude, sigma, n_history, has_break, valid
 N_BFM_METRICS = 7
@@ -109,4 +110,96 @@ def run_bfast_monitor_dask(
         drop_axis=[0],
         new_axis=[0],
         chunks=(N_BFM_METRICS, arr.chunks[1], arr.chunks[2]),
+    )
+
+
+def bfl_metric_names(max_breaks_output: int) -> "list[str]":
+    """Row names for run_bfast_lite_dask's output, given max_breaks_output."""
+    return ["n_breaks", "rss", "lwz", "n_valid", "valid"] + [
+        f"breakpoint_idx_{i + 1}" for i in range(max_breaks_output)
+    ]
+
+
+def run_bfast_lite_dask(
+    arr: da.Array,
+    start_time: float,
+    frequency: int,
+    order: int = 3,
+    h: float = 0.15,
+    max_breaks_output: int = 5,
+    min_valid: int = 20,
+    n_jobs: int = -1,
+) -> da.Array:
+    """
+    Pixel-wise bfastlite (single-pass multiple-breakpoint detection) across
+    a Dask array's time axis, ported from the R package `bfast`'s
+    `bfastlite()` and its `strucchangeRcpp` dependency's `breakpoints()` -
+    the Bai & Perron (2003) optimal multiple-breakpoint dynamic program, via
+    Brown-Durbin-Evans recursive residuals for an O(n^2) (rather than O(n^3))
+    segment-RSS table - to a C++/OpenMP backend, with the same Dask
+    map_blocks strategy as run_bfast_monitor_dask.
+
+    Unlike bfastmonitor (single break/no-break, near-real-time), bfastlite
+    retrospectively segments the *whole* series into an optimal number of
+    pieces (chosen by minimizing the LWZ - Liu, Wu & Zidek, 1997 -
+    model-selection criterion, matching bfastlite's own default
+    `breaks="LWZ"`), fitting a trend + harmonic model (same design matrix as
+    run_bfast_monitor_dask) within each piece. No STL decomposition is
+    needed (unlike the classic iterative `bfast()`, not yet ported).
+
+    Input array shape: (time, y, x), one equally-spaced observation per
+    `1/frequency` - same synthetic/regular time convention as
+    run_bfast_monitor_dask (matches R's `ts`/`time()` semantics).
+
+    Because the number of breaks varies per pixel, the output caps how many
+    breakpoints are reported via `max_breaks_output` (extra slots are
+    NaN-padded; pixels needing more are simply not fully described - raise
+    `max_breaks_output` if that matters for your data). Output row names:
+    `cdts.bfast.bfl_metric_names(max_breaks_output)`.
+
+    start_time: the series' start time (e.g. 2000.0), same convention as
+    run_bfast_monitor_dask.
+
+    h: minimum segment size as a fraction of the series length (default
+    0.15, matching bfastlite's own default). Unlike run_bfast_monitor_dask's
+    `h`, this is a free fraction - no critical-value-table grid restriction.
+
+    max_breaks_output: maximum number of breakpoints to report per pixel
+    (also caps the search depth actually attempted, alongside the
+    theoretical `ceil(n/h_obs) - 2` bound).
+
+    min_valid: pixels with fewer non-NaN observations than this are
+    returned as invalid (`valid=0`, all other metrics NaN).
+    """
+    def _block(block):
+        n_metrics = 5 + max_breaks_output
+        if block.size == 0:
+            return np.full((n_metrics, block.shape[1], block.shape[2]), np.nan, dtype=np.float32)
+
+        time_steps, rows, cols = block.shape
+        pixels = rows * cols
+
+        values_2d = np.ascontiguousarray(block.reshape(time_steps, pixels).T)
+
+        out = fit_bfast_lite_batch(
+            values_array=values_2d,
+            start_time=start_time,
+            frequency=frequency,
+            order=order,
+            h=h,
+            max_breaks_output=max_breaks_output,
+            min_valid=min_valid,
+            n_jobs=n_jobs,
+        )  # (5+max_breaks_output, pixels)
+
+        return out.reshape(n_metrics, rows, cols).astype(np.float32)
+
+    n_metrics = 5 + max_breaks_output
+    return da.map_blocks(
+        _block,
+        arr,
+        dtype=np.float32,
+        drop_axis=[0],
+        new_axis=[0],
+        chunks=(n_metrics, arr.chunks[1], arr.chunks[2]),
     )

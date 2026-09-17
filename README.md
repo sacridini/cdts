@@ -25,7 +25,7 @@ Built with highly optimized C++ extensions (OpenMP and Eigen SIMD) bound to Pyth
   - **Batch SOM** (Self-Organizing Maps): Unsupervised multi-threaded clustering of massive spectral-temporal arrays.
   - **CCDC / COLD**: Continuous Change Detection and Classification via robust harmonic modeling.
   - **LandTrendr**: Trajectory-based disturbance and recovery detection.
-  - **BFAST Monitor**: Near-real-time structural change monitoring (ported from R's `bfast`/`strucchangeRcpp`).
+  - **BFAST Monitor & BFAST Lite**: Near-real-time monitoring and single-pass multiple-breakpoint detection (ported from R's `bfast`/`strucchangeRcpp`).
 - **Deep Learning (`cdts.ai`):** Pre-built PyTorch architectures tailored for spatio-temporal Earth Observation (U-TAE, TempCNN, Siamese Networks).
 
 ---
@@ -267,6 +267,23 @@ result = annual_ndvi.cdts.run_bfast_monitor(
 result = result.compute()
 disturbed = result.sel(metric="has_break") == 1.0
 break_time = result.sel(metric="breakpoint")  # fractional-year time of the first detected break
+```
+
+## Change Detection (BFAST Lite)
+
+Pixel-wise, single-pass multiple-breakpoint detection, ported from the R package `bfast`'s `bfastlite()` and its `strucchangeRcpp` dependency's `breakpoints()` (the Bai & Perron optimal multiple-breakpoint dynamic program) to a C++/OpenMP backend. Unlike `bfastmonitor` above (single break, near-real-time), this retrospectively segments the *whole* series into the optimal number of pieces (via the LWZ model-selection criterion) — no STL decomposition needed. Verified exactly against R's `bfastlite()` across 6 scenarios (~3.1x faster single-threaded than R; `n_jobs=-1` adds a further ~5.5x on top of that by reserving one CPU core and parallelizing across the rest — a smaller gap than `bfastmonitor`'s, since this workload is genuinely CPU-bound dynamic programming on both sides, not dominated by R's per-call overhead). See the [BFAST Lite tutorial](https://sacridini.github.io/cdts/tutorials/bfast_lite/) for the full method background, scope, and validation details (including two real numerical bugs caught and fixed along the way).
+
+```python
+# annual_ndvi: (time, y, x) DataArray, 16-day composites (frequency=23/year) from 2010
+result = annual_ndvi.cdts.run_bfast_lite(
+    start_time=2010.0,
+    frequency=23,
+    max_breaks_output=5,
+)
+
+result = result.compute()
+n_breaks = result.sel(metric="n_breaks")
+first_break_idx = result.sel(metric="breakpoint_idx_1")  # NaN where n_breaks == 0
 ```
 
 ## Time-Series Classification (TWDTW)

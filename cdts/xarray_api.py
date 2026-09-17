@@ -252,6 +252,40 @@ weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
             }
         )
 
+    def run_bfast_lite(self, start_time: float, frequency: int, order: int = 3, h: float = 0.15,
+                        max_breaks_output: int = 5, min_valid: int = 20, n_jobs: int = -1) -> xr.DataArray:
+        """
+        Single-pass multiple-breakpoint detection (bfastlite) across the
+        time dimension. Assumes DataArray shape: (time, y, x). Returns a
+        DataArray with dim "metric": n_breaks, rss, lwz, n_valid, valid,
+        breakpoint_idx_1..breakpoint_idx_{max_breaks_output} (see
+        cdts.bfast.bfl_metric_names).
+
+        See cdts.bfast.run_bfast_lite_dask for the full parameter
+        documentation and scope notes (no STL decomposition; the classic
+        iterative bfast() is not yet implemented).
+        """
+        from cdts.bfast import run_bfast_lite_dask, bfl_metric_names
+
+        arr = self._obj.data
+        if not isinstance(arr, da.Array):
+            arr = da.from_array(arr)
+
+        out = run_bfast_lite_dask(
+            arr, start_time=start_time, frequency=frequency, order=order, h=h,
+            max_breaks_output=max_breaks_output, min_valid=min_valid, n_jobs=n_jobs,
+        )
+
+        return xr.DataArray(
+            out,
+            dims=["metric", "y", "x"],
+            coords={
+                "metric": bfl_metric_names(max_breaks_output),
+                "y": self._obj.coords.get("y"),
+                "x": self._obj.coords.get("x"),
+            }
+        )
+
     def to_zarr_optimized(self, store_path: str, chunk_size: dict = {"y": 512, "x": 512}) -> None:
         """
         Optimizes and saves the DataArray directly to a Zarr store, ideal for cloud storage (S3/GCS) 
