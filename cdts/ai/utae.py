@@ -602,7 +602,7 @@ class UTAE(nn.Module):
     identical weights (via `load_state_dict`, state_dict keys match by
     name with no translation table) and the same input reproduces its
     output bit-for-bit exactly - including the padded-sequence code path
-    (`pad_value`/`pad_mask`). See the [AI tutorial](../../docs/tutorials/ai.md)
+    (`pad_value`/`pad_mask`). See the [UTAE tutorial](../../docs/tutorials/utae.md)
     for the validation methodology (this cross-check isn't part of the
     pytest suite, since it needs the reference repo cloned locally, not a
     pip dependency).

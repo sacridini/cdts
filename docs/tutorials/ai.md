@@ -2,146 +2,83 @@
 
 While traditional algorithms like LandTrendr and CCDC rely on pixel-based statistical modeling, modern Remote Sensing increasingly leverages Deep Learning for spatial-temporal representation. The `cdts.ai` module provides native PyTorch implementations of state-of-the-art neural network architectures specifically designed for Earth Observation and Change Detection.
 
+This page is the entry point: it explains what's available, how to prepare data and loss functions shared across every model, and points you to a dedicated, complete tutorial for each architecture.
+
 ## 1. Available Architectures
 
-The module exposes several advanced architectures ready to be trained or fine-tuned (see [References](#references) for the original papers behind each):
+| Model | Task | Input | Dedicated Tutorial | Cross-validated against |
+|---|---|---|---|---|
+| **LTAE & LightTAE** | Per-pixel time series classification | `(Batch, Time, Bands)` | [LTAE & LightTAE](ltae.md) | `sits_lighttae()` (R) |
+| **TempCNN** | Per-pixel time series classification | `(Batch, Bands, Time)` | [TempCNN](tempcnn.md) | `sits_tempcnn()` (R) |
+| **UTAE** | Spatio-temporal segmentation (whole-patch class map) | `(Batch, Time, Bands, H, W)` | [UTAE](utae.md) | Official [VSainteuf/utae-paps](https://github.com/VSainteuf/utae-paps) reference (bit-for-bit exact) |
+| **Siamese Change Detector** | Bi-temporal change detection (two dates) | Two `(Batch, Bands, H, W)` images | [Siamese Change Detector](siamese.md) | Independent implementation (not a line-for-line port) |
+| **GeoFoundationViT** | Transfer learning from pretrained geospatial foundation models | Backbone-dependent | [GeoFoundationViT](geo_foundation_vit.md) | Inherits correctness from the loaded backbone |
 
-*   **LTAE & LightTAE**: Lightweight Temporal Attention Encoder (Garnot & Landrieu, 2020) — `LTAE` is the reusable temporal-fusion block (learned "master query" multi-head attention over a sequence), `LightTAE` is the full pixel time-series classifier (spatial MLP encoder -> `LTAE` -> MLP decoder). Ported layer-for-layer from the R package [`sits`](https://github.com/e-sensing/sits)'s `sits_lighttae()` so trained weights are portable between the two — validated to match `sits`'s output within float32 tolerance.
-*   **UTAE**: U-Net with Temporal Attention Encoder, for spatio-temporal *segmentation* (not just per-pixel classification, unlike LightTAE). Ported layer-for-layer from the official reference implementation ([VSainteuf/utae-paps](https://github.com/VSainteuf/utae-paps)) of Garnot & Landrieu (2021) — a multi-scale U-Net whose bottleneck L-TAE attention maps also weight every decoder skip connection. Validated against the official implementation with identical weights and input: **bit-for-bit exact match** (`max abs diff = 0.0`), including the padded-sequence (irregular sampling) code path.
-*   **TempCNN**: Temporal Convolutional Neural Networks (Pelletier *et al.*), a highly efficient 1D CNN for pixel-based time-series classification.
-*   **Siamese Change Detector**: A bi-temporal architecture (Daudt *et al.*) designed to take two images (pre and post-event) and output a change probability map. Uses contrastive representation learning.
-*   **GeoFoundationViT**: A Vision Transformer wrapper designed to load weights from large geospatial foundation models — such as IBM/NASA's Prithvi (Jakubik *et al.*) or SatMAE-style Masked Auto-Encoders (Cong *et al.*) — for downstream tasks.
+**Choosing a model:**
+
+- Have a long, well-sampled per-pixel time series and want the best accuracy? Try [LightTAE](ltae.md) first, and [TempCNN](tempcnn.md) as a faster/simpler baseline.
+- Need a class map over a spatial patch, not just individual pixels? Use [UTAE](utae.md).
+- Have exactly two dates and want a change map between them? Use the [Siamese Change Detector](siamese.md).
+- Have very little labeled data for your task? Consider [GeoFoundationViT](geo_foundation_vit.md) to transfer-learn from a large pretrained backbone.
 
 ## 2. Preparing the Dataset
 
-To feed multi-temporal, multi-spectral satellite imagery into these models, we provide the `STACCubeDataset` wrapper. This dataset class is designed to lazily load patches from data cubes.
+To feed multi-temporal, multi-spectral satellite imagery into these models, `cdts.ai` provides the `STACCubeDataset` wrapper. This dataset class lazily loads spatial patches from a large `xarray`/Dask-backed data cube, only triggering computation for the exact patch requested — so you can train on cubes far larger than memory.
 
 ```python
 import torch
 from torch.utils.data import DataLoader
 from cdts.ai import STACCubeDataset
 
-# Define the dataset using directories of GeoTIFF patches
 # X_dir contains the time-series patches of shape (Time, Bands, Height, Width)
 # y_dir contains the corresponding ground-truth masks
 dataset = STACCubeDataset(
     X_dir="./data/train/images",
     y_dir="./data/train/labels",
-    transform=None # Add torchvision or albumentations transforms here
+    transform=None  # Add torchvision or albumentations transforms here
 )
 
-# Create a PyTorch DataLoader
 dataloader = DataLoader(
-    dataset, 
-    batch_size=16, 
-    shuffle=True, 
+    dataset,
+    batch_size=16,
+    shuffle=True,
     num_workers=4
 )
 ```
 
-## 3. Instantiating a Model
+`STACCubeDataset` also exposes `.dates` — a tensor of day-of-year values derived from the cube's `time` coordinate — which several models (`UTAE` via `batch_positions`, `LightTAE`/`LTAE` via the fixed `day_offsets` passed at construction) need for their positional encodings. See each model's own tutorial for exactly how it expects dates to be shaped and passed in.
 
-**LightTAE** is the model directly comparable to `sits_lighttae()`: it expects a 3D tensor of shape `(Batch, Time, Bands)` (per-pixel time series) and a fixed `day_offsets` timeline (day counts from the first observation) at construction time.
+## 3. Loss Functions
 
-```python
-from cdts.ai import LightTAE
-
-day_offsets = list(range(0, 36 * 16, 16))  # 36 steps, 16-day composites
-
-model = LightTAE(
-    n_bands=6,
-    day_offsets=day_offsets,
-    n_labels=10,
-)
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = model.to(device)
-```
-
-**UTAE** expects a 5D tensor of shape `(Batch, Time, Bands, Height, Width)` plus a `(Batch, Time)` tensor of acquisition dates for its positional encoding:
+Imbalanced classes are very common in change detection and land-cover classification (where the class of interest is often a small minority of pixels). `cdts.ai.losses` provides three specialized loss functions used throughout the per-model tutorials:
 
 ```python
-from cdts.ai import UTAE
+from cdts.ai.losses import FocalLoss, TverskyLoss, ContrastiveSiameseLoss
 
-model = UTAE(input_dim=6, out_conv=[32, 10])
-model = model.to(device)
-```
-
-## 4. Loss Functions
-
-Imbalanced classes are very common in change detection (where "change" is a rare event compared to "no-change"). `cdts.ai.losses` provides specialized functions to handle this.
-
-```python
-from cdts.ai.losses import FocalLoss, TverskyLoss
-
-# Focal Loss (Lin et al., 2017) heavily penalizes hard-to-classify examples (like rare change pixels)
+# Down-weights easy examples, focuses training on hard-to-classify pixels
 criterion = FocalLoss(alpha=0.25, gamma=2.0)
 
-# Tversky Loss (Salehi et al., 2017) allows tuning the penalty for False Positives vs False Negatives
-# criterion = TverskyLoss(alpha=0.7, beta=0.3)
+# Tunable trade-off between False Positives (alpha) and False Negatives (beta);
+# setting beta > alpha penalizes missed changes more than false alarms
+criterion = TverskyLoss(alpha=0.3, beta=0.7)
+
+# For metric-learning style training of twin encoders (see the Siamese tutorial)
+criterion = ContrastiveSiameseLoss(margin=2.0)
 ```
 
-## 5. Training Loop Example
+`FocalLoss` and `TverskyLoss` apply to any model's classifier logits (`(B, C, H, W)` or `(B, C)` vs. integer labels). `ContrastiveSiameseLoss` is specific to twin-encoder architectures — see the [Siamese Change Detector tutorial](siamese.md).
 
-A standard PyTorch training loop seamlessly integrates with our models. 
+## 4. Next Steps
 
-```python
-import torch.optim as optim
+Each architecture has its own complete, standalone tutorial — covering how it works internally, when to use it, how to shape your data for it, model instantiation, a full training loop, inference, and validation methodology:
 
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+- [LTAE & LightTAE](ltae.md)
+- [UTAE](utae.md)
+- [TempCNN](tempcnn.md)
+- [Siamese Change Detector](siamese.md)
+- [GeoFoundationViT](geo_foundation_vit.md)
 
-num_epochs = 10
-
-for epoch in range(num_epochs):
-    model.train()
-    epoch_loss = 0.0
-    
-    for batch_idx, (images, labels) in enumerate(dataloader):
-        images = images.to(device)
-        labels = labels.to(device)
-        
-        # Depending on the model, dates might be required. 
-        # If your dataset provides dates, pass them: dates=dates
-        
-        optimizer.zero_grad()
-        
-        # Forward pass
-        outputs = model(images)
-        
-        # Compute loss
-        loss = criterion(outputs, labels)
-        
-        # Backward pass and optimization
-        loss.backward()
-        optimizer.step()
-        
-        epoch_loss += loss.item()
-        
-    print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {epoch_loss/len(dataloader):.4f}")
-```
-
-## 6. Model Inference
-
-After training, you can run inference on a new time-series stack.
-
-```python
-model.eval()
-
-# Example new data: 1 batch, 12 time steps, 6 bands, 256x256 patch
-new_data = torch.rand(1, 12, 6, 256, 256).to(device)
-new_dates = torch.arange(12, dtype=torch.float32).unsqueeze(0).to(device)  # (Batch, Time)
-
-with torch.no_grad():
-    predictions = model(new_data, batch_positions=new_dates)  # UTAE.forward(x, batch_positions) - LightTAE.forward(x) takes no dates
-    
-    # Get the predicted class for each pixel
-    predicted_classes = torch.argmax(predictions, dim=1)
-    
-    print(f"Prediction shape: {predicted_classes.shape}") 
-    # Output: Prediction shape: torch.Size([1, 256, 256])
-```
-
-> **Pro Tip:** When running inference over massive geographical areas, use `xarray` or `rasterio` windows to chunk the data into manageable sizes (e.g., `256x256`), run them through the model, and mosaic the results back together.
+> **Pro Tip:** When running inference over massive geographical areas with any of these models, use `xarray` or `rasterio` windows to chunk the data into manageable sizes (e.g., `256x256`), run them through the model, and mosaic the results back together.
 
 ---
 
