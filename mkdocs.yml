@@ -8,14 +8,20 @@ theme:
   name: material
   logo: assets/logo.png
   favicon: assets/logo.png
+  icon:
+    repo: fontawesome/brands/github
   features:
     - navigation.tabs
     - navigation.sections
     - navigation.expand
+    - navigation.top
+    - navigation.footer
     - toc.integrate
     - search.suggest
     - search.highlight
     - search.share
+    - content.code.copy
+    - content.tabs.link
   palette:
     # Palette toggle for dark mode (Default)
     - scheme: slate
@@ -46,9 +52,21 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - attr_list
   - md_in_html
   - tables
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/sacridini/cdts
+      name: CDTS on GitHub
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/cdts/
+      name: CDTS on PyPI
 
 nav:
   - Home: index.md

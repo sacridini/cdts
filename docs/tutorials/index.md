@@ -4,7 +4,7 @@ CDTS covers a lot of ground — from classic pixel-based change detection to dee
 
 <div class="grid cards" markdown>
 
--   **Trajectory & Change Detection**
+-   :material-chart-timeline-variant:{ .lg .middle } **Trajectory & Change Detection**
 
     ---
 
@@ -17,7 +17,7 @@ CDTS covers a lot of ground — from classic pixel-based change detection to dee
     - [BFAST Monitor](bfast_monitor.md)
     - [BFAST Lite](bfast_lite.md)
 
--   **Time-Series Analysis**
+-   :material-chart-bell-curve:{ .lg .middle } **Time-Series Analysis**
 
     ---
 
@@ -28,7 +28,7 @@ CDTS covers a lot of ground — from classic pixel-based change detection to dee
     - [Mann-Kendall Trend Test](mann_kendall.md)
     - [SOM (Self-Organizing Maps)](som.md)
 
--   **AI & Deep Learning**
+-   :material-brain:{ .lg .middle } **AI & Deep Learning**
 
     ---
 
@@ -41,7 +41,7 @@ CDTS covers a lot of ground — from classic pixel-based change detection to dee
     - [Siamese Change Detector](siamese.md)
     - [GeoFoundationViT](geo_foundation_vit.md)
 
--   **Data Acquisition & Integration**
+-   :material-cloud-download:{ .lg .middle } **Data Acquisition & Integration**
 
     ---
 
@@ -50,7 +50,7 @@ CDTS covers a lot of ground — from classic pixel-based change detection to dee
     - [STAC & ARD Integration](stac-downloads.md)
     - [Google Earth Engine (GEE)](gee-downloads.md)
 
--   **Infrastructure**
+-   :material-server:{ .lg .middle } **Infrastructure**
 
     ---
 
