@@ -61,6 +61,56 @@ cube_clean = cdts.build_time_series(
 )
 ```
 
+### 3. Other Sensors (MODIS & Sentinel-1 SAR)
+
+`build_time_series` is not hardcoded to Sentinel-2/Landsat — it talks to any STAC API, so switching `source`/`collection`/`bands` is enough to pull other sensors from a catalog that hosts them. Microsoft Planetary Computer is the most complete public option for MODIS and Sentinel-1.
+
+**Caveat:** `apply_cloud_mask=True` only knows how to decode Sentinel-2's `scl` and Landsat's `qa_pixel` bands (see `cdts/cube.py`). For MODIS and Sentinel-1, leave `apply_cloud_mask=False` and handle QA/no cloud-masking as shown below.
+
+**MODIS (vegetation indices, 250m/16-day)**
+
+```python
+import cdts
+from cdts.qc import qc_modis_summary
+
+cube_modis = cdts.build_time_series(
+    source="planetary_computer",
+    collection="modis-13Q1-061",  # NDVI/EVI 250m, 16-day composites (modis-09A1-061 for 500m/8-day surface reflectance)
+    bbox=[-52.10, -12.55, -51.95, -12.40],
+    start_date="2010-01-01",
+    end_date="2023-12-31",
+    bands=["250m_16_days_NDVI", "250m_16_days_pixel_reliability"],
+    apply_cloud_mask=False,  # not recognized for MODIS - masked manually below
+)
+
+ndvi = cube_modis.sel(band="250m_16_days_NDVI") * 0.0001  # apply the collection's scale factor
+qa = cube_modis.sel(band="250m_16_days_pixel_reliability")
+
+# 0=good, 1=marginal, 2=snow/ice, 3=cloudy -> [1.0, 0.5, 0.2, 0.2]
+weights = qc_modis_summary(qa)
+```
+
+For 500m 8-day surface reflectance (`modis-09A1-061`), decode the `sur_refl_state_500m` QA band with `cdts.qc.qc_modis_state` instead.
+
+**Sentinel-1 SAR (radar, no clouds)**
+
+```python
+cube_s1 = cdts.build_time_series(
+    source="planetary_computer",
+    collection="sentinel-1-rtc",  # radiometrically terrain-corrected, analysis-ready (prefer this over the raw "sentinel-1-grd" unless you plan to do RTC yourself)
+    bbox=[-52.10, -12.55, -51.95, -12.40],
+    start_date="2020-01-01",
+    end_date="2023-12-31",
+    bands=["vv", "vh"],
+    resolution=10,
+    apply_cloud_mask=False,  # SAR is unaffected by clouds - never pass apply_cloud_mask=True here
+)
+```
+
+Radar backscatter is dense (Sentinel-1 revisits every 6-12 days regardless of cloud cover), which makes it a strong complement to optical CCDC/LandTrendr/Mann-Kendall runs in persistently cloudy regions. Check the actual pixel value range before feeding it downstream — RTC gamma-naught can come back as either dB or linear power depending on the processing pipeline, and that changes how you interpret slope/magnitude.
+
+Neither `earth_search` nor `brazil_data_cube` currently expose MODIS or Sentinel-1 collections, so `planetary_computer` is the practical default for both. `source` also accepts any custom STAC API URL (e.g. a national or provider-specific SAR catalog) if you need one outside the three built-in aliases.
+
 ## Temporal Regularization (Medoid & Median)
 
 Raw STAC data usually comes in irregular time steps (e.g., passing every 5, 8, or 12 days). For advanced Machine Learning and TWDTW, you must regularize the cube to fixed temporal steps.

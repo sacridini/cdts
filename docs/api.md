@@ -46,6 +46,8 @@ cube = build_time_series(
 print(cube) # Dask-backed xarray DataArray
 ```
 
+**Other sensors (MODIS, Sentinel-1 SAR):** `build_time_series` is generic STAC — not hardcoded to Sentinel-2/Landsat — so any collection hosted by `source` works, e.g. MODIS (`modis-13Q1-061`) or Sentinel-1 (`sentinel-1-rtc`) via `source="planetary_computer"`. `apply_cloud_mask` only decodes Sentinel-2's `scl` and Landsat's `qa_pixel`, so leave it `False` for these and QA/decode separately (`cdts.qc` for MODIS; Sentinel-1 has no clouds to mask). See the [STAC tutorial](tutorials/stac-downloads.md#3-other-sensors-modis--sentinel-1-sar) for full examples.
+
 ### `cdts.gee.download_gee_timeseries`
 
 Downloads analysis-ready time series data directly from Google Earth Engine (GEE). It handles Landsat sensor harmonization (Landsat 5/7/8/9), cloud masking (using QA_PIXEL), and annual compositing (Medoid) on Google's servers before downloading. It supports both direct local downloads via multithreaded tiling and asynchronous batch exports to Google Drive.
@@ -158,6 +160,35 @@ lt_array, lt_profile = load_raster(
 )
 ```
 
+### `cdts.tmask.run_tmask_pixel`
+
+Applies the Tmask (Zhu & Woodcock, 2014) cloud/shadow detection algorithm to a single pixel's time series. Fits a robust (Huber) harmonic regression to the Green and SWIR bands and flags observations whose residuals exceed fixed thresholds as cloud (unusually bright Green) or shadow (unusually dark SWIR). This is the per-pixel building block used internally by `apply_tmask_stack`.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `dates_julian` | `np.ndarray` | **Required** | 1D array of Julian/continuous DOY dates for the pixel's observations. |
+| `green_band` | `np.ndarray` | **Required** | 1D reflectance array for the Green band. |
+| `swir_band` | `np.ndarray` | **Required** | 1D reflectance array for the SWIR band (usually SWIR1, ~1.6μm). |
+| `scale_factor` | `float` | `10000.0` | Multiplier applied to convert integer inputs to 0.0-1.0 surface reflectance. |
+
+**Output**: 1D boolean array the same length as the input (`True` = clear, `False` = cloud/shadow). Returns all-`True` if fewer than 5 observations are supplied.
+
+**Usage Example**
+
+```python
+import numpy as np
+from cdts.tmask import run_tmask_pixel
+
+dates = np.array([1, 17, 33, 49, 65, 81, 97])
+green = np.array([900, 920, 4500, 910, 895, 905, 930])  # a cloud spike at index 2
+swir = np.array([1200, 1180, 1190, 1210, 1195, 1205, 1188])
+
+clear_mask = run_tmask_pixel(dates, green, swir, scale_factor=10000.0)
+print(clear_mask)  # [ True  True False  True  True  True  True]
+```
+
 ### `cdts.tmask.apply_tmask_stack`
 
 Applies the Time-series Cloud Masking (Tmask) algorithm to a 3D temporal stack to dynamically map missed clouds and shadows using robust harmonic regression (Huber).
@@ -194,6 +225,49 @@ ccdc_mask = (~qa_mask).astype('uint8')
 
 # Save the generated mask
 save_raster(ccdc_mask, "results/tmask_generated_qa.tif", crs=src.crs, transform=src.transform)
+```
+
+### `cdts.smooth.apply_savgol_filter`
+
+Applies a Savitzky-Golay filter along the time axis of a data cube to remove minor temporal noise and regularize trajectories before AI training or classification.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `cube` | `np.ndarray` | **Required** | The data cube, shape `(Time, Bands, H, W)` or `(Time, H, W)`. |
+| `window_length` | `int` | `5` | Length of the filter window (must be odd). |
+| `polyorder` | `int` | `2` | Order of the polynomial fit to the samples within each window. |
+| `axis` | `int` | `0` | The temporal axis. |
+
+**Usage Example**
+
+```python
+from cdts import apply_savgol_filter
+
+# raw_array: (Time, Y, X)
+smoothed_array = apply_savgol_filter(raw_array, window_length=5, polyorder=2)
+```
+
+### `cdts.smooth.apply_whittaker_filter`
+
+Applies a Whittaker smoother along the time axis. Often preferable to Savitzky-Golay for NDVI/EVI-style indices, since it penalizes roughness directly and handles missing/cloudy observations gracefully when per-observation weights are supplied. *(Not exported at the `cdts` top level — import from `cdts.smooth` directly.)*
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `cube` | `np.ndarray` | **Required** | 3D array `(Time, Y, X)`. |
+| `lmbd` | `float` | `10.0` | Smoothing parameter — larger values produce a smoother curve. |
+| `axis` | `int` | `0` | The temporal axis. |
+| `weights` | `np.ndarray` | `None` | Optional array matching `cube`'s shape, with per-observation weights (`0` for cloud, `1` for clear). |
+
+**Usage Example**
+
+```python
+from cdts.smooth import apply_whittaker_filter
+
+smoothed = apply_whittaker_filter(raw_stack, lmbd=10.0, weights=clear_sky_weights)
 ```
 
 ### `cdts.smooth.desawtooth`
@@ -368,6 +442,31 @@ vertices = run_landtrendr(years, pixel_values, max_segments=4)
 print(f"Fitted vertices: {vertices}")
 ```
 
+### `cdts.landtrendr.apply_vertices`
+
+Applies LandTrendr's structural vertices — the break years fitted on a primary index (FTV, "Fitted to Vertices") — to a secondary spectral band or index. Instead of re-segmenting the secondary band independently, it reuses the primary segmentation's years and linearly interpolates the secondary band's values at those years. Useful for smoothing/denoising a band that wasn't itself used for the disturbance segmentation (e.g. segment on NBR, apply vertices to NDVI or a raw spectral band).
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `vertex_years` | `np.ndarray` | **Required** | Years of the vertices fitted on the primary index (from `run_landtrendr`). |
+| `other_band_years` | `np.ndarray` | **Required** | Years available for the secondary band. |
+| `other_band_values` | `np.ndarray` | **Required** | Secondary band's values matching `other_band_years`. |
+
+**Usage Example**
+
+```python
+from cdts.landtrendr import run_landtrendr, apply_vertices
+
+# 1. Segment on the primary index (e.g. NBR)
+vertices = run_landtrendr(years, nbr_values, max_segments=4)
+vertex_years = [v["year"] for v in vertices]
+
+# 2. Reuse the same break years to fit a secondary index (e.g. NDVI)
+ndvi_fitted = apply_vertices(vertex_years, years, ndvi_values)
+```
+
 ### `cdts.raster.run_ccdc_image`
 
 Executes the Continuous Change Detection and Classification (CCDC) algorithm directly on a dense multi-band, multi-date GeoTIFF stack stored on disk. Like its LandTrendr counterpart, it handles memory safely via out-of-core chunking.
@@ -440,6 +539,125 @@ coefs = run_ccdc_array(
 )
 ```
 
+### `cdts.classify.train_ccdc_classifier`
+
+Trains a `scikit-learn` `RandomForestClassifier` for land cover classification, using CCDC's harmonic coefficients (and RMSE) as features. A thin, opinionated wrapper — swap in your own `scikit-learn` model if you need a different classifier.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `X_train` | `np.ndarray` | **Required** | Shape `(n_samples, n_features)` — typically CCDC harmonic coefficients + RMSE extracted at training points. |
+| `y_train` | `np.ndarray` | **Required** | Shape `(n_samples,)` — land cover class labels. |
+| `n_estimators` | `int` | `100` | Number of trees in the forest. |
+| `random_state` | `int` | `42` | Random seed for reproducibility. |
+
+**Output**: a fitted `sklearn.ensemble.RandomForestClassifier`.
+
+### `cdts.classify.classify_ccdc_stack`
+
+Applies a trained classifier to a full CCDC coefficient GeoTIFF stack, out-of-core (reads/writes in chunks so it scales to large rasters without loading everything into memory).
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `clf` | `RandomForestClassifier` | **Required** | A classifier trained via `train_ccdc_classifier` (or any `scikit-learn`-compatible model with a matching feature layout). |
+| `coef_stack_path` | `str` | **Required** | Path to the CCDC coefficient GeoTIFF (e.g. written by `run_ccdc_image`). |
+| `output_path` | `str` | **Required** | Path to write the classified land cover GeoTIFF (`uint8`, `nodata=0`). |
+| `chunk_size` | `int` | `512` | Pixel size of the spatial chunks read/classified/written at a time. |
+
+**Usage Example**
+
+```python
+from cdts.classify import train_ccdc_classifier, classify_ccdc_stack
+
+# X_train: harmonic coefficients extracted at labeled training points
+rf_model = train_ccdc_classifier(X_train=training_coefs, y_train=training_labels, n_estimators=100)
+
+classify_ccdc_stack(
+    clf=rf_model,
+    coef_stack_path="output/ccdc_coefs.tif",
+    output_path="output/land_cover_map.tif",
+    chunk_size=512
+)
+```
+
+## Phenology Extraction
+
+### `cdts.phenology.run_phenology_dask`
+
+Pixel-wise phenology curve fitting (Whittaker/HANTS smoothing + Levenberg-Marquardt curve fitting) across a Dask array's time axis, reimplemented in C++/Eigen/OpenMP from the methodology of the R package [`phenofit`](https://github.com/eco-hydro/phenofit) (Kong *et al.*, 2022). Extracts **21 metrics per season** (19 phenological dates/derived metrics + per-season R2 and RMSE goodness-of-fit) in a single pass. See the [Phenology tutorial](tutorials/phenology.md) for the full metric definitions, curve models, and a real-world walkthrough. Also available as `DataArray.cdts.run_phenology(...)` (see below).
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `arr` | `dask.array.Array` | **Required** | Input array, shape `(time, y, x)`. |
+| `dates` | `np.ndarray` | **Required** | Dates matching the time dimension (day-of-year or continuous day count). |
+| `curve_type` | `int` | **Required** | Curve model, from `cdts._core.phenology.CurveType`: `BECK`, `ELMORE`, `GU`, `KLOSTERMAN`, `ZHANG`, `AG` (Asymmetric Gaussian), or `DL` (Double Logistic). |
+| `extraction_method` | `int` | `0` | Metric-extraction strategy passed to the C++ core; `0` (default) returns all 19 metrics regardless, computed via their respective methodologies (TRS/DER/Gu/Zhang — see the tutorial). |
+| `max_seasons` | `int` | `2` | Maximum growing seasons to extract per pixel (per year, if `return_annual=True`). |
+| `whittaker_lambda` | `float` | `10.0` | Smoothness penalty for the Whittaker smoother. |
+| `apply_whittaker` | `bool` | `True` | Whether to apply Whittaker smoothing before curve fitting. |
+| `apply_hants` | `bool` | `False` | Use HANTS (Fourier-based) smoothing instead of/alongside Whittaker. |
+| `hants_frequencies` | `int` | `3` | Number of harmonic frequencies for HANTS. |
+| `hants_threshold` | `float` | `0.1` | Outlier rejection threshold for HANTS. |
+| `min_season_length` | `int` | `0` | Discard seasons shorter than this many calendar days. |
+| `min_amplitude` | `float` | `0.0` | Discard seasons with less than this amplitude (peak minus trough). |
+| `min_pixel_amplitude` | `float` | `0.1` | Minimum overall pixel amplitude required to attempt curve fitting at all. |
+| `return_annual` | `bool` | `True` | Remap detected seasons into calendar years (`year` dim) instead of sequential season slots (`season` dim). |
+| `base_year` | `int` | `2001` | First calendar year, used to decode dates and size the output when `return_annual=True`. |
+| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. |
+| `weights` | `dask.array.Array` | `None` | Optional `(time, y, x)` per-observation reliability weights in `[0, 1]` (e.g. from `cdts.qc`), down-weighting unreliable observations in smoothing and curve fitting instead of trusting every observation equally. |
+| `season_retry` | `bool` | `True` | Retry once with a relaxed trough threshold if a pixel's first pass finds no season at all. |
+
+**Output**: array of shape `(21, max_seasons, y, x)` — see the [metrics list in the tutorial](tutorials/phenology.md#23-metric-extraction-methods) for the row order (`TRS2.sos`, `TRS2.eos`, ..., `LOS`, `POP`, `R2`, `RMSE`).
+
+**Usage Example**
+
+```python
+from cdts.phenology import run_phenology_dask
+from cdts._core.phenology import CurveType
+
+# cube_16d: dask.array.Array, shape (time, y, x), 16-day composites
+pheno_out = run_phenology_dask(
+    arr=cube_16d,
+    dates=dates_julian,
+    curve_type=int(CurveType.BECK),
+    max_seasons=2,
+    apply_hants=True,
+    hants_frequencies=3,
+)
+
+pheno_out = pheno_out.compute()
+```
+
+### `cdts.qc` — QA/QC Band Decoders
+
+Ports of `phenofit`'s `qcFUN.R` decoders: turn a sensor's raw quality-assurance band into per-observation reliability weights in `[0, 1]`, suitable for the `weights` argument of `run_phenology_dask`/`DataArray.cdts.run_phenology` (or any other weighted smoothing you write yourself). All three share the same `(qa_array, wmin=0.2, wmid=0.5, wmax=1.0)`-style signature and return an array of the same shape as the input.
+
+| Function | QA band decoded | Notes |
+| :--- | :--- | :--- |
+| `qc_modis_summary(qa, wmin=0.2, wmid=0.5, wmax=1.0)` | MOD13A1/A2/Q1 "SummaryQA" (pixel reliability) | `0`=good→`wmax`, `1`=marginal→`wmid`, `2`/`3`=snow or cloudy→`wmin`, other/fill→`0.0`. |
+| `qc_modis_state(qa, wmin=0.2, wmid=0.5, wmax=1.0)` | MOD09A1/MYD09A1 500m 16-bit "State QA" | Decodes cloud state (bits 0-1), cloud shadow (bit 2), aerosol quantity (bits 6-7), and snow/ice (bit 12). |
+| `qc_sentinel2_scl(scl, wmin=0.2, wmid=0.5, wmax=1.0)` | Sentinel-2 L2A Scene Classification Layer | Vegetation/bare soil/water/unclassified/thin cirrus→`wmax`, cloud medium probability→`wmid`, everything else (saturated, shadow, high-probability cloud, snow, no-data)→`wmin`. |
+
+**Usage Example**
+
+```python
+from cdts.qc import qc_modis_summary
+
+# qa_cube: (time, y, x) MOD13 SummaryQA band, aligned with cube_16d
+weights = qc_modis_summary(qa_cube)  # 0=good, 1=marginal, 2=snow/ice, 3=cloudy -> [1.0, 0.5, 0.2, 0.2]
+
+pheno_results = cube_16d.cdts.run_phenology(
+    dates=dates_julian,
+    curve_type=int(CurveType.BECK),
+    weights=weights,
+)
+```
+
 ## Metrics & Post-Processing
 
 ### `cdts.metrics.extract_events`
@@ -505,6 +723,95 @@ synthetic_img = predict_synthetic_image(
 ```
 
 
+### `cdts.masks.extract_water_mask`
+
+Derives a persistent water mask from a CCDC coefficient stack, using the first segment's Green and SWIR intercepts (water reflects more strongly in Green than SWIR, and has low absolute SWIR reflectance). Useful as a static mask to exclude water bodies before running LandTrendr/CCDC change detection or classification.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `ccdc_coefs_stack` | `np.ndarray` | **Required** | CCDC coefficients, shape `(max_segments, params_per_seg, rows, cols)` (as produced by `run_ccdc_array`/`run_ccdc_image`). |
+| `green_band_idx` | `int` | **Required** | 0-based index of the Green band within the coefficient stack's band ordering. |
+| `swir_band_idx` | `int` | **Required** | 0-based index of the SWIR1/SWIR2 band. |
+
+**Output**: `uint8` array of shape `(rows, cols)`, where `1` = persistent water.
+
+**Usage Example**
+
+```python
+from cdts.masks import extract_water_mask
+
+# coef_stack: (max_segments, params_per_seg, rows, cols), Green is band 1, SWIR1 is band 4
+water_mask = extract_water_mask(coef_stack, green_band_idx=1, swir_band_idx=4)
+```
+
+### `cdts.spatial.apply_mmu_filter`
+
+Applies a Minimum Mapping Unit (MMU) spatial filter to a disturbance/classification raster **on disk**, removing connected pixel groups smaller than `mmu_pixels` (set to nodata). Reduces "salt and pepper" noise, e.g. after `run_landtrendr_image`/`extract_events`.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `input_path` | `str` | **Required** | Path to the input single-band GeoTIFF (e.g. Year of Detection or magnitude). |
+| `output_path` | `str` | **Required** | Path to write the filtered GeoTIFF. |
+| `mmu_pixels` | `int` | `11` | Minimum connected-component size (in pixels) to keep; smaller groups are set to nodata. |
+
+**Usage Example**
+
+```python
+from cdts.spatial import apply_mmu_filter
+
+# Erase isolated disturbance patches smaller than 11 pixels
+apply_mmu_filter(
+    input_path="results/yod_map.tif",
+    output_path="results/yod_map_mmu.tif",
+    mmu_pixels=11,
+)
+```
+
+### `cdts.spatial.apply_majority_filter`
+
+Applies an in-memory spatial majority (mode) filter to regularize a classification array — every pixel is replaced by the most common value in its neighborhood. Typically run after pixel-based classification (TWDTW, SOM, CCDC) to clean up noisy maps.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `image` | `np.ndarray` | **Required** | 2D classification array. |
+| `size` | `int` | `3` | Size of the moving window (e.g. `3` for a 3x3 neighborhood). |
+
+**Usage Example**
+
+```python
+from cdts import apply_majority_filter
+
+regularized_map = apply_majority_filter(classified_map, size=3)
+```
+
+### `cdts.spatial.apply_bayesian_filter`
+
+Applies Bayesian spatial smoothing to per-class probability maps (e.g. from `classify_twdtw`, a deep-learning model, or any classifier that exposes class probabilities). Unlike `apply_majority_filter`, it weighs by model confidence: each pixel's probability is multiplied by the neighborhood-averaged probability before taking the arg-max. *(Not exported at the `cdts` top level — import from `cdts.spatial` directly.)*
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `probs` | `np.ndarray` | **Required** | 3D array `(Classes, Y, X)` of per-class probabilities/confidence scores. |
+| `window_size` | `int` | `3` | Size of the spatial averaging window. |
+
+**Output**: 2D `np.ndarray` (`Y, X`) of the winning class index after smoothing.
+
+**Usage Example**
+
+```python
+from cdts.spatial import apply_bayesian_filter
+
+# probs: (Classes, Y, X) from a softmax/probability output
+smoothed_classification = apply_bayesian_filter(probs, window_size=3)
+```
+
 ### `cdts.generate_landtrendr_accuracy_dashboard`
 
 Generates an interactive, serverless HTML dashboard to validate LandTrendr change detection results against raw spatial-temporal data. 
@@ -565,6 +872,129 @@ trend_out = run_mann_kendall_dask(arr, method="hamed_rao", alpha=0.05)
 trend_out = trend_out.compute()
 slope_map = trend_out[7]      # 'slope' row
 significant = trend_out[1] == 1.0  # 'h' row
+```
+
+## Time-Series Classification (TWDTW)
+
+### `cdts.twdtw.run_twdtw`
+
+The lowest-level TWDTW entry point: computes the Time-Weighted Dynamic Time Warping distance between a single time series and a reference pattern. Supports multivariate series (2D `ts_values`, shape `Time x Bands`). Ideal for testing, visualization, or one-off comparisons.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `ts_values` | `np.ndarray` | **Required** | 1D or 2D (`Time x Bands`) pixel time series. |
+| `ts_dates` | `np.ndarray` | **Required** | Dates matching `ts_values`. |
+| `pattern_values` | `np.ndarray` | **Required** | 1D or 2D reference signature. |
+| `pattern_dates` | `np.ndarray` | **Required** | Dates matching `pattern_values`. |
+| `alpha` | `float` | `0.1` | Steepness of the logistic time-weight penalty. |
+| `beta` | `float` | `0.05` | Midpoint of the time-weight penalty. |
+| `gamma` | `float` | `50.0` | Weight scaling constant. |
+| `max_time_warp` | `int` | `365` | Maximum allowed temporal shift, in days. |
+| `subsequence_matching` | `bool` | `False` | Allow matching a subsequence of `ts_values` instead of requiring full-sequence alignment. |
+| `abort_threshold` | `float` | `inf` | Early-abandonment distance threshold. |
+| `return_path` | `bool` | `False` | If `True`, also return the optimal warping path. |
+
+**Output**: the TWDTW distance (`float`), or `(distance, path)` if `return_path=True`.
+
+### `cdts.twdtw.run_twdtw_batch`
+
+Runs TWDTW across an entire raster (3D/4D array) against a single reference pattern, using the C++/OpenMP batch engine.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `values_array` | `np.ndarray` | **Required** | `(Y, X, Time)` or `(Y, X, Time, Bands)` array. |
+| `dates_array` | `np.ndarray` | **Required** | 1D array of dates matching the time dimension. |
+| `pattern_values` | `np.ndarray` | **Required** | 1D or 2D reference signature. |
+| `pattern_dates` | `np.ndarray` | **Required** | Dates matching `pattern_values`. |
+| `alpha`, `beta`, `gamma`, `max_time_warp`, `subsequence_matching`, `abort_threshold` | | *(same as `run_twdtw`)* | |
+| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. |
+
+**Output**: 2D `np.ndarray` (`Y, X`) of TWDTW distances to the pattern.
+
+### `cdts.twdtw.classify_twdtw`
+
+Classifies a full raster cube against multiple reference patterns (one per class), picking the class with the lowest TWDTW distance at each pixel.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `values_array` | `np.ndarray` | **Required** | `(Y, X, Time)` or `(Y, X, Time, Bands)` array. |
+| `dates_array` | `np.ndarray` | **Required** | 1D array of dates matching the time dimension. |
+| `patterns` | `dict` | **Required** | Maps `class_name -> (pattern_values, pattern_dates)`. |
+| `alpha`, `beta`, `gamma`, `max_time_warp`, `subsequence_matching` | | *(same as `run_twdtw`)* | |
+| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. |
+
+**Output**: `(classification_map, distance_map, class_names)` — a 2D `int` array of the winning class index, a 2D `float` array of its TWDTW distance, and the list of class names (index-aligned with `classification_map`).
+
+**Usage Example**
+
+```python
+from cdts.twdtw import classify_twdtw
+import numpy as np
+
+dates = np.arange(1, 366, 16)  # DOY for a 16-day composite
+forest_sig = np.random.rand(23, 4)   # (Time, Bands)
+soy_sig = np.random.rand(23, 4)
+
+patterns = {"Forest": (forest_sig, dates), "Agriculture": (soy_sig, dates)}
+
+classes_map, dist_map, class_names = classify_twdtw(
+    values_array=cube_16d.values,
+    dates_array=dates,
+    patterns=patterns,
+    alpha=0.1,
+    beta=0.05,
+    max_time_warp=60,
+    n_jobs=-1,
+)
+
+# Mask out pixels that matched poorly with every known signature
+final_classification = np.where(dist_map < 15.0, classes_map, -1)
+```
+
+## Unsupervised Clustering (SOM)
+
+### `cdts.ai.SOM`
+
+A Batch Self-Organizing Map accelerated by C++/OpenMP/Eigen, for unsupervised clustering and dimensionality reduction of time-series/spectral features (e.g. discovering trajectory clusters without labeled training data, or filtering noisy training samples before supervised classification).
+
+**Constructor Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `x` | `int` | **Required** | Number of neurons along the grid's first dimension. |
+| `y` | `int` | **Required** | Number of neurons along the grid's second dimension. |
+| `input_len` | `int` | **Required** | Number of input features per sample. |
+| `sigma` | `float` | `1.0` | Neighborhood radius for the batch update. |
+| `random_seed` | `int` | `42` | Seed for weight initialization. |
+
+**Methods**
+
+| Method | Description |
+| :--- | :--- |
+| `train(data, num_iters, n_jobs=-1)` | Trains the SOM on `data`, shape `(Samples, Features)`. |
+| `predict(data, n_jobs=-1)` | Returns the Best Matching Unit (BMU) index for each sample in `data`. |
+| `filter_noisy_samples(data, labels, n_jobs=-1)` | Returns a boolean mask flagging samples whose label disagrees with their neuron's majority label — useful for cleaning noisy training sets before supervised classification. |
+
+**Usage Example**
+
+```python
+from cdts.ai import SOM
+
+# Flatten cube to (Pixels, Features)
+X_train = cube_16d.values.reshape(-1, cube_16d.shape[2] * cube_16d.shape[3])
+
+# Train a 10x10 SOM grid
+som = SOM(x=10, y=10, input_len=X_train.shape[1])
+som.train(X_train, num_iters=100, n_jobs=-1)
+
+# Predict Best Matching Units (BMUs) for new data
+bmus = som.predict(X_train, n_jobs=-1)
 ```
 
 ## AI & Deep Learning
@@ -726,6 +1156,9 @@ Runs CCDC algorithm across a distributed Dask array.
 
 ### DataArray.cdts.run_landtrendr(years, max_segments=6, pval_threshold=0.05, n_jobs=-1)
 Runs LandTrendr algorithm across a distributed Dask array.
+
+### DataArray.cdts.run_phenology(dates, curve_type, extraction_method=0, max_seasons=2, whittaker_lambda=10.0, apply_whittaker=True, apply_hants=False, hants_frequencies=3, hants_threshold=0.1, min_season_length=0, min_amplitude=0.0, min_pixel_amplitude=0.1, return_annual=True, base_year=2001, n_jobs=-1, weights=None, season_retry=True)
+Runs phenology curve-fitting and metric extraction across a distributed Dask array. See [`cdts.phenology.run_phenology_dask`](#cdtsphenologyrun_phenology_dask) above and the [Phenology tutorial](tutorials/phenology.md).
 
 ### DataArray.cdts.run_mann_kendall(method='hamed_rao', alpha=0.05, lag=None, period=1, min_valid=4, n_jobs=-1)
 Runs the Mann-Kendall trend test + Theil-Sen slope across the time dimension. See [`cdts.trend.run_mann_kendall_dask`](#cdtstrendrun_mann_kendall_dask) above and the [Mann-Kendall tutorial](tutorials/mann_kendall.md).

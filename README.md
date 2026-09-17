@@ -302,22 +302,17 @@ final_classification = np.where(
 Unsupervised classification and dimensionality reduction of time series using a fast Batch SOM algorithm implemented in C++.
 
 ```python
-from cdts.ai import train_som_batch, predict_bmus
+from cdts.ai import SOM
 
 # Flatten cube to (Pixels, Features)
 X_train = cube_16d.values.reshape(-1, cube_16d.shape[2] * cube_16d.shape[3])
 
 # Train a 10x10 SOM grid
-som_weights = train_som_batch(
-    data=X_train,
-    grid_rows=10,
-    grid_cols=10,
-    num_epochs=100,
-    n_jobs=-1
-)
+som = SOM(x=10, y=10, input_len=X_train.shape[1])
+som.train(X_train, num_iters=100, n_jobs=-1)
 
 # Predict Best Matching Units (BMUs) for new data
-bmus = predict_bmus(X_train, som_weights, n_jobs=-1)
+bmus = som.predict(X_train, n_jobs=-1)
 ```
 
 ## Pre and Post-Processing
@@ -325,16 +320,26 @@ bmus = predict_bmus(X_train, som_weights, n_jobs=-1)
 Before classifying, it is highly recommended to smooth temporal trajectories. After classifying, pixel-based maps often suffer from noise. CDTS provides fast functions to regularize your data in both dimensions:
 
 ```python
-from cdts import apply_savgol_filter, apply_majority_filter, apply_mmu_filter
+from cdts import apply_savgol_filter, apply_majority_filter, apply_mmu_filter, save_raster
+from cdts.smooth import apply_whittaker_filter
 
-# Temporal Smoothing (Savitzky-Golay, Whittaker, or Bayesian)
+# Temporal Smoothing: Savitzky-Golay (fast, general-purpose)...
 smoothed_array = apply_savgol_filter(raw_array, window_length=5, polyorder=2)
+
+# ...or Whittaker (often better for NDVI/EVI, supports per-observation weights)
+smoothed_array = apply_whittaker_filter(raw_array, lmbd=10.0, weights=clear_sky_weights)
 
 # Spatial Regularization (Mode filter)
 regularized_map = apply_majority_filter(classified_map, size=3)
+save_raster(regularized_map, "results/classified_regularized.tif", reference_cube=cube)
 
-# Minimum Mapping Unit (MMU): Erase isolated patches smaller than 10 pixels
-final_map = apply_mmu_filter(regularized_map, min_pixels=10)
+# Minimum Mapping Unit (MMU): operates on a GeoTIFF on disk, not an in-memory array
+# Erase isolated patches smaller than 11 pixels
+apply_mmu_filter(
+    input_path="results/classified_regularized.tif",
+    output_path="results/classified_final.tif",
+    mmu_pixels=11,
+)
 ```
 
 ## Exporting Geospatial Data
