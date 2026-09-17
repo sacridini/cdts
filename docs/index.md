@@ -1,6 +1,6 @@
 <div align="center" markdown>
 
-<img src="assets/logo.png" alt="CDTS Logo" width="220">
+<img src="assets/logo.png" alt="CDTS Logo" width="360">
 
 # CDTS
 
