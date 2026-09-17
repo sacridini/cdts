@@ -122,6 +122,171 @@ cdts ccdc ./data/dense_stack.tif ./results_cold \
 
 ---
 
+## 3. BFAST Monitor (`bfast-monitor`)
+
+The `bfast-monitor` command runs near-real-time structural change monitoring on a multi-band GeoTIFF where every band is one equally-spaced observation (e.g. a 16-day composite), not a real calendar date - time is synthetic and regular, given by `--start-time` and `--frequency` (matching R's `ts`/`time()` semantics). See the [BFAST Monitor tutorial](tutorials/bfast_monitor.md) for the full method background.
+
+### Syntax
+```bash
+cdts bfast-monitor <input> <output_dir> --start-time <float> --monitor-start-time <float> --frequency <int> [OPTIONS]
+```
+
+### Positional Arguments
+| Argument | Type | Description |
+| :--- | :---: | :--- |
+| **`input`** | `filepath` | Path to the input multi-band GeoTIFF. Each band is one equally-spaced time step. |
+| **`output_dir`** | `dirpath` | Directory where the single output GeoTIFF (7 bands, see below) will be saved. |
+
+### Configuration Options
+| Option | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `--start-time` | `float` | *(required)* | The series' start time (e.g. `2015.0`). |
+| `--monitor-start-time` | `float` | *(required)* | The time monitoring begins (e.g. `2019.0`) - the boundary between the stable "history" and "monitoring" periods. |
+| `--frequency` | `int` | *(required)* | Observations per year (e.g. `23` for 16-day composites). |
+| `--order` | `int` | `3` | Harmonic order for the seasonal regressors. |
+| `--h` | `float` | `0.25` | MOSUM window size, as a fraction of history length. Must be one of `0.25`, `0.5`, `1.0`. |
+| `--period` | `int` | `10` | Monitoring period parameter. Must be one of `2`, `4`, `6`, `8`, `10`. |
+| `--alpha` | `float` | `0.05` | Significance level for the monitoring boundary. |
+| `--min-valid` | `int` | `10` | Minimum valid (non-NaN) history observations per pixel. |
+| `--chunk-size` | `int` | `512` | Size of the image chunks to process simultaneously. |
+| `--jobs` | `int` | `-1` | Number of CPU cores to use. `-1` uses all available cores. |
+| `--prefix` | `str` | `bfast_monitor` | Filename (without extension) for the output GeoTIFF. |
+
+Output bands (in order): `breakpoint`, `breakpoint_idx`, `magnitude`, `sigma`, `n_history`, `has_break`, `valid` (see `cdts.bfast.BFM_METRIC_NAMES`).
+
+### End-to-End Example
+```bash
+cdts bfast-monitor ./data/ndvi_16day_stack.tif ./results \
+    --start-time 2015.0 \
+    --monitor-start-time 2019.0 \
+    --frequency 23 \
+    --jobs -1
+```
+
+---
+
+## 4. BFAST Lite (`bfast-lite`)
+
+The `bfast-lite` command retrospectively segments the *whole* series into an optimal number of pieces in a single pass - the modern, non-iterative alternative to classic `bfast`. See the [BFAST Lite tutorial](tutorials/bfast_lite.md).
+
+### Syntax
+```bash
+cdts bfast-lite <input> <output_dir> --start-time <float> --frequency <int> [OPTIONS]
+```
+
+### Configuration Options
+| Option | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `--start-time` | `float` | *(required)* | The series' start time (e.g. `2010.0`). |
+| `--frequency` | `int` | *(required)* | Observations per year. |
+| `--order` | `int` | `3` | Harmonic order. |
+| `--h` | `float` | `0.15` | Minimum segment size, as a fraction of the series length. |
+| `--max-breaks-output` | `int` | `5` | Maximum number of breakpoints to report (and search for) per pixel. |
+| `--min-valid` | `int` | `20` | Minimum valid observations per pixel. |
+| `--chunk-size` | `int` | `512` | Size of the image chunks to process simultaneously. |
+| `--jobs` | `int` | `-1` | Number of CPU cores to use. |
+| `--prefix` | `str` | `bfast_lite` | Filename (without extension) for the output GeoTIFF. |
+
+Output bands: `n_breaks`, `rss`, `lwz`, `n_valid`, `valid`, `breakpoint_idx_1..N` (see `cdts.bfast.bfl_metric_names`).
+
+### End-to-End Example
+```bash
+cdts bfast-lite ./data/ndvi_16day_stack.tif ./results --start-time 2010.0 --frequency 23 --max-breaks-output 5
+```
+
+---
+
+## 5. Classic BFAST (`bfast`)
+
+The `bfast` command runs the original iterative `bfast()` algorithm: an STL seasonal seed followed by alternating trend/season segmented regressions, distinguishing trend breaks from seasonal (phenological) breaks. See the [BFAST tutorial](tutorials/bfast.md) for the full method background, scope notes, and R cross-validation results.
+
+### Syntax
+```bash
+cdts bfast <input> <output_dir> --start-time <float> --frequency <int> [OPTIONS]
+```
+
+### Configuration Options
+| Option | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `--start-time` | `float` | *(required)* | The series' start time (e.g. `2000.0`). |
+| `--frequency` | `int` | *(required)* | Observations per year. Requires more than `2 * frequency` total observations. |
+| `--order` | `int` | `3` | Harmonic order for the season sub-model. |
+| `--h` | `float` | `0.15` | Minimum segment size (both trend and season), as a fraction of valid observations. |
+| `--max-breaks-trend` | `int` | `5` | Maximum number of trend breakpoints to report per pixel. |
+| `--max-breaks-season` | `int` | `5` | Maximum number of season breakpoints to report per pixel. |
+| `--max-iter` | `int` | `10` | Maximum trend/season re-estimation iterations. |
+| `--level` | `float` | `0.05` | Significance threshold for the preliminary structural-stability pre-check. |
+| `--min-valid` | `int` | `20` | Minimum valid observations per pixel. |
+| `--chunk-size` | `int` | `512` | Size of the image chunks to process simultaneously. |
+| `--jobs` | `int` | `-1` | Number of CPU cores to use. |
+| `--prefix` | `str` | `bfast` | Filename (without extension) for the output GeoTIFF. |
+
+Output bands: `n_trend_breaks`, `n_season_breaks`, `magnitude`, `time`, `n_iter`, `n_valid`, `valid`, `trend_breakpoint_idx_1..N`, `season_breakpoint_idx_1..N` (see `cdts.bfast.bf_metric_names`).
+
+### End-to-End Example
+```bash
+cdts bfast ./data/ndvi_16day_stack.tif ./results --start-time 2000.0 --frequency 23
+```
+
+---
+
+## 6. Mann-Kendall Trend Test (`mann-kendall`)
+
+The `mann-kendall` command runs the pixel-wise Mann-Kendall trend test and Theil-Sen slope estimator across a multi-band GeoTIFF (one band per observation - typically one annual composite per band). See the [Mann-Kendall tutorial](tutorials/mann_kendall.md).
+
+### Syntax
+```bash
+cdts mann-kendall <input> <output_dir> [OPTIONS]
+```
+
+### Configuration Options
+| Option | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `--method` | `str` | `hamed_rao` | Trend test variant. Choices: `original`, `hamed_rao` (autocorrelation-corrected, recommended), `yue_wang`, `seasonal`. |
+| `--alpha` | `float` | `0.05` | Significance level. |
+| `--lag` | `int` | *None* | First significant lags for the autocorrelation correction (`hamed_rao`/`yue_wang` only). Defaults to the full series length. |
+| `--period` | `int` | `1` | Season slots for `--method seasonal` (e.g. `23` for MODIS 16-day cycles), letting a raw sub-annual series be tested directly. |
+| `--min-valid` | `int` | `4` | Minimum valid observations per pixel. |
+| `--chunk-size` | `int` | `512` | Size of the image chunks to process simultaneously. |
+| `--jobs` | `int` | `-1` | Number of CPU cores to use. |
+| `--prefix` | `str` | `mann_kendall` | Filename (without extension) for the output GeoTIFF. |
+
+Output bands: `trend`, `h`, `p`, `z`, `tau`, `s`, `var_s`, `slope`, `intercept` (see `cdts.trend.MK_METRIC_NAMES`). `slope`/`intercept` are per time step (per band), so one observation per year gives a directly interpretable per-year trend.
+
+### End-to-End Example
+```bash
+cdts mann-kendall ./data/annual_ndvi_stack.tif ./results --method hamed_rao --jobs -1
+```
+
+---
+
+## 7. Minimum Mapping Unit Filter (`mmu-filter`)
+
+The `mmu-filter` command applies a spatial Minimum Mapping Unit (MMU) filter to a single-band raster - typically a disturbance-year map from `landtrendr` - removing isolated pixel groups smaller than a given size to reduce "salt and pepper" noise.
+
+### Syntax
+```bash
+cdts mmu-filter <input> <output> [OPTIONS]
+```
+
+### Positional Arguments
+| Argument | Type | Description |
+| :--- | :---: | :--- |
+| **`input`** | `filepath` | Path to the input single-band GeoTIFF (e.g. a `landtrendr` year-of-detection map). |
+| **`output`** | `filepath` | Path to save the filtered GeoTIFF. |
+
+### Configuration Options
+| Option | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `--mmu-pixels` | `int` | `11` | Minimum connected-patch size, in pixels. Smaller patches are zeroed out (treated as the raster's `nodata`/background value). |
+
+### End-to-End Example
+```bash
+cdts mmu-filter ./results/lt_event_yod.tif ./results/lt_event_yod_mmu.tif --mmu-pixels 9
+```
+
+---
+
 ## Note on AI Tools (Deep Learning)
 
 Currently, the AI tools (`cdts.ai`) are **not** exposed via the CLI. 
