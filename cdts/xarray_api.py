@@ -5,7 +5,7 @@ from typing import Optional, Any
 from cdts.raster import run_ccdc_array, run_landtrendr_array
 
 @xr.register_dataarray_accessor("cdts")
-class cdtsAccessor:
+class CDTSAccessor:
     def __init__(self, xarray_obj: xr.DataArray) -> None:
         self._obj = xarray_obj
 
