@@ -39,7 +39,7 @@ If you need to modify the C++ backend, use the latest unreleased features, or bu
 ### Requirements
 
 *   Python 3.9+
-*   A C++ Compiler supporting C++14 (GCC, Clang, or MSVC)
+*   A C++ Compiler supporting C++17 (GCC, Clang, or MSVC)
 *   **macOS only:** the Xcode Command Line Tools provide the Clang compiler used to build the extension. Install them first if you haven't already:
     ```bash
     xcode-select --install
@@ -71,7 +71,14 @@ If you want the maximum possible performance out of the C++ core on macOS, you c
    brew install libomp
    ```
 
-2. Install CDTS from source. The `setup.py` script will automatically detect `libomp` and compile with OpenMP support:
+2. Point the compiler and linker at Homebrew's `libomp` — `setup.py`'s OpenMP detection compiles a test snippet against `<omp.h>`, which it won't find unless these are set, since Homebrew doesn't add `libomp` to the default include/lib search paths (it's keg-only):
+   ```bash
+   export CFLAGS="-I$(brew --prefix libomp)/include"
+   export CXXFLAGS="-I$(brew --prefix libomp)/include"
+   export LDFLAGS="-L$(brew --prefix libomp)/lib -lomp"
+   ```
+
+3. With those exported in the same shell, install CDTS from source. `setup.py` will now detect `libomp` and compile with OpenMP support:
    ```bash
    pip install --no-binary cdts cdts
    # or, if cloning from GitHub: pip install -e .
@@ -86,7 +93,7 @@ Unlike macOS, Windows (MSVC) and Linux (GCC) ship with native OpenMP support, so
 The deep learning models in `cdts.ai` (`UTAE`, `LTAE`/`LightTAE`, `TempCNN`, `Siamese Change Detector`, `GeoFoundationViT`) are plain PyTorch `nn.Module`s and run on whatever device you move them to — none of them hard-code CUDA.
 
 *   **NVIDIA GPUs (Linux/Windows):** the standard `pip install cdts` installs a `torch` build with CUDA support where available. Use `torch.device("cuda")` as usual.
-*   **Apple Silicon (M1–M4):** PyTorch's Metal (`mps`) backend gives you native GPU acceleration on macOS — no CUDA or extra install needed, since it ships in the same `torch` package:
+*   **Apple Silicon (any M-series chip):** PyTorch's Metal (`mps`) backend gives you native GPU acceleration on macOS — no CUDA or extra install needed, since it ships in the same `torch` package:
     ```python
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     model = model.to(device)
