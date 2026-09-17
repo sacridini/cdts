@@ -1,8 +1,6 @@
 <div align="center" markdown>
 
-<img src="assets/logo.png" alt="CDTS Logo" width="360">
-
-# CDTS
+<img src="assets/logo.png" alt="CDTS Logo" width="440">
 
 **Change Detection and Time-Series for Python**
 
