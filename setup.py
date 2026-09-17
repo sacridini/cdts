@@ -86,7 +86,7 @@ class BuildExt(build_ext):
 
 setup(
     name='cdts',
-    version='0.12.0',
+    version='0.13.0',
     packages=['cdts'],
     ext_modules=ext_modules,
     setup_requires=['pybind11>=2.10.0'],
