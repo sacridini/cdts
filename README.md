@@ -232,6 +232,25 @@ pheno_results = cube_16d.cdts.run_phenology(
 )
 ```
 
+## Trend Analysis (Mann-Kendall)
+
+Pixel-wise Mann-Kendall trend test + Theil-Sen slope, ported from [`pymannkendall`](https://github.com/mmhs013/pymannkendall) (Hussain & Mahmud, 2019) to a C++/OpenMP backend, with the same Dask distribution strategy as Phenology Extraction. Useful for "is there a statistically significant greening/browning trend at this pixel?" questions on multi-year composite stacks. See the [Mann-Kendall tutorial](https://sacridini.github.io/cdts/tutorials/mann_kendall/) for the full method comparison (autocorrelation-corrected variants, seasonal test) and a real-world walkthrough.
+
+```python
+import numpy as np
+
+# annual_ndvi: (year, y, x) DataArray, one max-NDVI composite per year
+trend = annual_ndvi.cdts.run_mann_kendall(
+    method="hamed_rao",  # autocorrelation-corrected (recommended for annual composites)
+    alpha=0.05,
+)
+
+result = trend.compute()
+slope_map = result.sel(metric="slope")        # NDVI change per year
+significant = result.sel(metric="h") == 1.0   # statistically significant at alpha=0.05
+declining = (result.sel(metric="trend") == -1) & significant
+```
+
 ## Time-Series Classification (TWDTW)
 
 The C++ TWDTW engine handles multivariate sequences simultaneously using Eigen's $L^2$ norms and aggressively skips non-matching pixels using $O(N)$ Lower Bounding techniques.

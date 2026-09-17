@@ -7,6 +7,7 @@
 #include "twdtw.h"
 #include "som.h"
 #include "phenology.h"
+#include "mann_kendall.h"
 
 namespace py = pybind11;
 
@@ -160,4 +161,24 @@ PYBIND11_MODULE(_core, m) {
            "Directly run the season-boundary detector (no smoothing/curve fitting) for unit testing",
            py::arg("y"), py::arg("dates") = py::none(), py::arg("min_season_length") = 0, py::arg("min_amplitude") = 0.0,
            py::arg("rtrough_max") = 0.6, py::arg("r_min_filter") = 0.02, py::arg("retry_on_empty") = true);
+
+    // Mann-Kendall sub-module
+    py::module_ mkmod = m.def_submodule("mannkendall", "Mann-Kendall trend test family + Sen's slope");
+
+    py::enum_<cdts::mannkendall::MKMethod>(mkmod, "MKMethod")
+        .value("ORIGINAL", cdts::mannkendall::MKMethod::ORIGINAL)
+        .value("HAMED_RAO", cdts::mannkendall::MKMethod::HAMED_RAO)
+        .value("YUE_WANG", cdts::mannkendall::MKMethod::YUE_WANG)
+        .value("SEASONAL", cdts::mannkendall::MKMethod::SEASONAL)
+        .export_values();
+
+    mkmod.def("fit_mann_kendall_batch", &cdts::mannkendall::fit_mann_kendall_batch,
+           "Pixel-wise Mann-Kendall trend test + Sen's slope on a batch of time series with OpenMP",
+           py::arg("values_array"), py::arg("method") = 1, py::arg("alpha") = 0.05,
+           py::arg("lag") = -1, py::arg("period") = 1, py::arg("min_valid") = 4, py::arg("n_jobs") = -1);
+
+    mkmod.def("mk_test_single", &cdts::mannkendall::mk_test_single,
+           "Run the Mann-Kendall test on a single time series (unit-testing helper)",
+           py::arg("y"), py::arg("method") = 1, py::arg("alpha") = 0.05,
+           py::arg("lag") = -1, py::arg("period") = 1);
 }

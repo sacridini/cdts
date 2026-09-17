@@ -16,9 +16,9 @@ class get_pybind_include(object):
 ext_modules = [
     Extension(
         'cdts._core',
-        ['src/main.cpp', 'src/landtrendr.cpp', 'src/ccdc.cpp', 'src/utils.cpp', 
-         'src/twdtw.cpp', 'src/som.cpp', 'src/phenology_math.cpp', 
-         'src/phenology_curves.cpp', 'src/phenology.cpp'],
+        ['src/main.cpp', 'src/landtrendr.cpp', 'src/ccdc.cpp', 'src/utils.cpp',
+         'src/twdtw.cpp', 'src/som.cpp', 'src/phenology_math.cpp',
+         'src/phenology_curves.cpp', 'src/phenology.cpp', 'src/mann_kendall.cpp'],
         include_dirs=[
             get_pybind_include(),
             get_pybind_include(user=True),
@@ -85,7 +85,7 @@ class BuildExt(build_ext):
 
 setup(
     name='cdts',
-    version='0.7.0',
+    version='0.8.0',
     packages=['cdts'],
     ext_modules=ext_modules,
     setup_requires=['pybind11>=2.10.0'],

@@ -534,6 +534,39 @@ cdts.generate_landtrendr_accuracy_dashboard(
 )
 ```
 
+## Trend Analysis
+
+### `cdts.trend.run_mann_kendall_dask`
+
+Pixel-wise Mann-Kendall trend test + Theil-Sen slope estimator across a Dask array's time axis, ported from [`pymannkendall`](https://github.com/mmhs013/pymannkendall) to a C++/OpenMP backend for per-pixel throughput. See the [Mann-Kendall tutorial](tutorials/mann_kendall.md) for the full method comparison and a real-world walkthrough. Also available as `DataArray.cdts.run_mann_kendall(...)` (see below).
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `arr` | `dask.array.Array` | **Required** | Input array, shape `(time, y, x)`. |
+| `method` | `str` | `'hamed_rao'` | `'original'`, `'hamed_rao'` (autocorrelation-corrected, recommended for annual composites), `'yue_wang'` (alternative correction), or `'seasonal'` (pools per-season scores over `period` slots — test a raw sub-annual series directly). |
+| `alpha` | `float` | `0.05` | Significance level for the `h`/`trend` decision. |
+| `lag` | `int` | `None` | Number of first significant lags for the `hamed_rao`/`yue_wang` autocorrelation correction. `None` uses the full series length. |
+| `period` | `int` | `1` | Season-cycle length, only used when `method='seasonal'` (e.g. `23` for MODIS 16-day annual cycles, `12` for monthly data). |
+| `min_valid` | `int` | `4` | Pixels with fewer non-NaN observations than this are returned as all-NaN. |
+| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. `-1` means all available cores. |
+
+**Output**: array of shape `(9, y, x)` — rows `trend, h, p, z, tau, s, var_s, slope, intercept` (see `cdts.trend.MK_METRIC_NAMES`). `slope`/`intercept` are per time step, except for `method='seasonal'` where they are per full `period` cycle — see the [units warning in the tutorial](tutorials/mann_kendall.md#2-background-which-method-should-i-use).
+
+**Usage Example**
+
+```python
+from cdts.trend import run_mann_kendall_dask
+
+# arr: dask.array.Array, shape (n_years, rows, cols) - one composite per year
+trend_out = run_mann_kendall_dask(arr, method="hamed_rao", alpha=0.05)
+
+trend_out = trend_out.compute()
+slope_map = trend_out[7]      # 'slope' row
+significant = trend_out[1] == 1.0  # 'h' row
+```
+
 ## AI & Deep Learning
 
 ### `cdts.ai.STACCubeDataset`
@@ -693,6 +726,9 @@ Runs CCDC algorithm across a distributed Dask array.
 
 ### DataArray.cdts.run_landtrendr(years, max_segments=6, pval_threshold=0.05, n_jobs=-1)
 Runs LandTrendr algorithm across a distributed Dask array.
+
+### DataArray.cdts.run_mann_kendall(method='hamed_rao', alpha=0.05, lag=None, period=1, min_valid=4, n_jobs=-1)
+Runs the Mann-Kendall trend test + Theil-Sen slope across the time dimension. See [`cdts.trend.run_mann_kendall_dask`](#cdtstrendrun_mann_kendall_dask) above and the [Mann-Kendall tutorial](tutorials/mann_kendall.md).
 
 ### DataArray.cdts.to_zarr_optimized(store_path, chunk_size=dict(y=512, x=512))
 Optimizes spatial chunking and saves the DataArray to Zarr with consolidated metadata.

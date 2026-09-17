@@ -62,6 +62,7 @@ nav:
       - Tmask: tutorials/tmask.md
       - TWDTW (Time-Weighted DTW): tutorials/twdtw.md
       - Phenology Extraction: tutorials/phenology.md
+      - Mann-Kendall Trend Test: tutorials/mann_kendall.md
       - SOM (Self-Organizing Maps): tutorials/som.md
       - STAC & ARD Integration: tutorials/stac-downloads.md
       - AI & Deep Learning: tutorials/ai.md

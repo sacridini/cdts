@@ -176,6 +176,46 @@ weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
             }
         )
 
+    def run_mann_kendall(self, method: str = "hamed_rao", alpha: float = 0.05,
+                          lag: Optional[int] = None, period: int = 1,
+                          min_valid: int = 4, n_jobs: int = -1) -> xr.DataArray:
+        """
+        Pixel-wise Mann-Kendall trend test + Theil-Sen slope across the time
+        dimension. Assumes DataArray shape: (time, y, x).
+        Returns a DataArray with dim "metric": trend, h, p, z, tau, s,
+        var_s, slope, intercept (see cdts.trend.MK_METRIC_NAMES).
+
+        method: "original", "hamed_rao" (default - autocorrelation-corrected,
+        recommended for annual composites), "yue_wang" (alternative
+        autocorrelation correction), or "seasonal" (pools per-season MK
+        scores over `period` slots, e.g. period=23 for MODIS 16-day annual
+        cycles - lets you test a raw sub-annual series directly).
+
+        slope/intercept are in units of this DataArray per TIME STEP, not
+        calendar time (per full `period` cycle for method="seasonal") - use
+        one observation per year, or `period=`, for a per-year trend.
+        """
+        from cdts.trend import run_mann_kendall_dask, MK_METRIC_NAMES
+
+        arr = self._obj.data
+        if not isinstance(arr, da.Array):
+            arr = da.from_array(arr)
+
+        out = run_mann_kendall_dask(
+            arr, method=method, alpha=alpha, lag=lag, period=period,
+            min_valid=min_valid, n_jobs=n_jobs,
+        )
+
+        return xr.DataArray(
+            out,
+            dims=["metric", "y", "x"],
+            coords={
+                "metric": MK_METRIC_NAMES,
+                "y": self._obj.coords.get("y"),
+                "x": self._obj.coords.get("x"),
+            }
+        )
+
     def to_zarr_optimized(self, store_path: str, chunk_size: dict = {"y": 512, "x": 512}) -> None:
         """
         Optimizes and saves the DataArray directly to a Zarr store, ideal for cloud storage (S3/GCS) 
