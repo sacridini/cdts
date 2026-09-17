@@ -601,5 +601,5 @@ def generate_landtrendr_accuracy_dashboard(
     with open(output_html, 'w', encoding='utf-8') as f:
         f.write(final_html)
         
-    print(f"✅ LandTrendr Accuracy Dashboard generated at: {output_html}")
+    print(f"LandTrendr Accuracy Dashboard generated at: {output_html}")
     return output_html
