@@ -18,7 +18,7 @@ Built with highly optimized C++ extensions (OpenMP and Eigen SIMD) bound to Pyth
 ## Key Capabilities
 
 - **ARD Data Cube Ingestion:** Fetch cloud-native STAC catalogs (via MGRS/WRS tiles or Bounding Boxes) or parse local TIFF directories into lazy Dask-backed `xarray` Datacubes.
-- **Semantic Cloud Masking:** Automated extraction and translation of Quality Assessment (QA) bands for Landsat and Sentinel-2 directly inside the query pipeline.
+- **Semantic Cloud Masking:** Automated extraction and translation of Quality Assessment (QA) bands for Landsat and Sentinel-2 directly inside the query pipeline, plus a temporal **Tmask** harmonic baseline model to catch clouds/shadows missed by the native QA mask.
 - **Temporal Regularization:** Mathematical composite generation (e.g., Medoid, Median) to align irregular satellite acquisitions into uniform time steps (crucial for Deep Learning and DTW).
 - **High-Performance C++ Algorithms:**
   - **TWDTW** (Time-Weighted Dynamic Time Warping): Highly optimized with LB_Keogh lower bounding, early abandonment, Sakoe-Chiba constraints, and multivariate Eigen vectorization.
@@ -26,7 +26,10 @@ Built with highly optimized C++ extensions (OpenMP and Eigen SIMD) bound to Pyth
   - **CCDC / COLD**: Continuous Change Detection and Classification via robust harmonic modeling.
   - **LandTrendr**: Trajectory-based disturbance and recovery detection.
   - **BFAST Monitor & BFAST Lite**: Near-real-time monitoring and single-pass multiple-breakpoint detection (ported from R's `bfast`/`strucchangeRcpp`).
-- **Deep Learning (`cdts.ai`):** Pre-built PyTorch architectures tailored for spatio-temporal Earth Observation (U-TAE, TempCNN, Siamese Networks).
+  - **Phenology Extraction**: 19 simultaneous phenological metrics from optimized curve-fitting models (Beck, Elmore, Gu, Zhang, Asymmetric Gaussian, Double Logistic), with QA-based per-observation weighting.
+  - **Mann-Kendall / Theil-Sen**: Pixel-wise non-parametric trend test and slope estimation for detecting statistically significant greening/browning trends.
+- **Deep Learning (`cdts.ai`):** Pre-built PyTorch architectures tailored for spatio-temporal Earth Observation (U-TAE, TempCNN, Siamese Networks), plus wrappers for Geospatial Foundation Models (ViT).
+- **Command-Line Interface:** Every core algorithm is also available as a `cdts` subcommand, for running change detection on GeoTIFF stacks from bash scripts, cron jobs, or HPC environments without writing Python.
 
 ---
 
@@ -391,6 +394,16 @@ save_raster(
     nodata=255
 )
 ```
+
+## Command-Line Interface
+
+Every core algorithm is also available as a `cdts` subcommand, so you can run change detection directly on GeoTIFF stacks from bash scripts, cron jobs, or HPC batch systems without writing any Python:
+
+```bash
+cdts landtrendr input_stack.tif output_dir/ --start-year 2000 --max-segments 6 --jobs -1
+```
+
+See the [CLI reference](https://sacridini.github.io/cdts/cli/) for the full list of subcommands and options.
 
 ---
 
