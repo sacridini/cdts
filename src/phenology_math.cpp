@@ -185,12 +185,13 @@ struct PeakTrough {
     double val;
 };
 
-std::vector<SeasonSegment> split_growing_seasons(
+static std::vector<SeasonSegment> split_growing_seasons_once(
     const std::vector<double>& smoothed_y,
+    const std::vector<double>& dates,
     int min_season_length,
     double min_amplitude,
     double rtrough_max,
-    double r_min_filter) 
+    double r_min_filter)
 {
     int n = smoothed_y.size();
     if (n < 3) return {};
@@ -340,28 +341,64 @@ std::vector<SeasonSegment> split_growing_seasons(
     
     std::vector<SeasonSegment> valid_seasons;
     for (auto& s : seasons) {
-        if (s.end_idx - s.start_idx >= min_season_length) {
+        // Duration in real elapsed time (dates[end] - dates[start]), not
+        // observation count, so min_season_length means the same thing
+        // regardless of revisit cadence (daily, 8-day, 16-day, irregular, ...).
+        if (dates[s.end_idx] - dates[s.start_idx] >= min_season_length) {
             double amplitude = smoothed_y[s.peak_idx] - std::max(smoothed_y[s.start_idx], smoothed_y[s.end_idx]);
             if (amplitude >= min_amplitude) {
                 valid_seasons.push_back(s);
             }
         }
     }
-    
+
     return valid_seasons;
 }
 
+std::vector<SeasonSegment> split_growing_seasons(
+    const std::vector<double>& smoothed_y,
+    const std::vector<double>& dates,
+    int min_season_length,
+    double min_amplitude,
+    double rtrough_max,
+    double r_min_filter,
+    bool retry_on_empty)
+{
+    auto seasons = split_growing_seasons_once(smoothed_y, dates, min_season_length, min_amplitude, rtrough_max, r_min_filter);
+
+    if (seasons.empty() && retry_on_empty) {
+        // Mirrors phenofit's season_mov single relax-and-retry: loosen the
+        // trough-acceptance threshold once (admitting shallower troughs as
+        // valid season boundaries) instead of giving up on the pixel.
+        double relaxed_rtrough_max = std::min(rtrough_max + 0.2, 0.95);
+        if (relaxed_rtrough_max > rtrough_max) {
+            seasons = split_growing_seasons_once(smoothed_y, dates, min_season_length, min_amplitude, relaxed_rtrough_max, r_min_filter);
+        }
+    }
+
+    return seasons;
+}
+
 std::vector<double> eigen_hants(
-    const std::vector<double>& y, 
-    const std::vector<double>& t, 
-    int num_frequencies, 
-    double threshold)
+    const std::vector<double>& y,
+    const std::vector<double>& t,
+    int num_frequencies,
+    double threshold,
+    const std::optional<std::vector<double>>& initial_weights)
 {
     int n = y.size();
     if (n == 0) return {};
 
     Eigen::VectorXd y_vec = Eigen::Map<const Eigen::VectorXd>(y.data(), n);
     Eigen::VectorXd w_vec = Eigen::VectorXd::Ones(n);
+    if (initial_weights.has_value()) {
+        if (initial_weights->size() != static_cast<size_t>(n)) {
+            throw std::invalid_argument("initial_weights must have the same size as y.");
+        }
+        for (int i = 0; i < n; ++i) {
+            w_vec(i) = std::clamp(initial_weights->at(i), 0.0, 1.0);
+        }
+    }
 
     // Build design matrix X for harmonic regression
     // 1 base frequency (mean), plus num_frequencies pairs of sine/cosine

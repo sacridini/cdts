@@ -100,21 +100,38 @@ class cdtsAccessor:
             }
         )
         
-    def run_phenology(self, dates: np.ndarray, curve_type: int, extraction_method: int = 0, max_seasons: int = 2, whittaker_lambda: float = 10.0, 
-apply_whittaker: bool = True, apply_hants: bool = False, hants_frequencies: int = 3, hants_threshold: float = 0.1, min_season_length: int = 0, 
-min_amplitude: float = 0.0, min_pixel_amplitude: float = 0.1, return_annual: bool = True, base_year: int = 2001, n_jobs: int = -1) -> xr.DataArray:
+    def run_phenology(self, dates: np.ndarray, curve_type: int, extraction_method: int = 0, max_seasons: int = 2, whittaker_lambda: float = 10.0,
+apply_whittaker: bool = True, apply_hants: bool = False, hants_frequencies: int = 3, hants_threshold: float = 0.1, min_season_length: int = 0,
+min_amplitude: float = 0.0, min_pixel_amplitude: float = 0.1, return_annual: bool = True, base_year: int = 2001, n_jobs: int = -1,
+weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
         """
         Runs Phenology extraction on an xarray DataArray using Dask.
         Assumes DataArray shape: (time, y, x).
         Returns an xarray DataArray with shape (metric, max_seasons, y, x)
         where metric is 0: SOS, 1: EOS, 2: LOS, 3: POP.
+
+        weights: optional (time, y, x) array/DataArray of per-observation
+        reliability weights in [0, 1], aligned with this DataArray (e.g. built
+        with cdts.qc.qc_modis_summary/qc_modis_state/qc_sentinel2_scl from a
+        QA band). Low-quality observations are down-weighted in the Whittaker/
+        HANTS smoothing and in the iterative curve fit instead of being
+        treated as equally trustworthy as clear observations.
+
+        season_retry: when a pixel's first-pass season detection finds no
+        growing season at all, retry once with a relaxed trough threshold
+        (mirrors phenofit's season_mov r_max relaxation) before giving up on
+        that pixel. Set False to disable for stricter/faster behaviour.
         """
         from cdts.phenology import run_phenology_dask
-        
+
         arr = self._obj.data
         if not isinstance(arr, da.Array):
             arr = da.from_array(arr)
-            
+
+        weights_arr = None
+        if weights is not None:
+            weights_arr = weights.data if isinstance(weights, xr.DataArray) else weights
+
         out = run_phenology_dask(
             arr=arr,
             dates=dates,
@@ -131,15 +148,18 @@ min_amplitude: float = 0.0, min_pixel_amplitude: float = 0.1, return_annual: boo
             min_pixel_amplitude=min_pixel_amplitude,
             return_annual=return_annual,
             base_year=base_year,
-            n_jobs=n_jobs
+            n_jobs=n_jobs,
+            weights=weights_arr,
+            season_retry=season_retry
         )
-        
+
         metrics = [
             "TRS2.sos", "TRS2.eos", "TRS5.sos", "TRS5.eos", "TRS6.sos", "TRS6.eos",
             "DER.sos", "DER.pos", "DER.eos",
             "UD", "SD", "DD", "RD",
             "Greenup", "Maturity", "Senescence", "Dormancy",
-            "LOS", "POP"
+            "LOS", "POP",
+            "R2", "RMSE"
         ]
         
         dim_name = "year" if return_annual else "season"

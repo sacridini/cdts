@@ -152,5 +152,12 @@ PYBIND11_MODULE(_core, m) {
            py::arg("min_pixel_amplitude") = 0.1,
            py::arg("rtrough_max") = 0.6,
            py::arg("r_min_filter") = 0.02,
-           py::arg("n_jobs") = -1);
+           py::arg("n_jobs") = -1,
+           py::arg("weights_array") = py::none(),
+           py::arg("season_retry") = true);
+
+    ph.def("debug_split_seasons", &phenology::debug_split_seasons,
+           "Directly run the season-boundary detector (no smoothing/curve fitting) for unit testing",
+           py::arg("y"), py::arg("dates") = py::none(), py::arg("min_season_length") = 0, py::arg("min_amplitude") = 0.0,
+           py::arg("rtrough_max") = 0.6, py::arg("r_min_filter") = 0.02, py::arg("retry_on_empty") = true);
 }

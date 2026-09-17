@@ -250,8 +250,28 @@ This returns arrays of shape `(19_metrics, 3_seasons, Y, X)`. You can then map `
 
 ### Adjusting Quality Control Parameters
 - **`whittaker_lambda`**: Higher values create stiffer, smoother curves. Lower values allow the curve to bend sharply to follow the raw data closely. For 16-day composites, values between `1.0` and `5.0` are standard.
-- **`min_season_length`**: Useful for filtering out high-frequency noise spikes that mistakenly look like a very short 2-day growing season.
+- **`min_season_length`**: Useful for filtering out high-frequency noise spikes that mistakenly look like a very short 2-day growing season. Measured in the same calendar-day units as `dates`, not in observation count — it is compared against the actual elapsed time between a season's start and end, so it behaves consistently regardless of the sensor's revisit cadence.
 - **`min_amplitude`**: Prevents the optimizer from fitting curves on background noise (e.g., bare soil that fluctuates slightly with rain). If the peak of the smoothed curve minus the base is less than this value, the season is rejected.
+
+### Down-weighting Low-Quality Observations (QC/QA bands)
+Cloud, cloud-shadow, and snow contamination can distort the smoothed curve even after masking obvious no-data pixels. `cdts.qc` decodes a sensor's native QA/QC band into per-observation reliability weights in `[0, 1]`, which then feed both the Whittaker/HANTS smoother and the iterative curve-fit reweighting (`wTSM`) — low-quality observations pull the fit less instead of being treated as equally trustworthy as clear ones:
+
+```python
+from cdts.qc import qc_modis_summary, qc_modis_state, qc_sentinel2_scl
+
+# MOD13A1/A2/Q1 "SummaryQA" band (0=good, 1=marginal, 2=snow/ice, 3=cloudy)
+weights = qc_modis_summary(qa_cube)  # -> [1.0, 0.5, 0.2, 0.2], aligned with qa_cube
+
+pheno_results = ds.cdts.run_phenology(
+    dates=dates_julian,
+    curve_type=int(CurveType.BECK),
+    weights=weights,        # (time, y, x), aligned with the input DataArray
+    season_retry=True,      # default: relax the trough threshold once if a
+                             # pixel's first pass finds no season at all
+)
+```
+
+`qc_modis_state` (MOD09 500m 16-bit "State QA": cloud state, cloud shadow, aerosol quantity, snow/ice) and `qc_sentinel2_scl` (Sentinel-2 L2A Scene Classification Layer) follow the same `[0, 1]` convention for their respective sensors. All three are ports of phenofit's `qcFUN.R` (see [Section 7](#7-references)).
 
 ---
 

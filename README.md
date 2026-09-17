@@ -216,6 +216,22 @@ pheno_array = pheno_results.compute()
 greenup_map = pheno_array.sel(metric="Greenup", season=0)
 ```
 
+**Down-weighting cloud/snow-contaminated observations:** `cdts.qc` decodes a sensor's QA/QC band into per-observation reliability weights in `[0, 1]` (ported from phenofit's `qcFUN.R`), which feed the Whittaker/HANTS smoothing and the iterative curve fit instead of trusting every observation equally:
+
+```python
+from cdts.qc import qc_modis_summary
+
+# qa_cube: (time, y, x) MOD13 SummaryQA band, aligned with cube_16d
+weights = qc_modis_summary(qa_cube)  # 0=good, 1=marginal, 2=snow/ice, 3=cloudy -> [1.0, 0.5, 0.2, 0.2]
+
+pheno_results = cube_16d.cdts.run_phenology(
+    dates=dates_julian,
+    curve_type=int(CurveType.BECK),
+    weights=weights,       # down-weights unreliable observations during smoothing/fitting
+    season_retry=True,     # relax the trough threshold once if a pixel finds no season at all
+)
+```
+
 ## Time-Series Classification (TWDTW)
 
 The C++ TWDTW engine handles multivariate sequences simultaneously using Eigen's $L^2$ norms and aggressively skips non-matching pixels using $O(N)$ Lower Bounding techniques.
