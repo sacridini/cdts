@@ -874,6 +874,43 @@ slope_map = trend_out[7]      # 'slope' row
 significant = trend_out[1] == 1.0  # 'h' row
 ```
 
+## Change Monitoring (BFAST)
+
+### `cdts.bfast.run_bfast_monitor_dask`
+
+Pixel-wise near-real-time structural change monitoring (`bfastmonitor`), ported from the R package [`bfast`](https://github.com/bfast2/bfast) and its [`strucchangeRcpp`](https://github.com/bfast2/strucchangeRcpp) dependency's OLS-MOSUM monitoring process (Chu, Stinchcombe & White, 1996) to a C++/OpenMP backend, with the same Dask distribution strategy as `run_mann_kendall_dask`. Fits a trend + harmonic model on a stable history period, then flags the first point in the subsequent monitoring period where the residual fluctuation process crosses a significance boundary — "is a disturbance happening right now". See the [BFAST Monitor tutorial](tutorials/bfast_monitor.md) for the full method background, scope (only `type="OLS-MOSUM"` and `history="all"` are implemented — no STL, no Bai-Perron multi-breakpoint search), and a documented false-positive-rate caveat. Also available as `DataArray.cdts.run_bfast_monitor(...)` (see below).
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `arr` | `dask.array.Array` | **Required** | Input array, shape `(time, y, x)`, one observation every `1/frequency` (regular, synthetic time — matches R's `ts` semantics, not real per-observation dates). |
+| `start_time` | `float` | **Required** | The series' start time (e.g. `2010.0`). Should be an integer so harmonic terms align with calendar seasons. |
+| `monitor_start_time` | `float` | **Required** | Time at which monitoring begins — the history/monitoring split point (e.g. `2022.0`). |
+| `frequency` | `int` | **Required** | Observations per year (e.g. `23` for 16-day composites, `12` for monthly). |
+| `order` | `int` | `3` | Harmonic order for the seasonal regressors (capped at `frequency`). |
+| `h` | `float` | `0.25` | MOSUM window size as a fraction of history length. Must be one of `0.25`, `0.5`, `1.0` (the critical-value table's grid). |
+| `period` | `int` | `10` | How many "history lengths" ahead the monitoring boundary's guarantee covers. Must be one of `2`, `4`, `6`, `8`, `10`. |
+| `alpha` | `float` | `0.05` | Significance level. |
+| `min_valid` | `int` | `10` | Pixels with fewer non-NaN history observations than this are returned as invalid (`valid=0`, all other metrics `NaN`). |
+| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. |
+
+**Output**: array of shape `(7, y, x)` — rows `breakpoint, breakpoint_idx, magnitude, sigma, n_history, has_break, valid` (see `cdts.bfast.BFM_METRIC_NAMES`).
+
+**Usage Example**
+
+```python
+from cdts.bfast import run_bfast_monitor_dask
+
+# arr: dask.array.Array, shape (time, y, x), 16-day composites from 2010
+out = run_bfast_monitor_dask(
+    arr, start_time=2010.0, monitor_start_time=2022.0, frequency=23,
+).compute()
+
+disturbed = out[5] == 1.0        # 'has_break' row
+break_idx = out[1]               # 'breakpoint_idx' row
+```
+
 ## Time-Series Classification (TWDTW)
 
 ### `cdts.twdtw.run_twdtw`
@@ -1233,6 +1270,9 @@ Runs phenology curve-fitting and metric extraction across a distributed Dask arr
 
 ### DataArray.cdts.run_mann_kendall(method='hamed_rao', alpha=0.05, lag=None, period=1, min_valid=4, n_jobs=-1)
 Runs the Mann-Kendall trend test + Theil-Sen slope across the time dimension. See [`cdts.trend.run_mann_kendall_dask`](#cdtstrendrun_mann_kendall_dask) above and the [Mann-Kendall tutorial](tutorials/mann_kendall.md).
+
+### DataArray.cdts.run_bfast_monitor(start_time, monitor_start_time, frequency, order=3, h=0.25, period=10, alpha=0.05, min_valid=10, n_jobs=-1)
+Runs near-real-time structural change monitoring (bfastmonitor) across the time dimension. See [`cdts.bfast.run_bfast_monitor_dask`](#cdtsbfastrun_bfast_monitor_dask) above and the [BFAST Monitor tutorial](tutorials/bfast_monitor.md).
 
 ### DataArray.cdts.to_zarr_optimized(store_path, chunk_size=dict(y=512, x=512))
 Optimizes spatial chunking and saves the DataArray to Zarr with consolidated metadata.

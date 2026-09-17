@@ -25,6 +25,7 @@ Built with highly optimized C++ extensions (OpenMP and Eigen SIMD) bound to Pyth
   - **Batch SOM** (Self-Organizing Maps): Unsupervised multi-threaded clustering of massive spectral-temporal arrays.
   - **CCDC / COLD**: Continuous Change Detection and Classification via robust harmonic modeling.
   - **LandTrendr**: Trajectory-based disturbance and recovery detection.
+  - **BFAST Monitor**: Near-real-time structural change monitoring (ported from R's `bfast`/`strucchangeRcpp`).
 - **Deep Learning (`cdts.ai`):** Pre-built PyTorch architectures tailored for spatio-temporal Earth Observation (U-TAE, TempCNN, Siamese Networks).
 
 ---
@@ -249,6 +250,23 @@ result = trend.compute()
 slope_map = result.sel(metric="slope")        # NDVI change per year
 significant = result.sel(metric="h") == 1.0   # statistically significant at alpha=0.05
 declining = (result.sel(metric="trend") == -1) & significant
+```
+
+## Change Monitoring (BFAST Monitor)
+
+Pixel-wise near-real-time structural change monitoring, ported from the R package [`bfast`](https://github.com/bfast2/bfast) (Verbesselt *et al.*) to a C++/OpenMP backend, with the same Dask distribution strategy as Mann-Kendall. Unlike LandTrendr/CCDC (retrospective, whole-series segmentation), `bfastmonitor` fits a trend+harmonic model on a stable history period and asks "is a disturbance happening *right now*, in the most recent observations?" — verified bit-for-bit-scale accurate against R's `bfastmonitor()`. See the [BFAST Monitor tutorial](https://sacridini.github.io/cdts/tutorials/bfast_monitor/) for the full method background and scope (only `type="OLS-MOSUM"` + `history="all"` are ported so far).
+
+```python
+# annual_ndvi: (time, y, x) DataArray, 16-day composites (frequency=23/year) from 2010
+result = annual_ndvi.cdts.run_bfast_monitor(
+    start_time=2010.0,
+    monitor_start_time=2022.0,  # monitor everything from 2022 onward
+    frequency=23,
+)
+
+result = result.compute()
+disturbed = result.sel(metric="has_break") == 1.0
+break_time = result.sel(metric="breakpoint")  # fractional-year time of the first detected break
 ```
 
 ## Time-Series Classification (TWDTW)

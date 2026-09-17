@@ -216,6 +216,42 @@ weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
             }
         )
 
+    def run_bfast_monitor(self, start_time: float, monitor_start_time: float, frequency: int,
+                           order: int = 3, h: float = 0.25, period: int = 10,
+                           alpha: float = 0.05, min_valid: int = 10, n_jobs: int = -1) -> xr.DataArray:
+        """
+        Near-real-time structural change monitoring (bfastmonitor) across
+        the time dimension. Assumes DataArray shape: (time, y, x).
+        Returns a DataArray with dim "metric": breakpoint, breakpoint_idx,
+        magnitude, sigma, n_history, has_break, valid (see
+        cdts.bfast.BFM_METRIC_NAMES).
+
+        See cdts.bfast.run_bfast_monitor_dask for the full parameter
+        documentation and scope notes (only type="OLS-MOSUM" and
+        history="all" are implemented).
+        """
+        from cdts.bfast import run_bfast_monitor_dask, BFM_METRIC_NAMES
+
+        arr = self._obj.data
+        if not isinstance(arr, da.Array):
+            arr = da.from_array(arr)
+
+        out = run_bfast_monitor_dask(
+            arr, start_time=start_time, monitor_start_time=monitor_start_time,
+            frequency=frequency, order=order, h=h, period=period, alpha=alpha,
+            min_valid=min_valid, n_jobs=n_jobs,
+        )
+
+        return xr.DataArray(
+            out,
+            dims=["metric", "y", "x"],
+            coords={
+                "metric": BFM_METRIC_NAMES,
+                "y": self._obj.coords.get("y"),
+                "x": self._obj.coords.get("x"),
+            }
+        )
+
     def to_zarr_optimized(self, store_path: str, chunk_size: dict = {"y": 512, "x": 512}) -> None:
         """
         Optimizes and saves the DataArray directly to a Zarr store, ideal for cloud storage (S3/GCS) 

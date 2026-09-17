@@ -8,6 +8,7 @@
 #include "som.h"
 #include "phenology.h"
 #include "mann_kendall.h"
+#include "bfast_monitor.h"
 
 namespace py = pybind11;
 
@@ -181,4 +182,30 @@ PYBIND11_MODULE(_core, m) {
            "Run the Mann-Kendall test on a single time series (unit-testing helper)",
            py::arg("y"), py::arg("method") = 1, py::arg("alpha") = 0.05,
            py::arg("lag") = -1, py::arg("period") = 1);
+
+    // bfastmonitor sub-module
+    py::module_ bfm = m.def_submodule("bfastmonitor", "bfastmonitor: near-real-time structural change monitoring");
+
+    py::class_<cdts::bfastmonitor::BFMResult>(bfm, "BFMResult")
+        .def(py::init<>())
+        .def_readwrite("breakpoint", &cdts::bfastmonitor::BFMResult::breakpoint)
+        .def_readwrite("breakpoint_idx", &cdts::bfastmonitor::BFMResult::breakpoint_idx)
+        .def_readwrite("magnitude", &cdts::bfastmonitor::BFMResult::magnitude)
+        .def_readwrite("sigma", &cdts::bfastmonitor::BFMResult::sigma)
+        .def_readwrite("n_history", &cdts::bfastmonitor::BFMResult::n_history)
+        .def_readwrite("has_break", &cdts::bfastmonitor::BFMResult::has_break)
+        .def_readwrite("valid", &cdts::bfastmonitor::BFMResult::valid);
+
+    bfm.def("bfast_monitor", &cdts::bfastmonitor::bfast_monitor,
+           "Run bfastmonitor on a single pixel time series (unit-testing helper)",
+           py::arg("y"), py::arg("start_time"), py::arg("monitor_start_time"),
+           py::arg("frequency"), py::arg("order") = 3, py::arg("h") = 0.25,
+           py::arg("period") = 10, py::arg("alpha") = 0.05);
+
+    bfm.def("fit_bfast_monitor_batch", &cdts::bfastmonitor::fit_bfast_monitor_batch,
+           "Run bfastmonitor on a batch of pixels with OpenMP",
+           py::arg("values_array"), py::arg("start_time"), py::arg("monitor_start_time"),
+           py::arg("frequency"), py::arg("order") = 3, py::arg("h") = 0.25,
+           py::arg("period") = 10, py::arg("alpha") = 0.05, py::arg("min_valid") = 10,
+           py::arg("n_jobs") = -1);
 }
