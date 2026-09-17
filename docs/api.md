@@ -1065,18 +1065,20 @@ predictions = model(X) # Output shape: (2, 10, 128, 128)
 
 ### `cdts.ai.TempCNN`
 
-A 1D Temporal Convolutional Neural Network designed specifically for classifying satellite time-series at the pixel level. It uses causal/dilated convolutions to capture seasonal phenology without requiring recurrent layers (like LSTMs).
+A 1D Temporal Convolutional Neural Network for classifying satellite time-series at the pixel level (Pelletier *et al.*, 2019, [doi:10.3390/rs11050523](https://doi.org/10.3390/rs11050523)). Ported layer-for-layer from the R package [`sits`](https://github.com/e-sensing/sits)'s `sits_tempcnn()` (`R/sits_tempcnn.R`, `R/api_torch.R`) so trained weights are portable between the two for cross-validation: 3x `(Conv1d -> BatchNorm1d -> ReLU -> Dropout)`, then a **flatten** over the full time axis (not global-average-pooled — the flatten bakes `n_times` into the dense layer's input size, so a given model instance is tied to one fixed sequence length, matching `sits`'s behavior), then `(Linear -> BatchNorm1d -> ReLU -> Dropout)` and a final `Linear` classifier.
 
 **Parameters**
 
 | Argument | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
-| `input_dim` | `int` | **Required** | Number of spectral bands. |
-| `num_classes`| `int` | **Required** | Number of output classification categories. |
-| `sequence_len`|`int` | **Required** | Number of timesteps in the sequence. |
-| `hidden_dims`| `int` | `64` | Number of filters in the convolutional layers. |
-| `kernel_size`| `int` | `5` | Size of the 1D temporal convolution kernel. |
-| `dropout` | `float`| `0.5` | Dropout probability for regularization. |
+| `in_channels` | `int` | **Required** | Number of spectral bands. |
+| `n_times` | `int` | **Required** | Number of timesteps in the sequence (fixed per model instance — see above). |
+| `num_classes`| `int` | `5` | Number of output classification categories. |
+| `hidden_dims`| `tuple[int,int,int]` | `(64, 64, 64)` | Number of filters in each of the 3 convolutional blocks. |
+| `kernel_sizes`| `tuple[int,int,int]` | `(3, 3, 3)` | Kernel size of each 1D convolution (matches `sits_tempcnn`'s `cnn_kernels` default). |
+| `dropout_rates`| `tuple[float,float,float]` | `(0.2, 0.2, 0.2)` | Dropout rate after each convolutional block (matches `sits_tempcnn`'s `cnn_dropout_rates` default). |
+| `dense_layer_nodes` | `int` | `256` | Width of the dense layer between the flattened conv output and the classifier. |
+| `dense_layer_dropout_rate` | `float` | `0.5` | Dropout rate on the dense layer. |
 
 **Usage Example**
 
@@ -1084,7 +1086,7 @@ A 1D Temporal Convolutional Neural Network designed specifically for classifying
 import torch
 from cdts.ai import TempCNN
 
-model = TempCNN(input_dim=6, num_classes=5, sequence_len=36)
+model = TempCNN(in_channels=6, n_times=36, num_classes=5)
 
 # Pixel-level time-series tensor (Batch, Channels, Time)
 X = torch.randn(32, 6, 36) 

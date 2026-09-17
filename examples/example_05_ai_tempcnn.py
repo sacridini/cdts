@@ -18,7 +18,7 @@ reshaped_data = cube_data.transpose(2, 3, 1, 0).reshape(H * W, C, T)
 tensor_data = torch.tensor(reshaped_data, dtype=torch.float32)
 
 print("Initializing TempCNN...")
-model = TempCNN(in_channels=C, num_classes=3)
+model = TempCNN(in_channels=C, n_times=T, num_classes=3)
 
 print("Running Forward Pass...")
 logits = model(tensor_data)
