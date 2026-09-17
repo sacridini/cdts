@@ -225,7 +225,7 @@ pybind11::array_t<double> fit_phenology_batch(
         out_ptr[i] = std::nan("");
     }
 
-    if (n_jobs <= 0) n_jobs = omp_get_max_threads();
+    if (n_jobs <= 0) n_jobs = std::max(1, omp_get_max_threads() - 1);
 
     Eigen::Map<Eigen::VectorXd> t_all(dates_ptr, n_time);
     // Shared, read-only across pixels: lets split_growing_seasons() measure

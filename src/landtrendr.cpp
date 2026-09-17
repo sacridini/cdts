@@ -523,9 +523,7 @@ pybind11::tuple fit_trajectory_batch(
     std::fill(counts_ptr, counts_ptr + num_pixels, 0);
     
     #ifdef _OPENMP
-    if (n_jobs > 0) {
-        omp_set_num_threads(n_jobs);
-    }
+    omp_set_num_threads(n_jobs > 0 ? n_jobs : std::max(1, omp_get_max_threads() - 1));
     #pragma omp parallel for schedule(dynamic)
     #endif
     for (int p = 0; p < num_pixels; ++p) {

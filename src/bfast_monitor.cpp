@@ -293,7 +293,7 @@ pybind11::array_t<double> fit_bfast_monitor_batch(
     double* out_ptr = static_cast<double*>(out_arr.request().ptr);
     for (int i = 0; i < n_metrics * n_pixels; ++i) out_ptr[i] = std::nan("");
 
-    if (n_jobs <= 0) n_jobs = omp_get_max_threads();
+    if (n_jobs <= 0) n_jobs = std::max(1, omp_get_max_threads() - 1);
 
     #pragma omp parallel num_threads(n_jobs)
     {

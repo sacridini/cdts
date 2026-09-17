@@ -366,7 +366,7 @@ Executes the LandTrendr algorithm directly on a large multi-band GeoTIFF stored 
 | `start_year` | `int` | `2000` | Calendar year corresponding to the first band. |
 | `max_segments` | `int` | `6` | Maximum number of line segments allowed per pixel. |
 | `chunk_size` | `int` | `512` | Pixel size of the chunks to read and process at once. |
-| `n_jobs` | `int` | `-1` | CPU cores to use. `-1` means all available cores. |
+| `n_jobs` | `int` | `-1` | CPU cores to use. `-1` reserves one core (`max(1, cpu_count - 1)`), so the host stays responsive. |
 | `save_vertices`| `bool`| `False` | Whether to save the raw fitted vertices stack to disk. |
 | `event_type` | `str` | `'loss'` | Type of event to extract. Options: `'loss'` (e.g., deforestation) or `'gain'` (e.g., regrowth). |
 
@@ -399,7 +399,7 @@ Executes the LandTrendr algorithm in memory on a 3D NumPy array stack `(Time, Ro
 | `raster_stack` | `np.ndarray`| **Required** | The 3D input numpy array. |
 | `max_segments` | `int` | `6` | Maximum number of line segments allowed per pixel. |
 | `pval_threshold` | `float`| `0.05` | P-value threshold for fitting statistical segments. |
-| `n_jobs` | `int` | `-1` | CPU cores to use. `-1` means all available cores. |
+| `n_jobs` | `int` | `-1` | CPU cores to use. `-1` reserves one core (`max(1, cpu_count - 1)`), so the host stays responsive. |
 
 **Usage Example**
 
@@ -482,7 +482,7 @@ Executes the Continuous Change Detection and Classification (CCDC) algorithm dir
 | `qa_band_idx` | `int` | `-1` | Zero-based index of the QA band. `-1` disables QA masking. |
 | `max_segments` | `int` | `6` | Maximum number of distinct change segments to retain. |
 | `conseq_anom` | `int` | `3` | Number of consecutive anomalies required to trigger a break. |
-| `n_jobs` | `int` | `-1` | CPU cores to use for processing. |
+| `n_jobs` | `int` | `-1` | CPU cores to use for processing. `-1` reserves one core (`max(1, cpu_count - 1)`), so the host stays responsive. |
 
 **Usage Example**
 
@@ -521,7 +521,7 @@ Applies the CCDC algorithm across a multi-dimensional array `(Bands, Time, Rows,
 | `qa_stack` | `np.ndarray`| **Required** | A 3D numpy array indicating clear (0) or masked (1) pixels. |
 | `num_bands` | `int` | `6` | Number of spectral bands per date. |
 | `max_segments` | `int` | `6` | Maximum change segments per pixel. |
-| `n_jobs` | `int` | `-1` | Number of workers. |
+| `n_jobs` | `int` | `-1` | Number of workers. `-1` reserves one core (`max(1, cpu_count - 1)`), so the host stays responsive. |
 | `conseq_anom` | `int` | `3` | Consecutive anomalies required for a break. |
 
 **Usage Example**
@@ -608,7 +608,7 @@ Pixel-wise phenology curve fitting (Whittaker/HANTS smoothing + Levenberg-Marqua
 | `min_pixel_amplitude` | `float` | `0.1` | Minimum overall pixel amplitude required to attempt curve fitting at all. |
 | `return_annual` | `bool` | `True` | Remap detected seasons into calendar years (`year` dim) instead of sequential season slots (`season` dim). |
 | `base_year` | `int` | `2001` | First calendar year, used to decode dates and size the output when `return_annual=True`. |
-| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. |
+| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. `-1` reserves one core (`max(1, cpu_count - 1)`), so the host stays responsive. |
 | `weights` | `dask.array.Array` | `None` | Optional `(time, y, x)` per-observation reliability weights in `[0, 1]` (e.g. from `cdts.qc`), down-weighting unreliable observations in smoothing and curve fitting instead of trusting every observation equally. |
 | `season_retry` | `bool` | `True` | Retry once with a relaxed trough threshold if a pixel's first pass finds no season at all. |
 
@@ -857,7 +857,7 @@ Pixel-wise Mann-Kendall trend test + Theil-Sen slope estimator across a Dask arr
 | `lag` | `int` | `None` | Number of first significant lags for the `hamed_rao`/`yue_wang` autocorrelation correction. `None` uses the full series length. |
 | `period` | `int` | `1` | Season-cycle length, only used when `method='seasonal'` (e.g. `23` for MODIS 16-day annual cycles, `12` for monthly data). |
 | `min_valid` | `int` | `4` | Pixels with fewer non-NaN observations than this are returned as all-NaN. |
-| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. `-1` means all available cores. |
+| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. `-1` reserves one core (`max(1, cpu_count - 1)`), so the host stays responsive. |
 
 **Output**: array of shape `(9, y, x)` — rows `trend, h, p, z, tau, s, var_s, slope, intercept` (see `cdts.trend.MK_METRIC_NAMES`). `slope`/`intercept` are per time step, except for `method='seasonal'` where they are per full `period` cycle — see the [units warning in the tutorial](tutorials/mann_kendall.md#2-background-which-method-should-i-use).
 
@@ -893,7 +893,7 @@ Pixel-wise near-real-time structural change monitoring (`bfastmonitor`), ported 
 | `period` | `int` | `10` | How many "history lengths" ahead the monitoring boundary's guarantee covers. Must be one of `2`, `4`, `6`, `8`, `10`. |
 | `alpha` | `float` | `0.05` | Significance level. |
 | `min_valid` | `int` | `10` | Pixels with fewer non-NaN history observations than this are returned as invalid (`valid=0`, all other metrics `NaN`). |
-| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. |
+| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. `-1` reserves one core (`max(1, cpu_count - 1)`), so the host stays responsive. |
 
 **Output**: array of shape `(7, y, x)` — rows `breakpoint, breakpoint_idx, magnitude, sigma, n_history, has_break, valid` (see `cdts.bfast.BFM_METRIC_NAMES`).
 
@@ -979,7 +979,7 @@ Runs TWDTW across an entire raster (3D/4D array) against a single reference patt
 | `pattern_values` | `np.ndarray` | **Required** | 1D or 2D reference signature. |
 | `pattern_dates` | `np.ndarray` | **Required** | Dates matching `pattern_values`. |
 | `alpha`, `beta`, `gamma`, `max_time_warp`, `subsequence_matching`, `abort_threshold` | | *(same as `run_twdtw`)* | |
-| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. |
+| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. `-1` reserves one core (`max(1, cpu_count - 1)`), so the host stays responsive. |
 
 **Output**: 2D `np.ndarray` (`Y, X`) of TWDTW distances to the pattern.
 
@@ -995,7 +995,7 @@ Classifies a full raster cube against multiple reference patterns (one per class
 | `dates_array` | `np.ndarray` | **Required** | 1D array of dates matching the time dimension. |
 | `patterns` | `dict` | **Required** | Maps `class_name -> (pattern_values, pattern_dates)`. |
 | `alpha`, `beta`, `gamma`, `max_time_warp`, `subsequence_matching` | | *(same as `run_twdtw`)* | |
-| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. |
+| `n_jobs` | `int` | `-1` | CPU cores for the OpenMP batch pass. `-1` reserves one core (`max(1, cpu_count - 1)`), so the host stays responsive. |
 
 **Output**: `(classification_map, distance_map, class_names)` — a 2D `int` array of the winning class index, a 2D `float` array of its TWDTW distance, and the list of class names (index-aligned with `classification_map`).
 
