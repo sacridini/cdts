@@ -15,24 +15,25 @@ def create_annual_medoid(collection: ee.ImageCollection, year: int) -> ee.Image:
     """
     start = f"{year}-01-01"
     end = f"{year}-12-31"
-    
+
     yearly_col = collection.filterDate(start, end)
-    
+    band_names = yearly_col.first().bandNames()
+
     # Calculate the median of all bands
     median = yearly_col.median()
-    
+
     def calc_distance(img: ee.Image) -> ee.Image:
         diff = img.subtract(median)
         # Calculate Euclidean distance squared
         dist = diff.pow(2).reduce(ee.Reducer.sum()).sqrt()
         return img.addBands(dist.rename('distance'))
-    
+
     # Sort by distance (ascending) so the smallest distance (medoid) is on top
     medoid = (yearly_col.map(calc_distance)
               .sort('distance', True)
               .mosaic()
-              .select(['SR_B.*']))  # Select spectral bands, drop 'distance'
-              
+              .select(band_names))  # Whatever bands the collection actually has, drop 'distance'
+
     return medoid.set('system:time_start', ee.Date(start).millis())
 
 def create_annual_timeseries(collection: ee.ImageCollection, start_year: int, end_year: int) -> ee.ImageCollection:

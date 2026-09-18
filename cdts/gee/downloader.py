@@ -8,6 +8,7 @@ import numpy as np
 import rasterio
 from rasterio.merge import merge
 from typing import Optional
+from .drive_sync import submit_drive_export, wait_and_download_task
 
 def _download_single_tile(image: ee.Image, roi_bounds: ee.Geometry, tile_filename: str, scale: float) -> Optional[str]:
     """
@@ -53,29 +54,20 @@ def download_gee_image(image: ee.Image, roi: ee.Geometry, out_filename: str, met
         method (str): 'direct' for local tiled download, 'drive' for batch export.
         scale (float): Resolution in meters.
         tile_size (float): Grid size in degrees for tiled download.
-        
+
     Returns:
-        str or None: Task ID if 'drive', output filename if 'direct', None on failure.
+        str or None: Output filename on success, None on failure/timeout.
     """
     if method == 'drive':
         filename_no_ext = os.path.splitext(os.path.basename(out_filename))[0]
-        
+
         # Use the base name of the output directory as the Drive folder name
         out_dir = os.path.dirname(out_filename)
         drive_folder = os.path.basename(out_dir) if out_dir and os.path.basename(out_dir) else 'CDTS_Downloads'
-        
-        task = ee.batch.Export.image.toDrive(
-            image=image,
-            description=filename_no_ext,
-            folder=drive_folder,
-            scale=scale,
-            region=roi.bounds(),
-            crs='EPSG:4326',
-            maxPixels=1e13
-        )
-        task.start()
-        print(f"[{filename_no_ext}] Task sent to Google Drive (Task ID: {task.id}).")
-        return task.id
+
+        task = submit_drive_export(image, filename_no_ext, drive_folder, roi.bounds(), scale=scale)
+        print(f"[{filename_no_ext}] Task sent to Google Drive (Task ID: {task.id}). Waiting for completion...")
+        return wait_and_download_task(task, drive_folder, filename_no_ext, out_filename)
 
     elif method == 'direct':
         print(f"Starting direct download for {out_filename}...")

@@ -1,10 +1,122 @@
 import ee
 import os
+import concurrent.futures
 from typing import Optional, Union
 from .auth import initialize_gee
 from .harmonization import get_harmonized_collection
 from .composites import create_annual_medoid
 from .downloader import download_gee_image
+from .drive_sync import submit_drive_export, wait_and_download_task
+
+def _compute_indices(img: "ee.Image", bands: list) -> "ee.Image":
+    img_bands = img
+    ndvi_img = img.normalizedDifference(['SR_B5', 'SR_B4'])
+
+    if 'NDVI' in bands:
+        img_bands = img_bands.addBands(ndvi_img.rename('NDVI').toFloat())
+    if 'NBR' in bands:
+        nbr = img.normalizedDifference(['SR_B5', 'SR_B7']).rename('NBR').toFloat()
+        img_bands = img_bands.addBands(nbr)
+    if 'NDWI' in bands:
+        ndwi = img.normalizedDifference(['SR_B3', 'SR_B5']).rename('NDWI').toFloat()
+        img_bands = img_bands.addBands(ndwi)
+    if 'kNDVI' in bands:
+        kndvi = ndvi_img.pow(2).tanh().rename('kNDVI').toFloat()
+        img_bands = img_bands.addBands(kndvi)
+    if 'EVI' in bands:
+        evi = img.expression(
+            '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
+                'NIR': img.select('SR_B5'),
+                'RED': img.select('SR_B4'),
+                'BLUE': img.select('SR_B2')
+            }).rename('EVI').toFloat()
+        img_bands = img_bands.addBands(evi)
+    return img_bands.select(bands)
+
+
+def download_gee_timeseries_drive(
+    roi: Union[tuple, list, "ee.Geometry"],
+    start_date: str,
+    end_date: str,
+    out_dir: str,
+    tile_label: str,
+    bands: Optional[list] = None,
+    project: Optional[str] = None,
+    drive_folder: str = "cdts_exports",
+    max_concurrent_tasks: int = 10,
+    delete_after: bool = True,
+    poll_interval: int = 15,
+) -> list:
+    """
+    Downloads an annual-medoid time series via GEE batch Export.image.toDrive
+    instead of the synchronous getDownloadURL tiling in download_gee_timeseries.
+    Submits one export task per year up front (so GEE computes them in
+    parallel server-side), then polls/downloads finished files with bounded
+    local concurrency -- avoiding the per-request compute overhead that makes
+    method='direct' slow for a full multi-decade time series.
+
+    Args:
+        roi: Region of interest (bbox tuple or ee.Geometry).
+        start_date, end_date (str): YYYY-MM-DD.
+        out_dir (str): Local directory to save the downloaded GeoTIFFs.
+        tile_label (str): Identifier (e.g. "214_064") used to prefix filenames
+            and the Drive export description, so concurrent tiles don't collide.
+        bands (list, optional): Index bands to compute (e.g. ["NDVI"]). If
+            None, keeps the raw harmonized SR_B2-SR_B7 bands.
+        project (str, optional): Google Cloud Project ID.
+        drive_folder (str): Google Drive folder name used for every export
+            in this batch (created automatically by GEE on first export).
+        max_concurrent_tasks (int): How many years to have in flight
+            (submitted-but-not-yet-downloaded) at once.
+        delete_after (bool): Delete each file from Drive once downloaded
+            locally, so a multi-tile batch doesn't fill up Drive quota.
+        poll_interval (int): Seconds between task-status checks.
+
+    Returns:
+        list[str]: Local file paths successfully downloaded.
+    """
+    initialize_gee(project=project)
+
+    geom = ee.Geometry.Rectangle(roi) if isinstance(roi, (tuple, list)) else roi
+    os.makedirs(out_dir, exist_ok=True)
+
+    col = get_harmonized_collection(geom, start_date, end_date)
+    if bands:
+        col = col.map(lambda img: _compute_indices(img, bands))
+
+    start_year = int(start_date.split('-')[0])
+    end_year = int(end_date.split('-')[0])
+    years = list(range(start_year, end_year + 1))
+
+    downloaded = []
+
+    def _submit(year):
+        img_medoid = create_annual_medoid(col, year)
+        prefix = f"{tile_label}_{year}"
+        task = submit_drive_export(img_medoid, prefix, drive_folder, geom.bounds())
+        return year, prefix, task
+
+    def _wait(year_prefix_task):
+        year, prefix, task = year_prefix_task
+        out_path = os.path.join(out_dir, f"{prefix}.tif")
+        print(f"[{tile_label}] Waiting on year {year} (task {task.id})...")
+        result = wait_and_download_task(
+            task, drive_folder, prefix, out_path,
+            poll_interval=poll_interval, delete_after=delete_after,
+        )
+        if result:
+            print(f"[{tile_label}] Downloaded year {year} -> {result}")
+        return result
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_concurrent_tasks) as executor:
+        submitted = [_submit(y) for y in years]
+        for result in executor.map(_wait, submitted):
+            if result:
+                downloaded.append(result)
+
+    print(f"[{tile_label}] Finished: {len(downloaded)}/{len(years)} years downloaded.")
+    return downloaded
+
 
 def download_gee_timeseries(
     roi: Union[tuple, list, "ee.Geometry"], 
