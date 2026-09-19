@@ -719,7 +719,18 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
     if (!eligible.empty()) {
         double min_pval = std::numeric_limits<double>::max();
         for (auto* c : eligible) min_pval = std::min(min_pval, c->pval);
-        double threshold = min_pval * params.best_model_proportion;
+        // Empirically calibrated against live GEE ee.Algorithms.TemporalSegmentation.LandTrendr
+        // output (2026-09-19, tile 214_064 disturbance window, n=3660 px): raising
+        // best_model_proportion makes GEE's own selection SIMPLER (fewer vertices), not more
+        // complex, so the eligibility band narrows as the proportion rises (division, not the
+        // naive reading of "proportion away" as a multiplier). This reproduces GEE's direction
+        // and matches its vertex-count distribution closely at the GEE default (1.25: mean 2.00
+        // here vs 2.15 live), but still overshoots complexity at the paper's actual value (0.75:
+        // mean 4.91 here vs 2.90 live) -- a power-law variant tried in the same validation was
+        // worse (6.18), so this linear form is the best of what's been tested, not a confirmed
+        // match to GEE's real (undocumented) formula. See conversation/validation notes before
+        // trusting best_model_proportion < 1 for anything quantitative.
+        double threshold = min_pval / params.best_model_proportion;
 
         size_t most_verts = 0;
         for (auto* c : eligible) {

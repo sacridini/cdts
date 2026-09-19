@@ -80,9 +80,14 @@ def download_gee_timeseries_drive(
     geom = ee.Geometry.Rectangle(roi) if isinstance(roi, (tuple, list)) else roi
     os.makedirs(out_dir, exist_ok=True)
 
+    # Medoid selection runs on the raw harmonized spectral bands (matching
+    # LT-GEE's own medoidMosaic: squared distance to the annual per-band
+    # median summed across all SR bands); indices are derived only from the
+    # single per-year composite pixel that selection picks. Computing an
+    # index first would collapse medoid selection to 1D distance-to-median
+    # in index space -- a different, non-standard criterion for which
+    # candidate scene wins a given year.
     col = get_harmonized_collection(geom, start_date, end_date)
-    if bands:
-        col = col.map(lambda img: _compute_indices(img, bands))
 
     start_year = int(start_date.split('-')[0])
     end_year = int(end_date.split('-')[0])
@@ -91,7 +96,8 @@ def download_gee_timeseries_drive(
     downloaded = []
 
     def _submit(year):
-        img_medoid = create_annual_medoid(col, year)
+        medoid_raw = create_annual_medoid(col, year)
+        img_medoid = _compute_indices(medoid_raw, bands) if bands else medoid_raw
         prefix = f"{tile_label}_{year}"
         task = submit_drive_export(img_medoid, prefix, drive_folder, geom.bounds())
         return year, prefix, task
@@ -155,53 +161,32 @@ def download_gee_timeseries(
     
     print("Preparing harmonized collection...")
     col = get_harmonized_collection(geom, start_date, end_date)
-    
-    if bands:
-        def compute_indices(img):
-            img_bands = img
-            
-            # Helper to get NDVI if needed for kNDVI
-            ndvi_img = img.normalizedDifference(['SR_B5', 'SR_B4'])
-            
-            if 'NDVI' in bands:
-                ndvi = ndvi_img.rename('NDVI').toFloat()
-                img_bands = img_bands.addBands(ndvi)
-            if 'NBR' in bands:
-                nbr = img.normalizedDifference(['SR_B5', 'SR_B7']).rename('NBR').toFloat()
-                img_bands = img_bands.addBands(nbr)
-            if 'NDWI' in bands:
-                # McFeeters 1996: (Green - NIR) / (Green + NIR)
-                ndwi = img.normalizedDifference(['SR_B3', 'SR_B5']).rename('NDWI').toFloat()
-                img_bands = img_bands.addBands(ndwi)
-            if 'kNDVI' in bands:
-                # Simplified parameter-free kNDVI: tanh(NDVI^2)
-                kndvi = ndvi_img.pow(2).tanh().rename('kNDVI').toFloat()
-                img_bands = img_bands.addBands(kndvi)
-            if 'EVI' in bands:
-                evi = img.expression(
-                    '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
-                    'NIR': img.select('SR_B5'),
-                    'RED': img.select('SR_B4'),
-                    'BLUE': img.select('SR_B2')
-                }).rename('EVI').toFloat()
-                img_bands = img_bands.addBands(evi)
-            return img_bands.select(bands)
-        
-        col = col.map(compute_indices)
-    
+
     start_year = int(start_date.split('-')[0])
     end_year = int(end_date.split('-')[0])
-    
+
     if composite_type == 'annual':
+        # Medoid selection runs on the raw harmonized spectral bands (matching
+        # LT-GEE's own medoidMosaic: squared distance to the annual per-band
+        # median summed across all SR bands); indices are derived only from
+        # the single per-year composite pixel that selection picks -- computing
+        # an index first would collapse medoid selection to 1D distance in
+        # index space, a different (non-standard) criterion for which
+        # candidate scene wins a given year.
         print(f"Extracting annual composites from {start_year} to {end_year}...")
         for year in range(start_year, end_year + 1):
             print(f"Processing year {year}...")
-            img_medoid = create_annual_medoid(col, year)
+            medoid_raw = create_annual_medoid(col, year)
+            img_medoid = _compute_indices(medoid_raw, bands) if bands else medoid_raw
             filename = os.path.join(out_dir, f"landsat_medoid_{year}.tif")
             download_gee_image(img_medoid, geom, filename, method=method)
     elif composite_type == 'dense':
+        # Dense per-observation stack, not a medoid composite -- indices are
+        # computed per image before flattening, same as any other band.
+        if bands:
+            col = col.map(lambda img: _compute_indices(img, bands))
         print("Extracting dense time series dates...")
-        
+
         # Get dates in milliseconds from GEE
         dates_ms = col.aggregate_array('system:time_start').getInfo()
         
