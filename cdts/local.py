@@ -21,12 +21,12 @@ def build_local_cube(data_dir: str, regex_pattern: str, date_format: str = "%Y%m
         match = pattern.search(file_path.name)
         if match:
             match_dict = match.groupdict()
-            if 'date' in match_dict and 'band' in match_dict:
+            if 'date' in match_dict:
                 parsed_date = datetime.strptime(match_dict['date'], date_format)
                 file_info.append({
                     'path': file_path,
                     'time': parsed_date,
-                    'band': match_dict['band']
+                    'band': match_dict.get('band', 'value')
                 })
                 
     if not file_info:
