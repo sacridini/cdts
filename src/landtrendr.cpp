@@ -248,6 +248,86 @@ std::vector<int> vet_verts(const std::vector<int>& x, const std::vector<double>&
     return v;
 }
 
+// Regression-based recursive vertex identification (Kennedy et al. 2010,
+// Section 2.5.2's first strategy, complementary to vet_verts()'s angle-based
+// culling above). Starts with just the first/last observation as vertices,
+// then repeatedly splits whichever current segment has the largest SSE,
+// inserting as the new vertex the point within that segment with the largest
+// absolute deviation from that segment's own OLS regression line. Stops once
+// `target_count` vertices are reached (LT-GEE's max_segments + 1 +
+// vertexCountOvershoot) or no segment has an interior point left to split on.
+std::vector<int> identify_vertices_by_regression(const std::vector<int>& x, const std::vector<double>& y,
+                                                  int target_count) {
+    int n = static_cast<int>(x.size());
+    target_count = std::min(target_count, n);
+    std::vector<int> verts = {0, n - 1};
+    if (target_count <= 2 || n <= 2) return verts;
+
+    struct SegFit { double sse; int worst_idx; };
+    // OLS over y[lo..hi] vs. x[lo..hi], returning its SSE and the interior
+    // point (excluding the segment's own endpoints) with the largest residual.
+    auto fit_segment = [&](int lo, int hi) -> SegFit {
+        int m = hi - lo + 1;
+        double x0 = static_cast<double>(x[lo]);
+        double sum_x = 0.0, sum_y = 0.0, sum_xx = 0.0, sum_xy = 0.0;
+        for (int i = lo; i <= hi; ++i) {
+            double dx = x[i] - x0;
+            sum_x += dx; sum_y += y[i]; sum_xx += dx * dx; sum_xy += dx * y[i];
+        }
+        double denom = m * sum_xx - sum_x * sum_x;
+        double slope = 0.0;
+        double intercept = sum_y / m;
+        if (std::abs(denom) > 1e-9) {
+            slope = (m * sum_xy - sum_x * sum_y) / denom;
+            intercept = (sum_y - slope * sum_x) / m;
+        }
+
+        double sse = 0.0;
+        double worst_dev = -1.0;
+        int worst_idx = -1;
+        for (int i = lo; i <= hi; ++i) {
+            double dev = y[i] - (intercept + slope * (x[i] - x0));
+            sse += dev * dev;
+            if (i != lo && i != hi && std::abs(dev) > worst_dev) {
+                worst_dev = std::abs(dev);
+                worst_idx = i;
+            }
+        }
+        return {sse, worst_idx};
+    };
+
+    struct Segment { int lo, hi; double sse; int worst_idx; };
+    std::vector<Segment> segments;
+    SegFit whole = fit_segment(0, n - 1);
+    segments.push_back({0, n - 1, whole.sse, whole.worst_idx});
+
+    while (static_cast<int>(verts.size()) < target_count) {
+        int best = -1;
+        double best_sse = -1.0;
+        for (size_t i = 0; i < segments.size(); ++i) {
+            if (segments[i].worst_idx != -1 && segments[i].sse > best_sse) {
+                best_sse = segments[i].sse;
+                best = static_cast<int>(i);
+            }
+        }
+        if (best == -1) break;
+
+        Segment seg = segments[best];
+        segments.erase(segments.begin() + best);
+
+        int split = seg.worst_idx;
+        verts.push_back(split);
+        std::sort(verts.begin(), verts.end());
+
+        SegFit left = fit_segment(seg.lo, split);
+        SegFit right = fit_segment(split, seg.hi);
+        segments.push_back({seg.lo, split, left.sse, left.worst_idx});
+        segments.push_back({split, seg.hi, right.sse, right.worst_idx});
+    }
+
+    return verts;
+}
+
 // Simple matrix inversion for small matrices using Gauss-Jordan
 bool invert_matrix(std::vector<std::vector<double>>& A) {
     int n = A.size();
@@ -532,24 +612,20 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
     // 1. Remove spikes / desawtoothing
     std::vector<double> filtered_values = desawtooth(values, params.spike_threshold);
 
-    // 2. Initial candidate vertices (for now, all indices)
-    std::vector<int> all_indices(n);
-    std::iota(all_indices.begin(), all_indices.end(), 0);
-
-    // 3. Vet vertices to max_segments + 1 + vertexCountOvershoot, giving the
-    // initial candidate pool that much slack, then prune the overshoot away
-    // before the scored model-selection ladder (step 4) begins -- LT-GEE's
-    // vertexCountOvershoot. These intermediate overshoot vertex counts are
-    // never themselves candidate models.
+    // 2-3. Identify initial candidate vertices with LT-GEE's two complementary
+    // strategies (Section 2.5.2): regression-based recursive splitting builds
+    // a candidate pool of up to max_segments + 1 + vertexCountOvershoot
+    // vertices, then angle-based culling (vet_verts) prunes that overshoot
+    // slack back down to max_segments + 1 -- the fixed candidate set that
+    // step 4's model-selection ladder starts from. Kennedy et al. note both
+    // criteria matter jointly (neither alone reproduces their results).
     int final_count = params.max_segments + 1;
     if (final_count > n) final_count = n;
     int overshoot_count = final_count + std::max(0, params.vertex_count_overshoot);
     if (overshoot_count > n) overshoot_count = n;
 
-    std::vector<int> current_verts = vet_verts(years, filtered_values, all_indices, overshoot_count, 2.0);
-    while (static_cast<int>(current_verts.size()) > final_count) {
-        current_verts = remove_weakest_vertex_by_mse(years, values, current_verts);
-    }
+    std::vector<int> candidate_verts = identify_vertices_by_regression(years, filtered_values, overshoot_count);
+    std::vector<int> current_verts = vet_verts(years, filtered_values, candidate_verts, final_count, 2.0);
 
     // 4. Build the full ladder of candidate models, from max_segments+1 vertices
     // down to 2. Each level's vertex set is fit with fit_piecewise_sequential
