@@ -28,9 +28,13 @@ def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_se
                           recovery_threshold: float = 0.25, prevent_fast_recovery: bool = True,
                           spike_threshold: float = 0.9, best_model_proportion: float = 1.25,
                           vertex_count_overshoot: int = 3, min_observations_needed: int = 6,
-                          no_data_value: float = 0.0) -> "np.ndarray":
+                          no_data_value: float = 0.0, return_rmse: bool = False):
     """
     Apply LandTrendr across a 3D numpy array (time_steps, rows, cols) using C++ batch processing with OpenMP.
+
+    If return_rmse is True, also returns a (rows, cols) array of each pixel's
+    fit RMSE against every observation -- LT-GEE's per-pixel noise estimate,
+    used to compute DSNR (disturbance magnitude / RMSE) in extract_events().
     """
     from .landtrendr import run_landtrendr_batch
     import os as _os
@@ -50,25 +54,27 @@ def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_se
         _os.environ['OMP_NUM_THREADS'] = str(n_jobs)
 
     # Run the C++ batch
-    vertices_array, counts_array = run_landtrendr_batch(
+    vertices_array, counts_array, rmse_array = run_landtrendr_batch(
         years, values, max_segments, pval_threshold, no_data_value=no_data_value,
         recovery_threshold=recovery_threshold, prevent_fast_recovery=prevent_fast_recovery,
         spike_threshold=spike_threshold, best_model_proportion=best_model_proportion,
         vertex_count_overshoot=vertex_count_overshoot, min_observations_needed=min_observations_needed,
     )
-    
+
     # vertices_array shape: (rows * cols, max_vertices, 2)
     # Reshape to (rows, cols, max_vertices, 2)
     vertices_array = vertices_array.reshape((rows, cols, max_vertices, 2))
     counts_array = counts_array.reshape((rows, cols))
-    
+
     for i in range(max_vertices):
         mask = i < counts_array
         # years
         output[i, :, :] = np.where(mask, vertices_array[:, :, i, 0], 0)
         # values
         output[i + max_vertices, :, :] = np.where(mask, vertices_array[:, :, i, 1], 0)
-            
+
+    if return_rmse:
+        return output, rmse_array.reshape((rows, cols)).astype(np.float32)
     return output
 
 
@@ -231,7 +237,7 @@ def run_landtrendr_image(input_path: str, output_dir: str, start_year: int = 200
         p_2d.update(count=1, driver='GTiff')
         dtypes = {
             "yod": "uint16", "magnitude": "float32", "duration": "uint16",
-            "pre_val": "float32", "post_val": "float32", "rate": "float32"
+            "pre_val": "float32", "post_val": "float32", "rate": "float32", "dsnr": "float32"
         }
         
         dst_events = {}
@@ -265,7 +271,7 @@ def run_landtrendr_image(input_path: str, output_dir: str, start_year: int = 200
                 
                 stack = src.read(window=window)
                 
-                vertices_stack = run_landtrendr_array(
+                vertices_stack, rmse_map = run_landtrendr_array(
                     years, stack,
                     max_segments=max_segments,
                     pval_threshold=pval_threshold,
@@ -277,15 +283,17 @@ def run_landtrendr_image(input_path: str, output_dir: str, start_year: int = 200
                     vertex_count_overshoot=vertex_count_overshoot,
                     min_observations_needed=min_observations_needed,
                     no_data_value=no_data_value,
+                    return_rmse=True,
                 )
-                
+
                 events = extract_events(
                     vertices_stack,
                     event_type=event_type,
                     sort_by=sort_by,
                     min_magnitude=min_mag,
                     min_duration=min_dur,
-                    pre_val_threshold=pre_val_thresh
+                    pre_val_threshold=pre_val_thresh,
+                    rmse_map=rmse_map,
                 )
                 
                 if output_scale_factor != 1.0:

@@ -509,22 +509,24 @@ struct CandidateModel {
     bool recovery_ok;
 };
 
-std::vector<Vertex> fit_trajectory(const std::vector<int>& years,
-                                   const std::vector<double>& values,
-                                   const LandTrendrParams& params) {
-    std::vector<Vertex> vertices;
+TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
+                                      const std::vector<double>& values,
+                                      const LandTrendrParams& params) {
+    TrajectoryResult out;
+    std::vector<Vertex>& vertices = out.vertices;
     int n = years.size();
     if (n == 0 || values.empty() || n != values.size()) {
-        return vertices;
+        return out;
     }
 
     // Too few observations to justify fitting/simplifying at all (LT-GEE's
     // minObservationsNeeded) -- pass the raw trajectory through unsegmented.
+    // No fit was performed, so there's no meaningful RMSE (left at 0).
     if (n < std::max(2, params.min_observations_needed)) {
         for (int i = 0; i < n; ++i) {
             vertices.push_back({years[i], values[i]});
         }
-        return vertices;
+        return out;
     }
 
     // 1. Remove spikes / desawtoothing
@@ -619,7 +621,7 @@ std::vector<Vertex> fit_trajectory(const std::vector<int>& years,
     }
 
     if (ladder.empty()) {
-        return vertices;
+        return out;
     }
 
     // 5. Model selection.
@@ -665,7 +667,20 @@ std::vector<Vertex> fit_trajectory(const std::vector<int>& years,
         vertices.push_back({years[chosen->verts[i]], chosen->fitted[i]});
     }
 
-    return vertices;
+    // RMSE of the chosen model's fit against every observation -- LT-GEE's
+    // per-pixel noise estimate for DSNR (see TrajectoryResult).
+    double chosen_sse = compute_full_sse(years, values, chosen->verts, chosen->fitted);
+    int chosen_df = static_cast<int>(chosen->verts.size());
+    out.rmse = std::sqrt(chosen_sse / std::max(1, n - chosen_df));
+
+    return out;
+}
+
+// Convenience wrapper for callers that only need the vertices.
+std::vector<Vertex> fit_trajectory(const std::vector<int>& years,
+                                   const std::vector<double>& values,
+                                   const LandTrendrParams& params) {
+    return fit_trajectory_impl(years, values, params).vertices;
 }
 
 pybind11::tuple fit_trajectory_batch(
@@ -695,10 +710,15 @@ pybind11::tuple fit_trajectory_batch(
     
     pybind11::array_t<int> counts_out(num_pixels);
     auto counts_ptr = static_cast<int*>(counts_out.request().ptr);
-    
+
+    // Per-pixel RMSE of the selected fit -- LT-GEE's DSNR is magnitude / this.
+    pybind11::array_t<double> rmse_out(num_pixels);
+    auto rmse_ptr = static_cast<double*>(rmse_out.request().ptr);
+
     std::fill(vert_ptr, vert_ptr + (num_pixels * max_vertices * 2), no_data_value);
     std::fill(counts_ptr, counts_ptr + num_pixels, 0);
-    
+    std::fill(rmse_ptr, rmse_ptr + num_pixels, 0.0);
+
     #ifdef _OPENMP
     omp_set_num_threads(n_jobs > 0 ? n_jobs : std::max(1, omp_get_max_threads() - 1));
     #pragma omp parallel for schedule(dynamic)
@@ -714,17 +734,18 @@ pybind11::tuple fit_trajectory_batch(
         }
         
         if (!has_valid_data) continue;
-        
-        std::vector<Vertex> result = fit_trajectory(years, pixel_values, params);
-        
-        counts_ptr[p] = result.size();
-        for (size_t i = 0; i < result.size() && (int)i < max_vertices; ++i) {
-            vert_ptr[p * max_vertices * 2 + i * 2 + 0] = result[i].year;
-            vert_ptr[p * max_vertices * 2 + i * 2 + 1] = result[i].value;
+
+        TrajectoryResult result = fit_trajectory_impl(years, pixel_values, params);
+
+        counts_ptr[p] = result.vertices.size();
+        for (size_t i = 0; i < result.vertices.size() && (int)i < max_vertices; ++i) {
+            vert_ptr[p * max_vertices * 2 + i * 2 + 0] = result.vertices[i].year;
+            vert_ptr[p * max_vertices * 2 + i * 2 + 1] = result.vertices[i].value;
         }
+        rmse_ptr[p] = result.rmse;
     }
-    
-    return pybind11::make_tuple(vertices_out, counts_out);
+
+    return pybind11::make_tuple(vertices_out, counts_out, rmse_out);
 }
 
 } // namespace landtrendr

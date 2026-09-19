@@ -30,9 +30,24 @@ struct Vertex {
     double value;
 };
 
+// Result of fitting a single pixel's trajectory: the selected model's
+// vertices, plus the RMSE of that fit against every observation. The RMSE is
+// LT-GEE's per-pixel noise estimate, used downstream to compute DSNR
+// (disturbance magnitude / fit RMSE) for change-map filtering/sorting.
+struct TrajectoryResult {
+    std::vector<Vertex> vertices;
+    double rmse = 0.0;
+};
+
 // Core function to run LandTrendr on a single pixel time series
-std::vector<Vertex> fit_trajectory(const std::vector<int>& years, 
-                                   const std::vector<double>& values, 
+TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
+                                      const std::vector<double>& values,
+                                      const LandTrendrParams& params);
+
+// Convenience wrapper over fit_trajectory_impl for callers that only need the
+// vertices (e.g. the single-pixel Python binding).
+std::vector<Vertex> fit_trajectory(const std::vector<int>& years,
+                                   const std::vector<double>& values,
                                    const LandTrendrParams& params);
 
 // Desawtooth function

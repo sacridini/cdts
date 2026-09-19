@@ -177,7 +177,7 @@ def main() -> None:
     
     # Event Extraction options
     lt_parser.add_argument("--event-type", choices=["loss", "gain"], default="loss", help="Event type to map (default: loss)")
-    lt_parser.add_argument("--sort-by", choices=["greatest", "newest", "fastest", "longest"], default="greatest", help="How to select the event (default: greatest)")
+    lt_parser.add_argument("--sort-by", choices=["greatest", "newest", "fastest", "longest", "dsnr"], default="greatest", help="How to select the event: dsnr is magnitude standardized by the fit's RMSE, LT-GEE's disturbance signal-to-noise ratio (default: greatest)")
     lt_parser.add_argument("--min-mag", type=float, default=0.0, help="Minimum magnitude filter")
     lt_parser.add_argument("--min-dur", type=int, default=1, help="Minimum duration filter")
     lt_parser.add_argument("--pre-val-thresh", type=float, default=0.0, help="Pre-value threshold filter")

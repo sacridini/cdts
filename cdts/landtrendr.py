@@ -77,9 +77,11 @@ def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: in
             return the raw trajectory unsegmented. LT-GEE's minObservationsNeeded.
 
     Returns:
-        tuple of (vertices_array, counts_array)
+        tuple of (vertices_array, counts_array, rmse_array)
         vertices_array: [Y*X, max_segments+1, 2] containing (year, value) for each vertex
         counts_array: [Y*X] containing the number of valid vertices found for each pixel
+        rmse_array: [Y*X] RMSE of the selected fit against every observation for each pixel
+            (0.0 where fitting was skipped/no-data). LT-GEE's DSNR = magnitude / this.
     """
     params = _core.landtrendr.LandTrendrParams()
     params.max_segments = max_segments
