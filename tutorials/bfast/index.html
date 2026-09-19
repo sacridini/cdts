@@ -1,0 +1,2065 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Continuous monitoring of land cover and land use using dense time series">
+      
+      
+      
+        <link rel="canonical" href="https://sacridini.github.io/cdts/tutorials/bfast/">
+      
+      
+        <link rel="prev" href="../tmask/">
+      
+      
+        <link rel="next" href="../bfast_monitor/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>BFAST - CDTS</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#bfast-classic-iterative-trend-season-break-detection" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="CDTS" class="md-header__button md-logo" aria-label="CDTS" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            CDTS
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              BFAST
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="deep-orange"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/sacridini/cdts" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    sacridini/cdts
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../cli/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  CLI Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../api/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API Reference
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="CDTS" class="md-nav__button md-logo" aria-label="CDTS" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    CDTS
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/sacridini/cdts" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    sacridini/cdts
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trajectory & Change Detection
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Trajectory & Change Detection
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../landtrendr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LandTrendr
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ccdc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CCDC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tmask/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tmask
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BFAST
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BFAST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-background-how-the-algorithm-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Background: how the algorithm works
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-using-bfast-in-cdts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Using bfast in CDTS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Using bfast in CDTS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-41-via-the-xarray-accessor-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4.1: Via the xarray accessor (recommended)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-42-direct-dask-array-entry-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4.2: Direct Dask array entry point
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-understanding-the-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Understanding the Output
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Performance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bfast_monitor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BFAST Monitor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bfast_lite/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BFAST Lite
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Time-Series Analysis
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Time-Series Analysis
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../twdtw/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TWDTW (Time-Weighted DTW)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phenology/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phenology Extraction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mann_kendall/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mann-Kendall Trend Test
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../som/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SOM (Self-Organizing Maps)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI & Deep Learning
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AI & Deep Learning
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ltae/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LTAE & LightTAE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utae/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UTAE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tempcnn/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TempCNN
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../siamese/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Siamese Change Detector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../geo_foundation_vit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoFoundationViT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Acquisition & Integration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Acquisition & Integration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stac-downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    STAC & ARD Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gee-downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Google Earth Engine (GEE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_6" id="__nav_3_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infrastructure
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infrastructure
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parallel-cloud-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parallel & Cloud Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="bfast-classic-iterative-trend-season-break-detection">BFAST (Classic Iterative Trend + Season Break Detection)</h1>
+<h2 id="1-introduction">1. Introduction</h2>
+<p><code>bfast</code> is the original, classic algorithm behind <a href="../bfast_monitor/">BFAST Monitor</a> and <a href="../bfast_lite/">BFAST Lite</a>: it decomposes a time series into trend, seasonal, and remainder components, and <em>iteratively</em> re-estimates each one while searching for structural breaks in both - "how many changes happened, are they trend changes or seasonal (phenological) changes, and when?".</p>
+<p><code>cdts</code> provides a pixel-wise, C++/OpenMP-accelerated port of <code>bfast()</code>'s default configuration from the R package <a href="https://github.com/bfast2/bfast"><code>bfast</code></a> (Verbesselt <em>et al.</em>) and its <a href="https://github.com/bfast2/strucchangeRcpp"><code>strucchangeRcpp</code></a> dependency's <code>breakpoints()</code>, with the same Dask distribution strategy as <a href="../bfast_lite/">BFAST Lite</a> and <a href="../bfast_monitor/">BFAST Monitor</a>.</p>
+<h2 id="2-background-how-the-algorithm-works">2. Background: how the algorithm works</h2>
+<p>Given a series <code>Yt</code>, <code>bfast()</code> alternates between two segmented regressions until they agree:</p>
+<ol>
+<li><strong>Trend step</strong>: fit <code>Vt = Yt - St ~ trend</code> (deseasonalized series against a linear trend), allowing the intercept <em>and</em> slope to change at an optimal number of breakpoints (the same Bai &amp; Perron, 2003 dynamic program <a href="../bfast_lite/">BFAST Lite</a> uses). This gives a new trend component <code>Tt</code>.</li>
+<li><strong>Season step</strong>: fit <code>Wt = Yt - Tt ~ harmonic</code> (detrended series against a harmonic regression), again allowing the harmonic coefficients to change at an optimal number of breakpoints. This gives a new seasonal component <code>St</code>.</li>
+</ol>
+<p>The two steps repeat - each one's residual feeds the other's next fit - until neither breakpoint set changes from the previous iteration (or <code>max_iter</code> is reached). Because the trend step needs a seasonal estimate before any iteration has run, <code>St</code> is seeded once beforehand via an STL "periodic" decomposition (Cleveland, Cleveland, McRae &amp; Terpenning, 1990) - the same <code>stl(Yt, "periodic")</code> call R's own <code>bfast()</code> makes.</p>
+<p>This is why <code>bfast()</code> needs machinery <a href="../bfast_lite/">BFAST Lite</a> and <a href="../bfast_monitor/">BFAST Monitor</a> don't: STL decomposition (for the seasonal seed) <em>and</em> the Bai-Perron dynamic program applied twice per iteration (trend and season, separately) rather than once.</p>
+<h2 id="3-scope">3. Scope</h2>
+<p>Ported: the iterative trend/season loop described above, using the optimal number of breaks at each step chosen by minimizing <strong>BIC</strong> (<code>breakpoints()</code>'s own default when <code>breaks = NULL</code>, which is what classic <code>bfast()</code> uses - note this differs from <a href="../bfast_lite/">BFAST Lite</a>'s own default of <code>breaks = "LWZ"</code>), and the STL "periodic" seasonal seed.</p>
+<p>Not ported (documented deviations from R's <code>bfast()</code>):</p>
+<ol>
+<li><strong><code>season = "harmonic"</code> only.</strong> R's own default is <code>season = "dummy"</code> (a seasonal-factor/dummy-variable model); <code>"harmonic"</code> is R's other fully-supported option (used in Verbesselt, Zeileis &amp; Herold, 2012). This port only implements <code>"harmonic"</code>, matching <a href="../bfast_lite/#2-scope">BFAST Lite</a>'s and <a href="../bfast_monitor/#2-background-what-the-model-fits">BFAST Monitor</a>'s own harmonic-only design matrix, so all three algorithms share the same regressor convention.</li>
+<li><strong>The preliminary <code>sctest(efp(...))</code> pre-check is ported</strong> (this needed a second p-value approximation table beyond the one <a href="../bfast_monitor/">BFAST Monitor</a> already ports, since the retrospective and monitoring processes use different asymptotics - <code>strucchangeRcpp</code>'s <code>sc.me</code> critical-value table for the "Brownian bridge increments" limiting process, dumped directly from the installed R package). Before every breakpoint search, R's <code>bfast()</code> runs a structural-stability test (<code>efp()</code>/<code>sctest()</code>, the retrospective OLS-MOSUM test) and only searches for breaks if it rejects stability at the given <code>level</code> (default <code>0.05</code>). An earlier version of this port skipped this and always attempted the BIC search directly - this turned out to matter empirically, not just in theory: it measurably over-detected weak/borderline breaks that R's default gate suppresses (see <a href="#6-validation">Validation</a> below for the concrete case that caught this).</li>
+<li><strong><code>decomp = "stl"</code> only, and NaN gaps are interpolated for it.</strong> R's <code>decomp = "stlplus"</code> (an NA-tolerant STL variant) is not ported. R's own <code>decomp = "stl"</code> path refuses series with any missing values outright; this port instead linearly interpolates internal NaN gaps (and extrapolates flat at the edges) <em>only</em> to build a complete, regularly-spaced series for the one-time STL seasonal seed. The iterative trend/season fits themselves still skip NaN rows natively, exactly as <a href="../bfast_lite/">BFAST Lite</a> and <a href="../bfast_monitor/">BFAST Monitor</a> do.</li>
+</ol>
+<h2 id="4-using-bfast-in-cdts">4. Using bfast in CDTS</h2>
+<h3 id="step-41-via-the-xarray-accessor-recommended">Step 4.1: Via the xarray accessor (recommended)</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cdts</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># annual_ndvi: (time, y, x) DataArray, 16-day composites (frequency=23/year) from 2010</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">result</span> <span class="o">=</span> <span class="n">annual_ndvi</span><span class="o">.</span><span class="n">cdts</span><span class="o">.</span><span class="n">run_bfast</span><span class="p">(</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">start_time</span><span class="o">=</span><span class="mf">2010.0</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">frequency</span><span class="o">=</span><span class="mi">23</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">h</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span>                <span class="c1"># minimum segment size, as a fraction of valid observations</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">max_breaks_trend</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>    <span class="c1"># cap on how many trend breakpoints to report per pixel</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">max_breaks_season</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>   <span class="c1"># cap on how many season breakpoints to report per pixel</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">n_trend_breaks</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">metric</span><span class="o">=</span><span class="s2">"n_trend_breaks"</span><span class="p">)</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">magnitude</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">metric</span><span class="o">=</span><span class="s2">"magnitude"</span><span class="p">)</span>          <span class="c1"># size of the largest trend jump (0 if none)</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="n">time_of_break</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">metric</span><span class="o">=</span><span class="s2">"time"</span><span class="p">)</span>            <span class="c1"># fractional-year time of that jump (NaN if none)</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="n">first_trend_break</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">metric</span><span class="o">=</span><span class="s2">"trend_breakpoint_idx_1"</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="step-42-direct-dask-array-entry-point">Step 4.2: Direct Dask array entry point</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">cdts.bfast</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_bfast_dask</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># arr: dask.array.Array, shape (time, y, x)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">out</span> <span class="o">=</span> <span class="n">run_bfast_dask</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">start_time</span><span class="o">=</span><span class="mf">2010.0</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="mi">23</span><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+</span></code></pre></div>
+<h2 id="5-understanding-the-output">5. Understanding the Output</h2>
+<p>Row names come from <code>cdts.bfast.bf_metric_names(max_breaks_trend, max_breaks_season)</code>:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Metric</th>
+<th style="text-align: left;">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>n_trend_breaks</code></td>
+<td style="text-align: left;">Number of trend breakpoints at convergence.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_season_breaks</code></td>
+<td style="text-align: left;">Number of season (phenological) breakpoints at convergence.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>magnitude</code></td>
+<td style="text-align: left;">Size of the largest trend-component jump (the difference between the two segments' fitted levels at the break), <code>0</code> if <code>n_trend_breaks == 0</code>. Matches R's <code>bf$Magnitude</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>time</code></td>
+<td style="text-align: left;">Fractional-year time of that largest jump, <code>NaN</code> if <code>n_trend_breaks == 0</code>. Matches R's <code>bf$jump$x</code> - <strong>not</strong> <code>bf$Time</code>, which (in R itself) is actually just the raw observation index of the break, redundant with <code>Vt.bp</code>/<code>trend_breakpoint_idx</code>, despite its name.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_iter</code></td>
+<td style="text-align: left;">Number of trend/season re-estimation iterations run before convergence (or <code>max_iter</code>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_valid</code></td>
+<td style="text-align: left;">Number of valid (non-NaN) observations used.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>valid</code></td>
+<td style="text-align: left;"><code>1.0</code> if the series had enough observations to fit at all (needs more than <code>2 * frequency</code> total observations and at least <code>min_valid</code> non-NaN ones).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>trend_breakpoint_idx_1..{max_breaks_trend}</code></td>
+<td style="text-align: left;">0-based indices into the original series where each trend break falls, chronological order, <code>NaN</code> past <code>n_trend_breaks</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>season_breakpoint_idx_1..{max_breaks_season}</code></td>
+<td style="text-align: left;">Same, for season breaks.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="6-validation">6. Validation</h2>
+<p>Verified directly against real R output (R 4.4.2, <code>bfast</code> 1.7.2, <code>strucchangeRcpp</code> 1.5.4.1.0.1, installed from CRAN specifically to validate this port), matching <code>h=0.15</code>, <code>season="harmonic"</code>, <code>breaks=NULL</code>, <code>level=0.05</code>, <code>decomp="stl"</code>, <code>type="OLS-MOSUM"</code> on both sides, across 4 synthetic scenarios (<code>frequency=23</code>, 300 observations): an injected trend-only break, a season-only (seasonal-amplitude) break, no break, and both a trend and a season break together.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Scenario</th>
+<th style="text-align: left;">R <code>Vt.bp</code> (trend)</th>
+<th style="text-align: left;">cdts <code>trend_breakpoint_idx</code></th>
+<th style="text-align: left;">R <code>Wt.bp</code> (season)</th>
+<th style="text-align: left;">cdts <code>season_breakpoint_idx</code></th>
+<th style="text-align: left;">R <code>Magnitude</code></th>
+<th style="text-align: left;">cdts <code>magnitude</code></th>
+<th style="text-align: left;">R iterations</th>
+<th style="text-align: left;">cdts <code>n_iter</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">trend break only</td>
+<td style="text-align: left;">149</td>
+<td style="text-align: left;"><strong>149</strong></td>
+<td style="text-align: left;">none</td>
+<td style="text-align: left;"><strong>none</strong></td>
+<td style="text-align: left;">0.3998</td>
+<td style="text-align: left;"><strong>0.3998</strong></td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;"><strong>2</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">season break only</td>
+<td style="text-align: left;">none</td>
+<td style="text-align: left;"><strong>none</strong></td>
+<td style="text-align: left;">none</td>
+<td style="text-align: left;"><strong>none</strong></td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;"><strong>0</strong></td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;"><strong>1</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">no break</td>
+<td style="text-align: left;">none</td>
+<td style="text-align: left;"><strong>none</strong></td>
+<td style="text-align: left;">none</td>
+<td style="text-align: left;"><strong>none</strong></td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;"><strong>0</strong></td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;"><strong>1</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">both</td>
+<td style="text-align: left;">149</td>
+<td style="text-align: left;"><strong>149</strong></td>
+<td style="text-align: left;">none</td>
+<td style="text-align: left;"><strong>none</strong></td>
+<td style="text-align: left;">0.4036</td>
+<td style="text-align: left;"><strong>0.4036</strong></td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;"><strong>2</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Every field matches exactly (breakpoint position to the observation, magnitude to 4 decimal places, iteration count identical). <code>time</code> (fractional-year) was cross-checked against R's <code>bf$jump$x</code> directly (<code>2006.478...</code> on both sides for the trend-break scenario - see the note in <a href="#5-understanding-the-output">Understanding the Output</a> about why <code>bf$Time</code> itself is the wrong field to compare against).</p>
+<p>The "season break only" scenario is worth explaining, since it's <em>why</em> the preliminary <code>sctest.efp</code> pre-check (see <a href="#3-scope">Scope</a>) had to be ported rather than skipped: a pure seasonal-<strong>amplitude</strong> change (the injected scenario here, and re-confirmed up to a 20x amplitude jump and with a quarter-cycle phase shift instead) turns out to be close to undetectable by the OLS-MOSUM test in <em>either</em> R or this port - it's a sum-of-residuals test, so a zero-mean oscillation that's simply scaled up or down averages out to ~0 over the test's window regardless of amplitude, giving the test very low power against this specific kind of change. This isn't a bug in either implementation: with the pre-check bypassed (<code>level=1.0</code>) on both sides, R finds <code>Wt.bp=150</code> (1-indexed) and cdts finds <code>season_breakpoint_idx=149</code> (0-indexed) - the same observation - confirming the underlying BIC segmentation search itself agrees between the two; it's specifically R's (and now this port's) shared statistical gate that suppresses it by default, for this kind of signal. <code>tests/test_bfast.py</code> encodes both halves of this (detects it with the pre-check disabled, suppresses it at the default level) so the behavior stays pinned down.</p>
+<p>One residual, minor discrepancy: with the pre-check bypassed (<code>level=1.0</code>, not the default), R additionally reports a trend break (<code>Vt.bp=144</code>) for the season-break scenario that cdts does not. This only shows up in that non-default diagnostic mode, not at <code>level=0.05</code> (real usage), and wasn't chased further.</p>
+<p>Output is bit-identical between <code>n_jobs=1</code> and <code>n_jobs=-1</code> (verified in <code>tests/test_bfast.py</code>).</p>
+<h2 id="7-performance">7. Performance</h2>
+<p>Each iteration costs roughly two <a href="../bfast_lite/">BFAST Lite</a>-sized dynamic programs (one over the <code>~ trend</code> design, one over <code>~ harmonic</code>) plus two OLS-MOSUM pre-checks, and there's one STL decomposition up front - so a single pixel costs on the order of <code>2 * n_iter</code> times a comparable bfastlite fit, where <code>n_iter</code> is usually small in practice (2-4 iterations to convergence for a single, clear break) but can reach <code>max_iter</code> (default 10) for noisy or ambiguous series.</p>
+<p>Benchmarked directly against the same real R installation used for validation above (single series, <code>frequency=23</code>, 300 observations, mean of 5 reps each, same machine):</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Scenario</th>
+<th style="text-align: left;">R <code>bfast()</code></th>
+<th style="text-align: left;">cdts (single-thread call)</th>
+<th style="text-align: left;">Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">trend break (2 iterations)</td>
+<td style="text-align: left;">105.6 ms</td>
+<td style="text-align: left;">25.2 ms</td>
+<td style="text-align: left;"><strong>~4.2x</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">both breaks (2 iterations)</td>
+<td style="text-align: left;">106.5 ms</td>
+<td style="text-align: left;">25.5 ms</td>
+<td style="text-align: left;"><strong>~4.2x</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;">season break / no break (1 iteration, pre-check stops immediately)</td>
+<td style="text-align: left;">~4.3 ms</td>
+<td style="text-align: left;">~0.1 ms</td>
+<td style="text-align: left;"><strong>~40x</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The 1-iteration cases show a much larger gap because R's fixed per-call overhead (<code>data.frame</code>/<code>model.frame</code> construction, S3 dispatch, one <code>stl()</code> Fortran call) dominates when there's little else to do; the 2-iteration cases are a fairer read on the actual compute advantage, similar in spirit to <a href="../bfast_lite/#6-performance">BFAST Lite</a>'s own discussion of this effect.</p>
+<p>On top of the single-call number, <code>n_jobs=-1</code> parallelizes across pixels via OpenMP (2,000 pixels, 300 observations each, half with an injected trend break, on a 20-logical-core machine): <code>n_jobs=1</code> takes ~25.2s (12.6 ms/pixel) vs. <code>n_jobs=-1</code>'s ~4.0-4.5s (2.0-2.2 ms/pixel) - a <strong>~5.6-6.4x</strong> speedup, short of the full ~19x (one core reserved) because bfast's iterative STL+dual-DP workload per pixel is heavier and less uniform than bfastlite's single DP, per the library-wide threading rule (see the <a href="https://github.com/sacridini/cdts#architecture--threading-safety">README</a>).</p>
+<p><strong>Batch-call optimization.</strong> Because <code>bfast()</code> calls its segmented-regression search (the O(n²) RSS-triangle + Bai-Perron DP) up to <code>2 * max_iter</code> times per pixel - versus <a href="../bfast_lite/">BFAST Lite</a>'s single call - its heap-allocation traffic is proportionally much higher too. Two changes address this, both purely internal (no output change - verified bit-identical against the pre-optimization output on the 2,000-pixel benchmark above):</p>
+<ol>
+<li>The <code>~ trend</code> and <code>~ harmonic</code> design matrices depend only on <code>n_time</code>/<code>start_time</code>/<code>frequency</code>/<code>order</code>, which are shared by every pixel in a batch call, so they're now built once per <code>fit_bfast_batch()</code> call instead of once per pixel (matching how bfast_lite.cpp/bfast_monitor.cpp already build theirs).</li>
+<li>The RSS-triangle and dynamic-program tables inside the segmented-regression search are now held in a small per-OpenMP-thread scratch struct and reused across that thread's whole share of pixels and iterations (analogous to bfast_monitor.cpp's <code>BFMScratch</code>), instead of being freshly heap-allocated on every one of those <code>2 * max_iter</code> calls.</li>
+</ol>
+<p>The single-thread (<code>n_jobs=1</code>) time barely moved (12.6 ms/pixel before and after), but the parallel (<code>n_jobs=-1</code>) time dropped from 3.56 ms/pixel to ~2.0-2.2 ms/pixel - i.e. the fix mattered far more under parallelism than in isolation. That asymmetry itself is informative: it points at cross-thread heap-allocator contention (many OpenMP threads repeatedly allocating/freeing small vectors concurrently) rather than raw per-pixel compute as the thing that improved, which is exactly what reusing thread-local buffers targets.</p>
+<h2 id="8-references">8. References</h2>
+<ul>
+<li>Verbesselt, J., Hyndman, R., Newnham, G., &amp; Culvenor, D. (2010). Detecting trend and seasonal changes in satellite image time series. <strong>Remote Sensing of Environment</strong>, 114(1), 106-115. <a href="https://doi.org/10.1016/j.rse.2009.08.014">https://doi.org/10.1016/j.rse.2009.08.014</a></li>
+<li>Verbesselt, J., Zeileis, A., &amp; Herold, M. (2012). Near real-time disturbance detection using satellite image time series. <strong>Remote Sensing of Environment</strong>, 123, 98-108. <a href="https://doi.org/10.1016/j.rse.2011.09.024">https://doi.org/10.1016/j.rse.2011.09.024</a></li>
+<li>Cleveland, R. B., Cleveland, W. S., McRae, J. E., &amp; Terpenning, I. (1990). STL: A seasonal-trend decomposition procedure based on loess. <strong>Journal of Official Statistics</strong>, 6(1), 3-73.</li>
+<li>Bai, J., &amp; Perron, P. (2003). Computation and analysis of multiple structural change models. <strong>Journal of Applied Econometrics</strong>, 18(1), 1-22. <a href="https://doi.org/10.1002/jae.659">https://doi.org/10.1002/jae.659</a></li>
+<li>Chu, C.-S. J., Hornik, K., &amp; Kuan, C.-M. (1995). MOSUM tests for parameter constancy. <strong>Biometrika</strong>, 82(3), 603-617. (the OLS-MOSUM retrospective test the preliminary <code>sctest.efp</code> pre-check uses, distinct from Chu, Stinchcombe &amp; White 1996's monitoring boundary already cited in the <a href="../bfast_monitor/">BFAST Monitor</a> tutorial)</li>
+<li>Zeileis, A., Leisch, F., Hornik, K., &amp; Kleiber, C. (2002). strucchange: An R package for testing for structural change in linear regression models. <strong>Journal of Statistical Software</strong>, 7(2), 1-38. <a href="https://doi.org/10.18637/jss.v007.i02">https://doi.org/10.18637/jss.v007.i02</a></li>
+<li>R packages <a href="https://github.com/bfast2/bfast"><code>bfast</code></a> and <a href="https://github.com/bfast2/strucchangeRcpp"><code>strucchangeRcpp</code></a> (the reference implementation this port follows and was validated against), and R's own <code>stats::stl()</code>.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../tmask/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Tmask">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Tmask
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../bfast_monitor/" class="md-footer__link md-footer__link--next" aria-label="Next: BFAST Monitor">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                BFAST Monitor
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/sacridini/cdts" target="_blank" rel="noopener" title="CDTS on GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://pypi.org/project/cdts/" target="_blank" rel="noopener" title="CDTS on PyPI" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "toc.integrate", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
