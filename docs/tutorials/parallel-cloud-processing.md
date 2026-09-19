@@ -189,3 +189,51 @@ print(client.run(check, on_error="return"))
 ```
 
 A clean `"ok"` (or a normal, readable Python exception) per worker means you're good to go. A `CommClosedError` / `Stream is closed` here is the macOS crash-loop symptom from 4.3 — fix that first.
+
+### 4.6. Too many local read threads can be *slower* than reading sequentially
+
+If your input files only exist on the machine that's also acting as the client (the common case when the other machines don't share a network drive), you have to read them locally before handing chunks to the cluster. It's tempting to parallelize that read with a large thread pool, but past a certain point you're not adding throughput — you're adding disk-queue contention.
+
+Measured reading 41 full-resolution GeoTIFFs (~218MB each, ~8.9GB total) from a local NVMe drive:
+
+| Threads | Time |
+|---|---|
+| 1 (sequential) | 26.6s |
+| 2 | 22.9s |
+| **4** | **22.0s (best)** |
+| 16 | 100.7s (4.6x *slower* than sequential!) |
+
+A modest thread pool (3-4) beat both sequential and 16 threads by a wide margin. Benchmark this on your own disk before picking a number — the right count depends on whether it's NVMe, SATA SSD, spinning disk, or a network share, but "more threads" is not a safe default assumption.
+
+### 4.7. Gathering a big distributed result can OOM a single worker, even though the cluster computed it fine
+
+If you call `.compute()` (or `client.gather()`) directly on a large persisted Dask array, Dask may run a "finalize" (concatenation) task on a single worker to assemble the pieces before handing them to the client — and that worker's own `--memory-limit` might be far smaller than the assembled result, even though every individual chunk fit in memory just fine:
+
+```
+MemoryError: Task 'finalize-...' has 2.84 GiB worth of input dependencies,
+but worker tcp://192.168.2.40:55301 has memory_limit set to 1.60 GiB.
+```
+
+Avoid this by gathering block-by-block instead of triggering one big finalize, and assembling the final array yourself on the client (which usually has far more RAM to spare than a single worker's configured limit):
+
+```python
+import numpy as np
+
+n_bands = persisted.shape[0]
+y_chunks, x_chunks = persisted.chunks[1], persisted.chunks[2]
+y_off = np.concatenate([[0], np.cumsum(y_chunks)])
+x_off = np.concatenate([[0], np.cumsum(x_chunks)])
+
+block_futs = {
+    (by, bx): client.compute(persisted.blocks[:, by, bx])
+    for by in range(len(y_chunks))
+    for bx in range(len(x_chunks))
+}
+gathered = client.gather(block_futs)
+
+result = np.empty((n_bands, H, W), dtype=np.float32)
+for (by, bx), arr in gathered.items():
+    result[:, y_off[by]:y_off[by + 1], x_off[bx]:x_off[bx + 1]] = arr
+```
+
+This also parallelizes the fetch itself (all blocks are requested up front, not one at a time), so it's usually *faster* than the naive `.compute()` in addition to being memory-safe.
