@@ -25,7 +25,11 @@ PYBIND11_MODULE(_core, m) {
         .def_readwrite("max_segments", &cdts::landtrendr::LandTrendrParams::max_segments)
         .def_readwrite("pval_threshold", &cdts::landtrendr::LandTrendrParams::pval_threshold)
         .def_readwrite("prevent_fast_recovery", &cdts::landtrendr::LandTrendrParams::prevent_fast_recovery)
-        .def_readwrite("recovery_threshold", &cdts::landtrendr::LandTrendrParams::recovery_threshold);
+        .def_readwrite("recovery_threshold", &cdts::landtrendr::LandTrendrParams::recovery_threshold)
+        .def_readwrite("spike_threshold", &cdts::landtrendr::LandTrendrParams::spike_threshold)
+        .def_readwrite("best_model_proportion", &cdts::landtrendr::LandTrendrParams::best_model_proportion)
+        .def_readwrite("vertex_count_overshoot", &cdts::landtrendr::LandTrendrParams::vertex_count_overshoot)
+        .def_readwrite("min_observations_needed", &cdts::landtrendr::LandTrendrParams::min_observations_needed);
 
     py::class_<cdts::landtrendr::Vertex>(lt, "Vertex")
         .def(py::init<int, double>())

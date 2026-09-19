@@ -358,8 +358,16 @@ std::vector<double> fit_piecewise_ols(const std::vector<int>& x, const std::vect
     return beta;
 }
 
-std::vector<Vertex> fit_trajectory(const std::vector<int>& years, 
-                                   const std::vector<double>& values, 
+// One candidate model in the vertex-count ladder (see fit_trajectory).
+struct CandidateModel {
+    std::vector<int> verts;
+    std::vector<double> fitted;
+    double pval;
+    bool recovery_ok;
+};
+
+std::vector<Vertex> fit_trajectory(const std::vector<int>& years,
+                                   const std::vector<double>& values,
                                    const LandTrendrParams& params) {
     std::vector<Vertex> vertices;
     int n = years.size();
@@ -367,39 +375,59 @@ std::vector<Vertex> fit_trajectory(const std::vector<int>& years,
         return vertices;
     }
 
+    // Too few observations to justify fitting/simplifying at all (LT-GEE's
+    // minObservationsNeeded) -- pass the raw trajectory through unsegmented.
+    if (n < std::max(2, params.min_observations_needed)) {
+        for (int i = 0; i < n; ++i) {
+            vertices.push_back({years[i], values[i]});
+        }
+        return vertices;
+    }
+
     // 1. Remove spikes / desawtoothing
-    std::vector<double> filtered_values = desawtooth(values, 0.9);
+    std::vector<double> filtered_values = desawtooth(values, params.spike_threshold);
 
     // 2. Initial candidate vertices (for now, all indices)
     std::vector<int> all_indices(n);
     std::iota(all_indices.begin(), all_indices.end(), 0);
 
-    // 3. Vet vertices to max_segments + 1
-    int desired_count = params.max_segments + 1;
-    if (desired_count > n) {
-        desired_count = n;
-    }
-    
-    // Vetted vertices starts with max_segments + 1
-    std::vector<int> best_verts = vet_verts(years, filtered_values, all_indices, desired_count, 2.0);
+    // 3. Vet vertices to max_segments + 1 + vertexCountOvershoot, giving the
+    // initial candidate pool that much slack, then prune the overshoot away
+    // before the scored model-selection ladder (step 4) begins -- LT-GEE's
+    // vertexCountOvershoot. These intermediate overshoot vertex counts are
+    // never themselves candidate models.
+    int final_count = params.max_segments + 1;
+    if (final_count > n) final_count = n;
+    int overshoot_count = final_count + std::max(0, params.vertex_count_overshoot);
+    if (overshoot_count > n) overshoot_count = n;
 
-    // 4. OLS iterative fitting & Model Selection
-    // We start with the max segments model, fit it, and evaluate.
-    // If it fails the significance test, we remove the weakest vertex and try again.
-    // (Here we implement a simplified pseudo-significance loop to establish the architecture)
-    
-    std::vector<int> current_verts = best_verts;
-    std::vector<double> best_fit_values;
-    
-    while (current_verts.size() > 2) {
-        // Fit OLS
+    std::vector<int> current_verts = vet_verts(years, filtered_values, all_indices, overshoot_count, 2.0);
+    while (static_cast<int>(current_verts.size()) > final_count) {
+        current_verts = vet_verts(years, filtered_values, all_indices, current_verts.size() - 1, 2.0);
+    }
+
+    // 4. Build the full ladder of candidate models, from max_segments+1 vertices
+    // down to 2, removing the weakest (smallest-angle) vertex at each step -- same
+    // vertex-pruning cdts always did, just no longer stopping at the first hit.
+    // Every candidate is fit and scored so best_model_proportion (step 5) can
+    // choose among the whole ladder instead of only the first "good enough" one.
+    std::vector<CandidateModel> ladder;
+
+    // Null model (mean of values) SSE, shared by every candidate's F-test.
+    double mean_y = 0.0;
+    for (double v : values) mean_y += v;
+    mean_y /= n;
+    double sse_null = 0.0;
+    for (double v : values) {
+        double err = v - mean_y;
+        sse_null += err * err;
+    }
+
+    while (current_verts.size() >= 2) {
         std::vector<double> fitted = fit_piecewise_ols(years, values, current_verts);
-        
-        // Calculate SSE (Sum of Squared Errors)
+
         double sse = 0.0;
-        int n = years.size();
         for (int i = 0; i < n; ++i) {
-            // Interpolate fitted values to all years to calculate SSE
             double interp_y = 0.0;
             int xi = years[i];
             for (size_t j = 0; j < current_verts.size() - 1; ++j) {
@@ -415,77 +443,81 @@ std::vector<Vertex> fit_trajectory(const std::vector<int>& years,
             double err = values[i] - interp_y;
             sse += err * err;
         }
-        
-        // Calculate exact F-statistic against the null model (mean)
-        // df_full = number of segments + intercept = current_verts.size()
-        // df_reduced = 1 (just intercept)
-        int df_full = current_verts.size();
+
+        int df_full = static_cast<int>(current_verts.size());
         int df_reduced = 1;
-        
-        // Null model (mean of values)
-        double mean_y = 0.0;
-        for (double v : values) mean_y += v;
-        mean_y /= n;
-        
-        double sse_null = 0.0;
-        for (double v : values) {
-            double err = v - mean_y;
-            sse_null += err * err;
-        }
-        
-        double mse_full = sse / (n - df_full);
+        double mse_full = sse / std::max(1, n - df_full);
         double f_stat = ((sse_null - sse) / (df_full - df_reduced)) / (mse_full > 0 ? mse_full : 1e-6);
-        
-        double pval = f_pval(f_stat, df_full - df_reduced, n - df_full);
-        
-        bool is_significant = (pval <= params.pval_threshold);
-        
-        // -------------------------
-        // Recovery enforcement logic
-        // -------------------------
+        double pval = (df_full > df_reduced) ? f_pval(f_stat, df_full - df_reduced, n - df_full) : 1.0;
+
+        // Recovery enforcement logic: a candidate whose fitted segments imply a
+        // biologically-impossible fast green-up is not eligible for selection.
+        bool recovery_ok = true;
         if (params.prevent_fast_recovery) {
-            bool impossible_recovery = false;
-            for (size_t i = 0; i < current_verts.size() - 1; ++i) {
+            for (size_t i = 0; i + 1 < current_verts.size(); ++i) {
                 double val_diff = fitted[i+1] - fitted[i];
                 double yr_diff = static_cast<double>(years[current_verts[i+1]] - years[current_verts[i]]);
-                
-                // If it's a gain/recovery (positive trend in vegetation indices)
-                // Note: Assuming NBR where positive diff means gain. If user passes negative index, this logic flips.
-                // We will assume standard NBR/NDVI (positive is gain).
                 if (val_diff > 0.0 && yr_diff > 0.0) {
                     double rate = val_diff / yr_diff;
                     if (rate > params.recovery_threshold) {
-                        impossible_recovery = true;
+                        recovery_ok = false;
                         break;
                     }
                 }
             }
-            if (impossible_recovery) {
-                // If this model has an impossible recovery, we force it to drop a vertex
-                // by skipping the p-value check so it gets simplified.
-                is_significant = false; 
-            }
         }
-        
-        if (is_significant || current_verts.size() <= 3) {
-            // Found a good model or reached minimum segments
-            best_fit_values = fitted;
-            break;
-        }
-        
-        // Model too complex/noisy, drop the weakest vertex (smallest angle)
-        // For simplicity in this step, drop the middle-most flat vertex
-        // Re-vetting from the original pool for N-1 is more accurate
+
+        ladder.push_back({current_verts, fitted, pval, recovery_ok});
+
+        if (current_verts.size() <= 2) break;
         current_verts = vet_verts(years, filtered_values, all_indices, current_verts.size() - 1, 2.0);
     }
-    
-    if (best_fit_values.empty()) {
-        best_fit_values = fit_piecewise_ols(years, values, current_verts);
+
+    if (ladder.empty()) {
+        return vertices;
     }
 
-    // Return the selected vertices with their OLS fitted values
-    for (size_t i = 0; i < current_verts.size(); ++i) {
-        vertices.push_back({years[current_verts[i]], best_fit_values[i]});
+    // 5. Model selection.
+    // Eligible = statistically significant on its own (pval_threshold) AND not
+    // recovery-violating. Among eligible candidates, LT-GEE's bestModelProportion
+    // picks the one with the MOST vertices whose p-value is still within
+    // best_model_proportion times the lowest p-value found among them --
+    // i.e. prefer detail, but only where it's "nearly as good" a fit as the
+    // single best-fitting candidate. If nothing clears pval_threshold, fall back
+    // to the simplest (fewest-vertex) recovery-valid candidate, and if even that
+    // is empty (every candidate violates the recovery constraint), fall back to
+    // the very simplest candidate in the ladder regardless of recovery.
+    std::vector<const CandidateModel*> eligible;
+    for (const auto& c : ladder) {
+        if (c.recovery_ok && c.pval <= params.pval_threshold) eligible.push_back(&c);
+    }
+
+    const CandidateModel* chosen = nullptr;
+    if (!eligible.empty()) {
+        double min_pval = std::numeric_limits<double>::max();
+        for (auto* c : eligible) min_pval = std::min(min_pval, c->pval);
+        double threshold = min_pval * params.best_model_proportion;
+
+        size_t most_verts = 0;
+        for (auto* c : eligible) {
+            if (c->pval <= threshold && c->verts.size() > most_verts) {
+                most_verts = c->verts.size();
+                chosen = c;
+            }
+        }
+    }
+
+    if (chosen == nullptr) {
+        // Nothing passed pval_threshold: fall back to the simplest recovery-valid
+        // candidate (last one appended to the ladder), else the simplest overall.
+        for (auto it = ladder.rbegin(); it != ladder.rend(); ++it) {
+            if (it->recovery_ok) { chosen = &(*it); break; }
+        }
+        if (chosen == nullptr) chosen = &ladder.back();
+    }
+
+    for (size_t i = 0; i < chosen->verts.size(); ++i) {
+        vertices.push_back({years[chosen->verts[i]], chosen->fitted[i]});
     }
 
     return vertices;

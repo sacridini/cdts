@@ -24,29 +24,38 @@ def _process_pixel_lt(args: Tuple[int, int, np.ndarray], years: Union[np.ndarray
         # If C++ fails on a specific weird pixel, return empty
         return row, col, []
 
-def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_segments: int = 6, pval_threshold: float = 0.05, n_jobs: int = -1) -> "np.ndarray":
+def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_segments: int = 6, pval_threshold: float = 0.05, n_jobs: int = -1,
+                          recovery_threshold: float = 0.25, prevent_fast_recovery: bool = True,
+                          spike_threshold: float = 0.9, best_model_proportion: float = 1.25,
+                          vertex_count_overshoot: int = 3, min_observations_needed: int = 6,
+                          no_data_value: float = 0.0) -> "np.ndarray":
     """
     Apply LandTrendr across a 3D numpy array (time_steps, rows, cols) using C++ batch processing with OpenMP.
     """
     from .landtrendr import run_landtrendr_batch
     import os as _os
-    
+
     if n_jobs == -1:
         n_jobs = max(1, (_os.cpu_count() or 4) - 1)
-    
+
     time_steps, rows, cols = raster_stack.shape
     max_vertices = max_segments + 1
-    
+
     output = np.zeros((2 * max_vertices, rows, cols), dtype=np.float32)
-    
+
     # Transpose from (time, row, col) to (row, col, time) for batch function
     values = np.transpose(raster_stack, (1, 2, 0))
-    
+
     if n_jobs > 0:
         _os.environ['OMP_NUM_THREADS'] = str(n_jobs)
-        
+
     # Run the C++ batch
-    vertices_array, counts_array = run_landtrendr_batch(years, values, max_segments, pval_threshold, no_data_value=0.0)
+    vertices_array, counts_array = run_landtrendr_batch(
+        years, values, max_segments, pval_threshold, no_data_value=no_data_value,
+        recovery_threshold=recovery_threshold, prevent_fast_recovery=prevent_fast_recovery,
+        spike_threshold=spike_threshold, best_model_proportion=best_model_proportion,
+        vertex_count_overshoot=vertex_count_overshoot, min_observations_needed=min_observations_needed,
+    )
     
     # vertices_array shape: (rows * cols, max_vertices, 2)
     # Reshape to (rows, cols, max_vertices, 2)
@@ -190,9 +199,13 @@ def run_ccdc_image(input_path: str, output_dir: str, dates: "np.ndarray", num_ba
 
 def run_landtrendr_image(input_path: str, output_dir: str, start_year: int = 2000, max_segments: int = 6,
                             chunk_size: int = 512, n_jobs: int = -1, save_vertices: bool = False,
-                            event_type: str = "loss", sort_by: str = "greatest", min_mag: float = 0.0, 
+                            event_type: str = "loss", sort_by: str = "greatest", min_mag: float = 0.0,
                             min_dur: int = 1, pre_val_thresh: float = 0.0, prefix: str = "lt_event", pval_threshold: float = 0.05,
-                            output_scale_factor: float = 1.0) -> None:
+                            output_scale_factor: float = 1.0,
+                            recovery_threshold: float = 0.25, prevent_fast_recovery: bool = True,
+                            spike_threshold: float = 0.9, best_model_proportion: float = 1.25,
+                            vertex_count_overshoot: int = 3, min_observations_needed: int = 6,
+                            no_data_value: float = 0.0) -> None:
     """
     High-level function to process a full GeoTIFF file using LandTrendr with chunking to save RAM.
     """
@@ -253,10 +266,17 @@ def run_landtrendr_image(input_path: str, output_dir: str, start_year: int = 200
                 stack = src.read(window=window)
                 
                 vertices_stack = run_landtrendr_array(
-                    years, stack, 
-                    max_segments=max_segments, 
+                    years, stack,
+                    max_segments=max_segments,
                     pval_threshold=pval_threshold,
-                    n_jobs=n_jobs
+                    n_jobs=n_jobs,
+                    recovery_threshold=recovery_threshold,
+                    prevent_fast_recovery=prevent_fast_recovery,
+                    spike_threshold=spike_threshold,
+                    best_model_proportion=best_model_proportion,
+                    vertex_count_overshoot=vertex_count_overshoot,
+                    min_observations_needed=min_observations_needed,
+                    no_data_value=no_data_value,
                 )
                 
                 events = extract_events(

@@ -24,7 +24,14 @@ def run_landtrendr(args: argparse.Namespace) -> None:
             min_dur=args.min_dur,
             pre_val_thresh=args.pre_val_thresh,
             prefix=args.prefix,
-            output_scale_factor=args.output_scale
+            output_scale_factor=args.output_scale,
+            recovery_threshold=args.recovery_threshold,
+            prevent_fast_recovery=not args.allow_fast_recovery,
+            spike_threshold=args.spike_threshold,
+            best_model_proportion=args.best_model_proportion,
+            vertex_count_overshoot=args.vertex_count_overshoot,
+            min_observations_needed=args.min_observations_needed,
+            no_data_value=args.no_data_value,
         )
     except Exception as e:
         print(f"Error running LandTrendr: {e}")
@@ -176,6 +183,13 @@ def main() -> None:
     lt_parser.add_argument("--pre-val-thresh", type=float, default=0.0, help="Pre-value threshold filter")
     lt_parser.add_argument("--prefix", default="lt_event", help="Prefix for output metric files")
     lt_parser.add_argument("--output-scale", type=float, default=1.0, help="Scale factor to multiply output values (e.g. 0.0001 to convert back to float NDVI)")
+    lt_parser.add_argument("--recovery-threshold", type=float, default=0.25, help="Max allowed recovery rate per year, LT-GEE's recoveryThreshold (default: 0.25)")
+    lt_parser.add_argument("--allow-fast-recovery", action="store_true", help="Disable the fast-recovery rejection (LT-GEE's preventOneYearRecovery=false; default here is to reject, i.e. true)")
+    lt_parser.add_argument("--spike-threshold", type=float, default=0.9, help="Desawtooth dampening factor, LT-GEE's spikeThreshold (1.0 = no dampening, default: 0.9)")
+    lt_parser.add_argument("--best-model-proportion", type=float, default=1.25, help="LT-GEE's bestModelProportion: prefer the most-vertex candidate model within this proportion of the lowest p-value found (default: 1.25)")
+    lt_parser.add_argument("--vertex-count-overshoot", type=int, default=3, help="LT-GEE's vertexCountOvershoot: extra vertices allowed in the initial candidate pool beyond max_segments + 1, pruned back down before model selection (default: 3)")
+    lt_parser.add_argument("--min-observations-needed", type=int, default=6, help="LT-GEE's minObservationsNeeded: below this many observations, skip fitting entirely and pass the raw trajectory through unsegmented (default: 6)")
+    lt_parser.add_argument("--no-data-value", type=float, default=0.0, help="Sentinel value marking a missing observation in the input stack (default: 0.0)")
     
     # CCDC Subparser
     ccdc_parser = subparsers.add_parser("ccdc", help="Run CCDC algorithm")
