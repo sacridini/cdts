@@ -358,6 +358,142 @@ std::vector<double> fit_piecewise_ols(const std::vector<int>& x, const std::vect
     return beta;
 }
 
+// SSE of a piecewise-linear (verts, fitted) trajectory against the actual
+// values, at every observation (not just at the vertices themselves).
+double compute_full_sse(const std::vector<int>& x, const std::vector<double>& y,
+                         const std::vector<int>& verts, const std::vector<double>& fitted) {
+    double sse = 0.0;
+    int n = static_cast<int>(x.size());
+    for (int i = 0; i < n; ++i) {
+        double interp_y = fitted.front();
+        int xi = x[i];
+        for (size_t j = 0; j + 1 < verts.size(); ++j) {
+            int x0 = x[verts[j]];
+            int x1 = x[verts[j + 1]];
+            if (xi >= x0 && xi <= x1) {
+                interp_y = (x1 > x0)
+                    ? fitted[j] + (fitted[j + 1] - fitted[j]) * static_cast<double>(xi - x0) / (x1 - x0)
+                    : fitted[j];
+                break;
+            }
+        }
+        double err = y[i] - interp_y;
+        sse += err * err;
+    }
+    return sse;
+}
+
+// Fits vertex y-values early-to-late, choosing per segment between a
+// point-to-point line (endpoints pinned to the actual data values) and a
+// simple regression line fit over that segment's own observations -- LT-GEE's
+// flexible per-segment fitting (Kennedy et al. 2010, Section 2.5.3). For
+// segments after the first, the regression is anchored at the already-fixed
+// start value so consecutive segments stay connected.
+std::vector<double> fit_piecewise_sequential(const std::vector<int>& x, const std::vector<double>& y,
+                                              const std::vector<int>& verts) {
+    int k = static_cast<int>(verts.size());
+    std::vector<double> fitted(k, 0.0);
+    if (k < 2) {
+        if (k == 1) fitted[0] = y[verts[0]];
+        return fitted;
+    }
+
+    for (int j = 0; j < k - 1; ++j) {
+        int x0 = x[verts[j]];
+        int x1 = x[verts[j + 1]];
+
+        std::vector<int> idx;
+        for (size_t i = 0; i < x.size(); ++i) {
+            if (x[i] >= x0 && x[i] <= x1) idx.push_back(static_cast<int>(i));
+        }
+        if (idx.empty()) { idx.push_back(verts[j]); idx.push_back(verts[j + 1]); }
+
+        double span = static_cast<double>(x1 - x0);
+
+        // Point-to-point candidate: the segment is just the line between the
+        // (already-fixed, for j>0) start value and the next vertex's actual value.
+        double p2p_y0 = (j == 0) ? y[verts[j]] : fitted[j];
+        double p2p_y1 = y[verts[j + 1]];
+        double p2p_slope = (span > 0.0) ? (p2p_y1 - p2p_y0) / span : 0.0;
+        double p2p_sse = 0.0;
+        for (int i : idx) {
+            double err = y[i] - (p2p_y0 + p2p_slope * (x[i] - x0));
+            p2p_sse += err * err;
+        }
+
+        // Regression candidate: free (2-parameter) OLS for the first segment,
+        // anchored (1-parameter, pinned at the fixed start) for later ones.
+        double reg_y0, reg_slope;
+        if (j == 0) {
+            double sum_x = 0.0, sum_y = 0.0, sum_xx = 0.0, sum_xy = 0.0;
+            int m = static_cast<int>(idx.size());
+            for (int i : idx) {
+                double dx = x[i] - x0;
+                sum_x += dx; sum_y += y[i]; sum_xx += dx * dx; sum_xy += dx * y[i];
+            }
+            double denom = m * sum_xx - sum_x * sum_x;
+            if (std::abs(denom) > 1e-9) {
+                reg_slope = (m * sum_xy - sum_x * sum_y) / denom;
+                reg_y0 = (sum_y - reg_slope * sum_x) / m;
+            } else {
+                reg_slope = p2p_slope;
+                reg_y0 = p2p_y0;
+            }
+        } else {
+            reg_y0 = fitted[j];
+            double num = 0.0, den = 0.0;
+            for (int i : idx) {
+                double dx = x[i] - x0;
+                num += dx * (y[i] - reg_y0);
+                den += dx * dx;
+            }
+            reg_slope = (den > 1e-9) ? num / den : p2p_slope;
+        }
+        double reg_y1 = reg_y0 + reg_slope * span;
+        double reg_sse = 0.0;
+        for (int i : idx) {
+            double err = y[i] - (reg_y0 + reg_slope * (x[i] - x0));
+            reg_sse += err * err;
+        }
+
+        if (reg_sse < p2p_sse) {
+            fitted[j] = reg_y0;
+            fitted[j + 1] = reg_y1;
+        } else {
+            fitted[j] = p2p_y0;
+            fitted[j + 1] = p2p_y1;
+        }
+    }
+    return fitted;
+}
+
+// Removes whichever single interior vertex causes the smallest increase in
+// SSE once dropped (Kennedy et al. 2010, Section 2.5.4's "MSE criterion"),
+// using the same sequential fitting method as the main ladder so the ranking
+// reflects the fit that will actually be used.
+std::vector<int> remove_weakest_vertex_by_mse(const std::vector<int>& x, const std::vector<double>& y,
+                                               const std::vector<int>& verts) {
+    int k = static_cast<int>(verts.size());
+    if (k <= 2) return verts;
+
+    double best_sse = std::numeric_limits<double>::max();
+    int best_remove = -1;
+    for (int i = 1; i < k - 1; ++i) {
+        std::vector<int> trial = verts;
+        trial.erase(trial.begin() + i);
+        std::vector<double> fitted = fit_piecewise_sequential(x, y, trial);
+        double sse = compute_full_sse(x, y, trial, fitted);
+        if (sse < best_sse) {
+            best_sse = sse;
+            best_remove = i;
+        }
+    }
+
+    std::vector<int> result = verts;
+    if (best_remove != -1) result.erase(result.begin() + best_remove);
+    return result;
+}
+
 // One candidate model in the vertex-count ladder (see fit_trajectory).
 struct CandidateModel {
     std::vector<int> verts;
@@ -403,14 +539,20 @@ std::vector<Vertex> fit_trajectory(const std::vector<int>& years,
 
     std::vector<int> current_verts = vet_verts(years, filtered_values, all_indices, overshoot_count, 2.0);
     while (static_cast<int>(current_verts.size()) > final_count) {
-        current_verts = vet_verts(years, filtered_values, all_indices, current_verts.size() - 1, 2.0);
+        current_verts = remove_weakest_vertex_by_mse(years, values, current_verts);
     }
 
     // 4. Build the full ladder of candidate models, from max_segments+1 vertices
-    // down to 2, removing the weakest (smallest-angle) vertex at each step -- same
-    // vertex-pruning cdts always did, just no longer stopping at the first hit.
-    // Every candidate is fit and scored so best_model_proportion (step 5) can
-    // choose among the whole ladder instead of only the first "good enough" one.
+    // down to 2. Each level's vertex set is fit with fit_piecewise_sequential
+    // (point-to-point vs. anchored-regression per segment, Section 2.5.3); if
+    // that fit isn't significant at pval_threshold, it's redone with the exact
+    // global OLS solve, which -- since the piecewise-linear model is linear in
+    // the vertex y-values -- is the closed-form equivalent of LT-GEE's
+    // "simultaneous" Levenberg-Marquardt fallback fit, retained regardless of
+    // its own p-value. Simplifying to the next level down removes whichever
+    // vertex increases SSE the least (Section 2.5.4). Every candidate is fit
+    // and scored so best_model_proportion (step 5) can choose among the whole
+    // ladder instead of only the first "good enough" one.
     std::vector<CandidateModel> ladder;
 
     // Null model (mean of values) SSE, shared by every candidate's F-test.
@@ -423,32 +565,28 @@ std::vector<Vertex> fit_trajectory(const std::vector<int>& years,
         sse_null += err * err;
     }
 
-    while (current_verts.size() >= 2) {
-        std::vector<double> fitted = fit_piecewise_ols(years, values, current_verts);
-
-        double sse = 0.0;
-        for (int i = 0; i < n; ++i) {
-            double interp_y = 0.0;
-            int xi = years[i];
-            for (size_t j = 0; j < current_verts.size() - 1; ++j) {
-                int x0 = years[current_verts[j]];
-                int x1 = years[current_verts[j+1]];
-                if (xi >= x0 && xi <= x1) {
-                    double y0 = fitted[j];
-                    double y1 = fitted[j+1];
-                    interp_y = y0 + (y1 - y0) * static_cast<double>(xi - x0) / (x1 - x0);
-                    break;
-                }
-            }
-            double err = values[i] - interp_y;
-            sse += err * err;
-        }
-
-        int df_full = static_cast<int>(current_verts.size());
+    // p-of-F for a given (verts, fitted) pair against the shared null model above.
+    auto score_pval = [&](const std::vector<int>& verts, const std::vector<double>& fitted) {
+        double sse = compute_full_sse(years, values, verts, fitted);
+        int df_full = static_cast<int>(verts.size());
         int df_reduced = 1;
         double mse_full = sse / std::max(1, n - df_full);
         double f_stat = ((sse_null - sse) / (df_full - df_reduced)) / (mse_full > 0 ? mse_full : 1e-6);
         double pval = (df_full > df_reduced) ? f_pval(f_stat, df_full - df_reduced, n - df_full) : 1.0;
+        return pval;
+    };
+
+    while (current_verts.size() >= 2) {
+        // Primary fit: point-to-point/anchored-regression hybrid per segment.
+        std::vector<double> fitted = fit_piecewise_sequential(years, values, current_verts);
+        double pval = score_pval(current_verts, fitted);
+
+        // Fallback: if that fit isn't significant, retry with the exact global
+        // OLS solve (LT-GEE's "simultaneous" LM fit) and keep it regardless.
+        if (pval > params.pval_threshold) {
+            fitted = fit_piecewise_ols(years, values, current_verts);
+            pval = score_pval(current_verts, fitted);
+        }
 
         // Recovery enforcement logic: a candidate whose fitted segments imply a
         // biologically-impossible fast green-up is not eligible for selection.
@@ -470,7 +608,7 @@ std::vector<Vertex> fit_trajectory(const std::vector<int>& years,
         ladder.push_back({current_verts, fitted, pval, recovery_ok});
 
         if (current_verts.size() <= 2) break;
-        current_verts = vet_verts(years, filtered_values, all_indices, current_verts.size() - 1, 2.0);
+        current_verts = remove_weakest_vertex_by_mse(years, values, current_verts);
     }
 
     if (ladder.empty()) {

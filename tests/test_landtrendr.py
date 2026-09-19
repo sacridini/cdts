@@ -86,6 +86,26 @@ def test_run_landtrendr_min_observations_needed():
     vertices = run_landtrendr(years, values, max_segments=2, min_observations_needed=2)
     assert len(vertices) <= 3
 
+def test_run_landtrendr_sequential_fit_smooths_noisy_segment():
+    # A noisy-but-stable segment (2000-2003, endpoints both 0.50) followed by a
+    # clean drop to 2005. The per-segment regression-vs-point-to-point choice
+    # (Kennedy et al. 2010 Sec. 2.5.3) should pick the regression line for the
+    # first segment, since it has lower SSE against the noisy interior points
+    # than the flat point-to-point line through the two (coincidentally equal)
+    # endpoint values -- so the fitted endpoint values should NOT just be the
+    # raw 0.50/0.50, but a slightly sloped regression line through all 4 points.
+    years = np.array([2000, 2001, 2002, 2003, 2004, 2005])
+    values = np.array([0.50, 0.54, 0.46, 0.50, 0.30, 0.10])
+
+    vertices = run_landtrendr(years, values, max_segments=3, min_observations_needed=6)
+    by_year = {v['year']: v['value'] for v in vertices}
+
+    assert 2000 in by_year and 2003 in by_year
+    assert not np.isclose(by_year[2000], 0.50, atol=1e-6)
+    assert not np.isclose(by_year[2003], 0.50, atol=1e-6)
+    assert np.isclose(by_year[2000], 0.512, atol=1e-6)
+    assert np.isclose(by_year[2003], 0.488, atol=1e-6)
+
 def test_run_landtrendr_vertex_count_overshoot():
     # A longer, exactly piecewise-linear 3-segment (4-vertex) trajectory.
     # With vertex_count_overshoot=0, the initial angle-culling has to pick the
