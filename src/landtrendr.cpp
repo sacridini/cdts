@@ -700,37 +700,32 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
         return out;
     }
 
-    // 5. Model selection.
-    // Eligible = statistically significant on its own (pval_threshold) AND not
-    // recovery-violating. Among eligible candidates, LT-GEE's bestModelProportion
-    // picks the one with the MOST vertices whose p-value is still within
-    // best_model_proportion times the lowest p-value found among them --
-    // i.e. prefer detail, but only where it's "nearly as good" a fit as the
-    // single best-fitting candidate. If nothing clears pval_threshold, fall back
-    // to the simplest (fewest-vertex) recovery-valid candidate, and if even that
-    // is empty (every candidate violates the recovery constraint), fall back to
-    // the very simplest candidate in the ladder regardless of recovery.
+    // 5. Model selection, matching tbcd_v2.pro's pick_best_model6: eligible is
+    // every recovery-valid candidate in the ladder -- pval_threshold is NOT a
+    // pre-filter here in the original algorithm (it only gates whether the
+    // model finally chosen below counts as "significant enough", checked after
+    // selection, not before). best_model_proportion then picks the MOST-vertex
+    // candidate among the eligible ones whose p-value is still within
+    // (2 - best_model_proportion) times the lowest p-value found among them.
+    // If every candidate violates the recovery constraint, fall back to the
+    // very simplest candidate in the ladder regardless of recovery.
     std::vector<const CandidateModel*> eligible;
     for (const auto& c : ladder) {
-        if (c.recovery_ok && c.pval <= params.pval_threshold) eligible.push_back(&c);
+        if (c.recovery_ok) eligible.push_back(&c);
     }
 
     const CandidateModel* chosen = nullptr;
     if (!eligible.empty()) {
         double min_pval = std::numeric_limits<double>::max();
         for (auto* c : eligible) min_pval = std::min(min_pval, c->pval);
-        // Empirically calibrated against live GEE ee.Algorithms.TemporalSegmentation.LandTrendr
-        // output (2026-09-19, tile 214_064 disturbance window, n=3660 px): raising
-        // best_model_proportion makes GEE's own selection SIMPLER (fewer vertices), not more
-        // complex, so the eligibility band narrows as the proportion rises (division, not the
-        // naive reading of "proportion away" as a multiplier). This reproduces GEE's direction
-        // and matches its vertex-count distribution closely at the GEE default (1.25: mean 2.00
-        // here vs 2.15 live), but still overshoots complexity at the paper's actual value (0.75:
-        // mean 4.91 here vs 2.90 live) -- a power-law variant tried in the same validation was
-        // worse (6.18), so this linear form is the best of what's been tested, not a confirmed
-        // match to GEE's real (undocumented) formula. See conversation/validation notes before
-        // trusting best_model_proportion < 1 for anything quantitative.
-        double threshold = min_pval / params.best_model_proportion;
+        // Exact formula from Oregon State's original IDL LandTrendr (the algorithm GEE's
+        // ee.Algorithms.TemporalSegmentation.LandTrendr was ported from), tbcd_v2.pro's
+        // pick_best_model6 (use_fstat=0, the default path since 2009): threshold =
+        // (2 - bestmodelproportion) * min(p_of_f), selecting the most-vertex candidate whose
+        // p-value is still within that threshold. Confirms the earlier live-GEE-calibrated
+        // division approximation's direction (raising the proportion narrows the band and
+        // simplifies the fit) and refines its magnitude.
+        double threshold = (2.0 - params.best_model_proportion) * min_pval;
 
         size_t most_verts = 0;
         for (auto* c : eligible) {
@@ -742,8 +737,9 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
     }
 
     if (chosen == nullptr) {
-        // Nothing passed pval_threshold: fall back to the simplest recovery-valid
-        // candidate (last one appended to the ladder), else the simplest overall.
+        // Every candidate violated the recovery constraint: fall back to the
+        // simplest recovery-valid candidate (there is none if this still misses,
+        // so fall back further to the simplest candidate overall).
         for (auto it = ladder.rbegin(); it != ladder.rend(); ++it) {
             if (it->recovery_ok) { chosen = &(*it); break; }
         }
