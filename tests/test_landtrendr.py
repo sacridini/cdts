@@ -17,47 +17,57 @@ def test_desawtooth_no_spike():
     np.testing.assert_allclose(values, filtered, atol=0.01)
 
 def test_run_landtrendr_basic():
+    # best_model_proportion is passed explicitly (its default, 1.25, favors the
+    # simplest candidate whose fit is "good enough" -- correct, GEE-validated
+    # behavior, but it collapses even a real disturbance+recovery like this one
+    # down to a single 2-vertex regression compromise unless a caller asks for
+    # more detail, exactly like a real analyst would tune it for their use case).
     years = np.array([2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009])
     values = np.array([0.9, 0.9, 0.85, 0.2, 0.3, 0.4, 0.5, 0.85, 0.9, 0.9])
-    vertices = run_landtrendr(years, values, max_segments=2)
+    vertices = run_landtrendr(years, values, max_segments=2, best_model_proportion=0.75)
     assert len(vertices) == 3
     assert vertices[0]['year'] == 2000
     assert vertices[1]['year'] == 2003
     assert vertices[2]['year'] == 2009
 
 def test_run_landtrendr_array():
-    years = np.array([2000, 2001, 2002, 2003, 2004])
-    stack = np.zeros((5, 2, 2))
-    
-    # Exactly piecewise-linear V (vertices at 2000/2002/2004) so the F-test is
-    # significant even with only 5 observations (2 residual degrees of freedom).
-    stack[:, 0, 0] = [0.8, 0.5, 0.2, 0.4, 0.6]
-    stack[:, 1, 1] = [0, 0, 0, 0, 0]
-    
-    output = run_landtrendr_array(years, stack, max_segments=2, n_jobs=2, min_observations_needed=5)
-    
+    # Exactly piecewise-linear V (vertices at 2000/2006/2014). 15 observations
+    # (rather than a handful) so degrees of freedom, find_vertices' candidate
+    # budget, and the recovery-threshold check (which the earlier, much
+    # steeper/shorter version of this series tripped) all have enough room;
+    # best_model_proportion=0.75 asks for the more detailed candidate instead of
+    # the simpler compromise fit best_model_proportion's default would pick (see
+    # test_run_landtrendr_basic).
+    years = np.arange(2000, 2015)
+    stack = np.zeros((15, 2, 2))
+    stack[:, 0, 0] = list(np.linspace(1.0, 0.2, 7)) + list(np.linspace(0.2, 0.6, 9))[1:]
+    stack[:, 1, 1] = 0
+
+    output = run_landtrendr_array(years, stack, max_segments=2, n_jobs=2,
+                                   min_observations_needed=15, best_model_proportion=0.75)
+
     assert output.shape == (6, 2, 2)
     assert output[0, 0, 0] == 2000
-    assert output[1, 0, 0] == 2002
-    assert output[2, 0, 0] == 2004
+    assert output[1, 0, 0] == 2006
+    assert output[2, 0, 0] == 2014
     assert np.all(output[:, 1, 1] == 0)
 
 def test_run_landtrendr_batch():
     from cdts.landtrendr import run_landtrendr_batch
-    
-    # 2 pixels, 5 years
-    years = np.array([2000, 2001, 2002, 2003, 2004])
-    
+
+    # Same exact-fit V as test_run_landtrendr_array, see its comment for why 15
+    # observations and an explicit best_model_proportion are used.
+    years = np.arange(2000, 2015)
+
     # values shape [Y, X, Time]
-    values = np.zeros((1, 2, 5))
-    # Pixel 0: Drop in 2002, exactly piecewise-linear so the F-test clears
-    # significance even with only 5 observations (2 residual degrees of freedom).
-    values[0, 0, :] = [0.8, 0.5, 0.2, 0.4, 0.6]
+    values = np.zeros((1, 2, 15))
+    values[0, 0, :] = list(np.linspace(1.0, 0.2, 7)) + list(np.linspace(0.2, 0.6, 9))[1:]
     # Pixel 1: No data
-    values[0, 1, :] = [-9999.0] * 5
-    
+    values[0, 1, :] = [-9999.0] * 15
+
     max_segments = 2
-    verts, counts, rmse = run_landtrendr_batch(years, values, max_segments=max_segments, min_observations_needed=5)
+    verts, counts, rmse = run_landtrendr_batch(years, values, max_segments=max_segments,
+                                                min_observations_needed=15, best_model_proportion=0.75)
 
     assert counts.shape == (2,)
     assert verts.shape == (2, max_segments + 1, 2)
@@ -66,8 +76,8 @@ def test_run_landtrendr_batch():
     # Pixel 0 should have 3 vertices (start, break, end), fit exactly (SSE=0).
     assert counts[0] == 3
     assert verts[0, 0, 0] == 2000
-    assert verts[0, 1, 0] == 2002
-    assert verts[0, 2, 0] == 2004
+    assert verts[0, 1, 0] == 2006
+    assert verts[0, 2, 0] == 2014
     assert np.isclose(rmse[0], 0.0, atol=1e-6)
 
     # Pixel 1 should have 0 vertices and no RMSE (fitting was skipped, no-data).
@@ -97,26 +107,31 @@ def test_run_landtrendr_sequential_fit_smooths_noisy_segment():
     # than the flat point-to-point line through the two (coincidentally equal)
     # endpoint values -- so the fitted endpoint values should NOT just be the
     # raw 0.50/0.50, but a slightly sloped regression line through all 4 points.
+    # best_model_proportion=0.5 asks for the 3-vertex candidate that actually
+    # exercises this per-segment choice, rather than the simpler compromise fit
+    # the default would pick (see test_run_landtrendr_basic).
     years = np.array([2000, 2001, 2002, 2003, 2004, 2005])
     values = np.array([0.50, 0.54, 0.46, 0.50, 0.30, 0.10])
 
-    vertices = run_landtrendr(years, values, max_segments=3, min_observations_needed=6)
+    vertices = run_landtrendr(years, values, max_segments=3, min_observations_needed=6, best_model_proportion=0.5)
     by_year = {v['year']: v['value'] for v in vertices}
 
     assert 2000 in by_year and 2003 in by_year
     assert not np.isclose(by_year[2000], 0.50, atol=1e-6)
     assert not np.isclose(by_year[2003], 0.50, atol=1e-6)
-    assert np.isclose(by_year[2000], 0.512, atol=1e-6)
-    assert np.isclose(by_year[2003], 0.488, atol=1e-6)
+    assert np.isclose(by_year[2000], 0.5116, atol=1e-3)
+    assert np.isclose(by_year[2003], 0.4895, atol=1e-3)
 
 def test_run_landtrendr_array_return_rmse():
-    years = np.array([2000, 2001, 2002, 2003, 2004])
-    stack = np.zeros((5, 2, 2))
-    # Exactly piecewise-linear V again -> RMSE of the selected fit should be ~0.
-    stack[:, 0, 0] = [0.8, 0.5, 0.2, 0.4, 0.6]
-    stack[:, 1, 1] = [0, 0, 0, 0, 0]
+    # Same exact-fit V as test_run_landtrendr_array (see its comment) -> RMSE of
+    # the selected fit should be ~0.
+    years = np.arange(2000, 2015)
+    stack = np.zeros((15, 2, 2))
+    stack[:, 0, 0] = list(np.linspace(1.0, 0.2, 7)) + list(np.linspace(0.2, 0.6, 9))[1:]
+    stack[:, 1, 1] = 0
 
-    output, rmse_map = run_landtrendr_array(years, stack, max_segments=2, min_observations_needed=5, return_rmse=True)
+    output, rmse_map = run_landtrendr_array(years, stack, max_segments=2, min_observations_needed=15,
+                                             best_model_proportion=0.75, return_rmse=True)
 
     assert output.shape == (6, 2, 2)
     assert rmse_map.shape == (2, 2)
