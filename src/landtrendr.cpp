@@ -248,99 +248,130 @@ std::vector<int> vet_verts(const std::vector<int>& x, const std::vector<double>&
     return v;
 }
 
-// Regression-based recursive vertex identification (Kennedy et al. 2010,
-// Section 2.5.2's first strategy, complementary to vet_verts()'s angle-based
-// culling above). Starts with just the first/last observation as vertices,
-// then repeatedly splits whichever current segment has the largest SSE,
-// inserting as the new vertex the point within that segment with the largest
-// absolute deviation from that segment's own OLS regression line. Stops once
-// `target_count` vertices are reached (LT-GEE's max_segments + 1 +
-// vertexCountOvershoot) or no segment has an interior point left to split on.
-std::vector<int> identify_vertices_by_regression(const std::vector<int>& x, const std::vector<double>& y,
-                                                  int target_count) {
+// OLS fit of y over x for the contiguous index range [lo, hi]; returns the
+// per-point fitted values and the fit's SSE. Shared by find_vertices() below
+// for both scoring a segment (SSE/span) and finding its best split point --
+// tbcd_v2.pro's score_segments and the regression inside split_series.
+struct SegRegression { std::vector<double> fitted; double sse; };
+
+SegRegression regress_range(const std::vector<int>& x, const std::vector<double>& y, int lo, int hi) {
+    int m = hi - lo + 1;
+    double x0 = static_cast<double>(x[lo]);
+    double sum_x = 0.0, sum_y = 0.0, sum_xx = 0.0, sum_xy = 0.0;
+    for (int i = lo; i <= hi; ++i) {
+        double dx = x[i] - x0;
+        sum_x += dx; sum_y += y[i]; sum_xx += dx * dx; sum_xy += dx * y[i];
+    }
+    double denom = m * sum_xx - sum_x * sum_x;
+    double slope = 0.0, intercept = sum_y / m;
+    if (std::abs(denom) > 1e-9) {
+        slope = (m * sum_xy - sum_x * sum_y) / denom;
+        intercept = (sum_y - slope * sum_x) / m;
+    }
+    SegRegression out;
+    out.fitted.resize(m);
+    out.sse = 0.0;
+    for (int i = lo; i <= hi; ++i) {
+        double f = intercept + slope * (x[i] - x0);
+        out.fitted[i - lo] = f;
+        double err = y[i] - f;
+        out.sse += err * err;
+    }
+    return out;
+}
+
+// Finds the best new vertex within segment [lo, hi]: regress the segment and take
+// the point with the largest absolute residual, excluding the segment's own
+// endpoints (tbcd_v2.pro's split_series). If this is the rightmost segment in the
+// current vertex set, the second-to-last point's candidacy is suppressed unless
+// the series is still rising there, right at the trailing edge -- this blocks a
+// spurious one-year "recovery" vertex from being manufactured at the very end of
+// the record. Returns -1 if nothing valid is left to split on.
+int split_series(const std::vector<int>& x, const std::vector<double>& y, int lo, int hi,
+                  bool is_end_segment, bool disttest) {
+    SegRegression reg = regress_range(x, y, lo, hi);
+    int m = hi - lo + 1;
+    std::vector<double> diff(m);
+    for (int i = 0; i < m; ++i) diff[i] = std::abs(y[lo + i] - reg.fitted[i]);
+    diff[0] = 0.0;
+    diff[m - 1] = 0.0;
+    if (disttest && is_end_segment && m >= 3 && !(y[hi] > y[hi - 1])) {
+        diff[m - 2] = 0.0;
+    }
+
+    int best_idx = 0;
+    double best_val = diff[0];
+    for (int i = 1; i < m; ++i) {
+        if (diff[i] > best_val) { best_val = diff[i]; best_idx = i; }
+    }
+    if (best_idx == 0) return -1;
+    return lo + best_idx;
+}
+
+// Regression-based recursive vertex identification (Kennedy et al. 2010, Section
+// 2.5.2's first strategy, complementary to vet_verts()'s angle-based culling
+// below) -- a faithful port of tbcd_v2.pro's find_vertices. Starts with just the
+// first/last observation as vertices, then repeatedly splits whichever current
+// segment has the largest SSE/span (not raw SSE -- a long segment with moderate
+// error can outrank a short one with more), retrying the next-worst segment if
+// split_series rejects the split. Stops once `target_count` vertices are reached
+// (LT-GEE's max_segments + 1 + vertexCountOvershoot), no segment has a valid
+// split left, or (matching the original's own runaway guard) 20 vertices have
+// been added.
+std::vector<int> find_vertices(const std::vector<int>& x, const std::vector<double>& y,
+                                int target_count, double distweightfactor) {
     int n = static_cast<int>(x.size());
-    target_count = std::min(target_count, n);
+    int m = std::min(target_count, n - 2);
     std::vector<int> verts = {0, n - 1};
-    if (target_count <= 2 || n <= 2) return verts;
+    bool disttest = (distweightfactor != 0.0);
+    int count = 0;
 
-    struct SegFit { double sse; int worst_idx; };
-    // OLS over y[lo..hi] vs. x[lo..hi], returning its SSE and the interior
-    // point (excluding the segment's own endpoints) with the largest residual.
-    auto fit_segment = [&](int lo, int hi) -> SegFit {
-        int m = hi - lo + 1;
-        double x0 = static_cast<double>(x[lo]);
-        double sum_x = 0.0, sum_y = 0.0, sum_xx = 0.0, sum_xy = 0.0;
-        for (int i = lo; i <= hi; ++i) {
-            double dx = x[i] - x0;
-            sum_x += dx; sum_y += y[i]; sum_xx += dx * dx; sum_xy += dx * y[i];
-        }
-        double denom = m * sum_xx - sum_x * sum_x;
-        double slope = 0.0;
-        double intercept = sum_y / m;
-        if (std::abs(denom) > 1e-9) {
-            slope = (m * sum_xy - sum_x * sum_y) / denom;
-            intercept = (sum_y - slope * sum_x) / m;
-        }
-
-        double sse = 0.0;
-        double worst_dev = -1.0;
-        int worst_idx = -1;
-        for (int i = lo; i <= hi; ++i) {
-            double dev = y[i] - (intercept + slope * (x[i] - x0));
-            sse += dev * dev;
-            if (i != lo && i != hi && std::abs(dev) > worst_dev) {
-                worst_dev = std::abs(dev);
-                worst_idx = i;
+    while (static_cast<int>(verts.size()) < m) {
+        int nseg = static_cast<int>(verts.size()) - 1;
+        std::vector<double> mses(nseg, 0.0);
+        for (int s = 0; s < nseg; ++s) {
+            int lo = verts[s], hi = verts[s + 1];
+            double span = static_cast<double>(hi - lo + 1);
+            if (span > 2.0) {
+                mses[s] = regress_range(x, y, lo, hi).sse / span;
             }
         }
-        return {sse, worst_idx};
-    };
 
-    struct Segment { int lo, hi; double sse; int worst_idx; };
-    std::vector<Segment> segments;
-    SegFit whole = fit_segment(0, n - 1);
-    segments.push_back({0, n - 1, whole.sse, whole.worst_idx});
+        int split_at = -1;
+        while (true) {
+            int s = static_cast<int>(std::max_element(mses.begin(), mses.end()) - mses.begin());
+            if (mses[s] <= 0.0) { split_at = -1; break; }
 
-    while (static_cast<int>(verts.size()) < target_count) {
-        int best = -1;
-        double best_sse = -1.0;
-        for (size_t i = 0; i < segments.size(); ++i) {
-            if (segments[i].worst_idx != -1 && segments[i].sse > best_sse) {
-                best_sse = segments[i].sse;
-                best = static_cast<int>(i);
-            }
+            bool is_end_segment = (s == nseg - 1);
+            int candidate = split_series(x, y, verts[s], verts[s + 1], is_end_segment, disttest);
+            if (candidate != -1) { split_at = candidate; break; }
+            mses[s] = 0.0; // rejected -- try the next-worst segment
         }
-        if (best == -1) break;
+        if (split_at == -1) break;
 
-        Segment seg = segments[best];
-        segments.erase(segments.begin() + best);
-
-        int split = seg.worst_idx;
-        verts.push_back(split);
+        verts.push_back(split_at);
         std::sort(verts.begin(), verts.end());
 
-        SegFit left = fit_segment(seg.lo, split);
-        SegFit right = fit_segment(split, seg.hi);
-        segments.push_back({seg.lo, split, left.sse, left.worst_idx});
-        segments.push_back({split, seg.hi, right.sse, right.worst_idx});
+        if (++count > 20) break;
     }
 
     return verts;
 }
 
-// Simple matrix inversion for small matrices using Gauss-Jordan
-bool invert_matrix(std::vector<std::vector<double>>& A) {
-    int n = A.size();
-    std::vector<std::vector<double>> I(n, std::vector<double>(n, 0.0));
-    for (int i = 0; i < n; ++i) I[i][i] = 1.0;
+// Simple matrix inversion for small matrices using Gauss-Jordan. Flat row-major
+// storage (A[i*n+j]) instead of vector<vector<double>>: one allocation instead
+// of n+1, and contiguous memory instead of n separately-heap-allocated rows.
+bool invert_matrix(std::vector<double>& A, int n) {
+    std::vector<double> I(n * n, 0.0);
+    for (int i = 0; i < n; ++i) I[i * n + i] = 1.0;
 
     for (int i = 0; i < n; ++i) {
         // Find pivot
-        double max_el = std::abs(A[i][i]);
+        double max_el = std::abs(A[i * n + i]);
         int pivot = i;
         for (int k = i + 1; k < n; ++k) {
-            if (std::abs(A[k][i]) > max_el) {
-                max_el = std::abs(A[k][i]);
+            if (std::abs(A[k * n + i]) > max_el) {
+                max_el = std::abs(A[k * n + i]);
                 pivot = k;
             }
         }
@@ -348,24 +379,26 @@ bool invert_matrix(std::vector<std::vector<double>>& A) {
 
         // Swap rows
         if (pivot != i) {
-            std::swap(A[i], A[pivot]);
-            std::swap(I[i], I[pivot]);
+            for (int j = 0; j < n; ++j) {
+                std::swap(A[i * n + j], A[pivot * n + j]);
+                std::swap(I[i * n + j], I[pivot * n + j]);
+            }
         }
 
         // Scale row
-        double diag = A[i][i];
+        double diag = A[i * n + i];
         for (int j = 0; j < n; ++j) {
-            A[i][j] /= diag;
-            I[i][j] /= diag;
+            A[i * n + j] /= diag;
+            I[i * n + j] /= diag;
         }
 
         // Eliminate column
         for (int k = 0; k < n; ++k) {
             if (k != i) {
-                double factor = A[k][i];
+                double factor = A[k * n + i];
                 for (int j = 0; j < n; ++j) {
-                    A[k][j] -= factor * A[i][j];
-                    I[k][j] -= factor * I[i][j];
+                    A[k * n + j] -= factor * A[i * n + j];
+                    I[k * n + j] -= factor * I[i * n + j];
                 }
             }
         }
@@ -378,9 +411,9 @@ bool invert_matrix(std::vector<std::vector<double>>& A) {
 std::vector<double> fit_piecewise_ols(const std::vector<int>& x, const std::vector<double>& y, const std::vector<int>& verts) {
     int n = x.size();
     int k = verts.size();
-    
-    // Build design matrix X_mat (n x k)
-    std::vector<std::vector<double>> X_mat(n, std::vector<double>(k, 0.0));
+
+    // Build design matrix X_mat (n x k), flat row-major.
+    std::vector<double> X_mat(n * k, 0.0);
     for (int i = 0; i < n; ++i) {
         int xi = x[i];
         for (int j = 0; j < k; ++j) {
@@ -388,31 +421,33 @@ std::vector<double> fit_piecewise_ols(const std::vector<int>& x, const std::vect
             if (j > 0 && xi >= x[verts[j-1]] && xi <= vj) {
                 int v_prev = x[verts[j-1]];
                 if (vj > v_prev) {
-                    X_mat[i][j] = static_cast<double>(xi - v_prev) / (vj - v_prev);
+                    X_mat[i * k + j] = static_cast<double>(xi - v_prev) / (vj - v_prev);
                 }
             } else if (j < k - 1 && xi >= vj && xi <= x[verts[j+1]]) {
                 int v_next = x[verts[j+1]];
                 if (v_next > vj) {
-                    X_mat[i][j] = static_cast<double>(v_next - xi) / (v_next - vj);
+                    X_mat[i * k + j] = static_cast<double>(v_next - xi) / (v_next - vj);
                 }
             } else if (xi == vj) {
-                X_mat[i][j] = 1.0;
+                X_mat[i * k + j] = 1.0;
             }
         }
     }
 
-    // X^T * X
-    std::vector<std::vector<double>> XtX(k, std::vector<double>(k, 0.0));
+    // X^T * X, flat k x k
+    std::vector<double> XtX(k * k, 0.0);
     for (int i = 0; i < k; ++i) {
         for (int j = 0; j < k; ++j) {
+            double s = 0.0;
             for (int r = 0; r < n; ++r) {
-                XtX[i][j] += X_mat[r][i] * X_mat[r][j];
+                s += X_mat[r * k + i] * X_mat[r * k + j];
             }
+            XtX[i * k + j] = s;
         }
     }
 
     // Invert (X^T * X)
-    if (!invert_matrix(XtX)) {
+    if (!invert_matrix(XtX, k)) {
         // Fallback: just return the original Y values at vertices
         std::vector<double> fallback(k);
         for(int i=0; i<k; ++i) fallback[i] = y[verts[i]];
@@ -422,17 +457,21 @@ std::vector<double> fit_piecewise_ols(const std::vector<int>& x, const std::vect
     // X^T * Y
     std::vector<double> XtY(k, 0.0);
     for (int i = 0; i < k; ++i) {
+        double s = 0.0;
         for (int r = 0; r < n; ++r) {
-            XtY[i] += X_mat[r][i] * y[r];
+            s += X_mat[r * k + i] * y[r];
         }
+        XtY[i] = s;
     }
 
     // Beta = (X^T * X)^-1 * X^T * Y
     std::vector<double> beta(k, 0.0);
     for (int i = 0; i < k; ++i) {
+        double s = 0.0;
         for (int j = 0; j < k; ++j) {
-            beta[i] += XtX[i][j] * XtY[j];
+            s += XtX[i * k + j] * XtY[j];
         }
+        beta[i] = s;
     }
 
     return beta;
@@ -442,7 +481,7 @@ std::vector<double> fit_piecewise_ols(const std::vector<int>& x, const std::vect
 // values, at every observation (not just at the vertices themselves).
 //
 // `verts` are indices into the sorted `x`/`y` arrays, and vet_verts()/
-// remove_weakest_vertex_by_mse() never touch the first/last vertex, so
+// take_out_weakest() never touch the first/last vertex, so
 // verts.front()==0 and verts.back()==x.size()-1 always -- every observation
 // therefore falls in exactly one segment's contiguous index range
 // [verts[j], verts[j+1]], with no need to search for it. Each segment starts
@@ -489,12 +528,9 @@ std::vector<double> fit_piecewise_sequential(const std::vector<int>& x, const st
         int x0 = x[i0];
         int x1 = x[i1];
 
-        // Points in this segment: the contiguous index range [i0, i1] -- x is
-        // sorted and verts are indices into it, so no search is needed.
-        std::vector<int> idx;
-        idx.reserve(i1 - i0 + 1);
-        for (int i = i0; i <= i1; ++i) idx.push_back(i);
-
+        // Points in this segment are the contiguous index range [i0, i1] -- x is
+        // sorted and verts are indices into it, so the range is iterated directly
+        // (three times below) instead of first materializing an index vector.
         double span = static_cast<double>(x1 - x0);
 
         // Point-to-point candidate: the segment is just the line between the
@@ -503,7 +539,7 @@ std::vector<double> fit_piecewise_sequential(const std::vector<int>& x, const st
         double p2p_y1 = y[verts[j + 1]];
         double p2p_slope = (span > 0.0) ? (p2p_y1 - p2p_y0) / span : 0.0;
         double p2p_sse = 0.0;
-        for (int i : idx) {
+        for (int i = i0; i <= i1; ++i) {
             double err = y[i] - (p2p_y0 + p2p_slope * (x[i] - x0));
             p2p_sse += err * err;
         }
@@ -513,8 +549,8 @@ std::vector<double> fit_piecewise_sequential(const std::vector<int>& x, const st
         double reg_y0, reg_slope;
         if (j == 0) {
             double sum_x = 0.0, sum_y = 0.0, sum_xx = 0.0, sum_xy = 0.0;
-            int m = static_cast<int>(idx.size());
-            for (int i : idx) {
+            int m = i1 - i0 + 1;
+            for (int i = i0; i <= i1; ++i) {
                 double dx = x[i] - x0;
                 sum_x += dx; sum_y += y[i]; sum_xx += dx * dx; sum_xy += dx * y[i];
             }
@@ -529,7 +565,7 @@ std::vector<double> fit_piecewise_sequential(const std::vector<int>& x, const st
         } else {
             reg_y0 = fitted[j];
             double num = 0.0, den = 0.0;
-            for (int i : idx) {
+            for (int i = i0; i <= i1; ++i) {
                 double dx = x[i] - x0;
                 num += dx * (y[i] - reg_y0);
                 den += dx * dx;
@@ -538,7 +574,7 @@ std::vector<double> fit_piecewise_sequential(const std::vector<int>& x, const st
         }
         double reg_y1 = reg_y0 + reg_slope * span;
         double reg_sse = 0.0;
-        for (int i : idx) {
+        for (int i = i0; i <= i1; ++i) {
             double err = y[i] - (reg_y0 + reg_slope * (x[i] - x0));
             reg_sse += err * err;
         }
@@ -554,24 +590,45 @@ std::vector<double> fit_piecewise_sequential(const std::vector<int>& x, const st
     return fitted;
 }
 
-// Removes whichever single interior vertex causes the smallest increase in
-// SSE once dropped (Kennedy et al. 2010, Section 2.5.4's "MSE criterion"),
-// using the same sequential fitting method as the main ladder so the ranking
-// reflects the fit that will actually be used.
-std::vector<int> remove_weakest_vertex_by_mse(const std::vector<int>& x, const std::vector<double>& y,
-                                               const std::vector<int>& verts) {
+// Removes whichever single interior vertex tbcd_v2.pro's take_out_weakest2 would
+// remove in its "run_mse" branch. For each candidate, draws a straight line
+// directly between its two flanking (already-fitted) vertex values -- skipping
+// the candidate -- and scores it by that line's SSE against the actual
+// observations in that local window, divided by the window's x-span. This is a
+// strictly local computation (unlike refitting the whole trajectory per
+// candidate), and it uses the CURRENT level's fitted vertex values as the line's
+// endpoints, not a fresh regression.
+//
+// take_out_weakest2's OTHER branch -- when a segment violates the recovery
+// threshold, surgically drop/smooth that specific vertex instead of picking one
+// by local MSE -- was ported and tried here too (see find_recovery_violator
+// below for the violator search it shared). It measured WORSE against a live-GEE
+// baseline on real tile data (more false-positive loss/gain detections, weaker
+// magnitude correlation) than just using this function unconditionally, so it
+// isn't wired in; find_recovery_violator now only feeds the eligibility check in
+// fit_trajectory_impl, not vertex removal.
+std::vector<int> take_out_weakest(const std::vector<int>& x, const std::vector<double>& y,
+                                   const std::vector<int>& verts, const std::vector<double>& vertvals) {
     int k = static_cast<int>(verts.size());
     if (k <= 2) return verts;
 
-    double best_sse = std::numeric_limits<double>::max();
+    double best_mse = std::numeric_limits<double>::max();
     int best_remove = -1;
     for (int i = 1; i < k - 1; ++i) {
-        std::vector<int> trial = verts;
-        trial.erase(trial.begin() + i);
-        std::vector<double> fitted = fit_piecewise_sequential(x, y, trial);
-        double sse = compute_full_sse(x, y, trial, fitted);
-        if (sse < best_sse) {
-            best_sse = sse;
+        int i0 = verts[i - 1];
+        int i1 = verts[i + 1];
+        double span = static_cast<double>(x[i1] - x[i0]);
+        if (span <= 0.0) continue;
+        double slope = (vertvals[i + 1] - vertvals[i - 1]) / span;
+        double mse = 0.0;
+        for (int j = i0; j <= i1; ++j) {
+            double fitted_y = vertvals[i - 1] + slope * static_cast<double>(x[j] - x[i0]);
+            double err = y[j] - fitted_y;
+            mse += err * err;
+        }
+        mse /= span;
+        if (mse < best_mse) {
+            best_mse = mse;
             best_remove = i;
         }
     }
@@ -579,6 +636,35 @@ std::vector<int> remove_weakest_vertex_by_mse(const std::vector<int>& x, const s
     std::vector<int> result = verts;
     if (best_remove != -1) result.erase(result.begin() + best_remove);
     return result;
+}
+
+// Finds the worst recovery-threshold violator among a candidate's segments
+// (tbcd_v2.pro's check_slopes): among segments whose scaled recovery rate
+// exceeds the threshold, returns the position in `verts` of the segment's LATTER
+// vertex -- assumed to be the culprit, matching the original's own stated
+// assumption (tracking forward through time). Returns -1 if nothing violates.
+// Used here only to gate eligibility (fit_trajectory_impl's recovery_ok) -- see
+// take_out_weakest's docstring above for why it doesn't also drive removal.
+int find_recovery_violator(const std::vector<int>& years, const std::vector<double>& fitted,
+                            const std::vector<int>& verts, double recovery_threshold) {
+    double range_of_vals = *std::max_element(fitted.begin(), fitted.end())
+                          - *std::min_element(fitted.begin(), fitted.end());
+    if (range_of_vals <= 0.0) return -1;
+
+    int worst_seg = -1;
+    double worst_scaled = -1.0;
+    for (size_t i = 0; i + 1 < verts.size(); ++i) {
+        double val_diff = fitted[i + 1] - fitted[i];
+        double yr_diff = static_cast<double>(years[verts[i + 1]] - years[verts[i]]);
+        if (val_diff > 0.0 && yr_diff > 0.0) {
+            double scaled_slope = (val_diff / yr_diff) / range_of_vals;
+            if (scaled_slope > recovery_threshold && scaled_slope > worst_scaled) {
+                worst_scaled = scaled_slope;
+                worst_seg = static_cast<int>(i);
+            }
+        }
+    }
+    return (worst_seg == -1) ? -1 : (worst_seg + 1);
 }
 
 // One candidate model in the vertex-count ladder (see fit_trajectory).
@@ -624,7 +710,7 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
     int overshoot_count = final_count + std::max(0, params.vertex_count_overshoot);
     if (overshoot_count > n) overshoot_count = n;
 
-    std::vector<int> candidate_verts = identify_vertices_by_regression(years, filtered_values, overshoot_count);
+    std::vector<int> candidate_verts = find_vertices(years, filtered_values, overshoot_count, 2.0);
     std::vector<int> current_verts = vet_verts(years, filtered_values, candidate_verts, final_count, 2.0);
 
     // 4. Build the full ladder of candidate models, from max_segments+1 vertices
@@ -651,14 +737,24 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
     }
 
     // p-of-F for a given (verts, fitted) pair against the shared null model above.
+    // Degrees of freedom exactly match calc_fitting_stats3.pro: every call site in
+    // tbcd_v2.pro passes n_predictors = 2*(vertex count) - 2, treating each of the
+    // V-1 segments as 2 independently-fit parameters (slope+intercept) rather than
+    // V shared vertex y-values. This matters a lot -- it roughly doubles df_regr
+    // relative to the naive "V parameters" reading, which lowers ms_regr and thus
+    // raises p-values (makes it harder to call a candidate significant) throughout
+    // the whole ladder, biasing which model best_model_proportion ends up picking.
     auto score_pval = [&](const std::vector<int>& verts, const std::vector<double>& fitted) {
         double sse = compute_full_sse(years, values, verts, fitted);
-        int df_full = static_cast<int>(verts.size());
-        int df_reduced = 1;
-        double mse_full = sse / std::max(1, n - df_full);
-        double f_stat = ((sse_null - sse) / (df_full - df_reduced)) / (mse_full > 0 ? mse_full : 1e-6);
-        double pval = (df_full > df_reduced) ? f_pval(f_stat, df_full - df_reduced, n - df_full) : 1.0;
-        return pval;
+        int V = static_cast<int>(verts.size());
+        int df_regr = 2 * V - 2;
+        int df_resid = n - df_regr - 1;
+        if (df_regr <= 0 || df_resid <= 0) return 1.0;
+        double ms_regr = (sse_null - sse) / df_regr;
+        double ms_resid = sse / df_resid;
+        // calc_fitting_stats3.pro: avoid a division glitch when ms_regr underflows.
+        double f_stat = (ms_regr < 0.00001) ? 0.00001 : ms_regr / (ms_resid > 0 ? ms_resid : 1e-6);
+        return f_pval(f_stat, df_regr, df_resid);
     };
 
     while (current_verts.size() >= 2) {
@@ -673,27 +769,28 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
             pval = score_pval(current_verts, fitted);
         }
 
-        // Recovery enforcement logic: a candidate whose fitted segments imply a
-        // biologically-impossible fast green-up is not eligible for selection.
-        bool recovery_ok = true;
-        if (params.prevent_fast_recovery) {
-            for (size_t i = 0; i + 1 < current_verts.size(); ++i) {
-                double val_diff = fitted[i+1] - fitted[i];
-                double yr_diff = static_cast<double>(years[current_verts[i+1]] - years[current_verts[i]]);
-                if (val_diff > 0.0 && yr_diff > 0.0) {
-                    double rate = val_diff / yr_diff;
-                    if (rate > params.recovery_threshold) {
-                        recovery_ok = false;
-                        break;
-                    }
-                }
-            }
-        }
+        // Recovery enforcement logic (tbcd_v2.pro's check_slopes): a candidate
+        // whose fitted segments imply a biologically-impossible fast green-up is
+        // not eligible for selection. Unconditional (no prevent_fast_recovery
+        // gate -- see the note on find_recovery_violator) and scaled by the
+        // fitted trajectory's own value range (check_slopes: scaled_slope =
+        // abs(slope)/range(yfit)) -- recovery_threshold is a proportion of the
+        // pixel's own dynamic range, not an absolute index-units-per-year rate.
+        //
+        // tbcd_v2.pro's take_out_weakest2 additionally uses this same violator
+        // search to pick which vertex to drop when simplifying (surgically
+        // removing/smoothing the culprit instead of the generic local-MSE
+        // choice). That was tried here too and measured WORSE against a live-GEE
+        // baseline on real tile data (more false-positive loss/gain detections,
+        // weaker magnitude correlation) than just using take_out_weakest()
+        // unconditionally, so it's deliberately not wired in below -- only the
+        // eligibility check (this flag) is ported, not the removal targeting.
+        bool recovery_ok = (find_recovery_violator(years, fitted, current_verts, params.recovery_threshold) == -1);
 
         ladder.push_back({current_verts, fitted, pval, recovery_ok});
 
         if (current_verts.size() <= 2) break;
-        current_verts = remove_weakest_vertex_by_mse(years, values, current_verts);
+        current_verts = take_out_weakest(years, values, current_verts, fitted);
     }
 
     if (ladder.empty()) {
@@ -804,28 +901,36 @@ pybind11::tuple fit_trajectory_batch(
 
     #ifdef _OPENMP
     omp_set_num_threads(n_jobs > 0 ? n_jobs : std::max(1, omp_get_max_threads() - 1));
-    #pragma omp parallel for schedule(dynamic)
+    #pragma omp parallel
     #endif
-    for (int p = 0; p < num_pixels; ++p) {
+    {
+        // One reusable buffer per thread instead of one heap allocation per
+        // pixel (millions of pixels otherwise reallocate this every iteration).
         std::vector<double> pixel_values(times);
-        bool has_valid_data = false;
-        
-        for (int t = 0; t < times; ++t) {
-            double v = val_ptr[p * times + t];
-            pixel_values[t] = v;
-            if (v != no_data_value && !std::isnan(v)) has_valid_data = true;
-        }
-        
-        if (!has_valid_data) continue;
 
-        TrajectoryResult result = fit_trajectory_impl(years, pixel_values, params);
+        #ifdef _OPENMP
+        #pragma omp for schedule(dynamic)
+        #endif
+        for (int p = 0; p < num_pixels; ++p) {
+            bool has_valid_data = false;
 
-        counts_ptr[p] = result.vertices.size();
-        for (size_t i = 0; i < result.vertices.size() && (int)i < max_vertices; ++i) {
-            vert_ptr[p * max_vertices * 2 + i * 2 + 0] = result.vertices[i].year;
-            vert_ptr[p * max_vertices * 2 + i * 2 + 1] = result.vertices[i].value;
+            for (int t = 0; t < times; ++t) {
+                double v = val_ptr[p * times + t];
+                pixel_values[t] = v;
+                if (v != no_data_value && !std::isnan(v)) has_valid_data = true;
+            }
+
+            if (!has_valid_data) continue;
+
+            TrajectoryResult result = fit_trajectory_impl(years, pixel_values, params);
+
+            counts_ptr[p] = result.vertices.size();
+            for (size_t i = 0; i < result.vertices.size() && (int)i < max_vertices; ++i) {
+                vert_ptr[p * max_vertices * 2 + i * 2 + 0] = result.vertices[i].year;
+                vert_ptr[p * max_vertices * 2 + i * 2 + 1] = result.vertices[i].value;
+            }
+            rmse_ptr[p] = result.rmse;
         }
-        rmse_ptr[p] = result.rmse;
     }
 
     return pybind11::make_tuple(vertices_out, counts_out, rmse_out);
