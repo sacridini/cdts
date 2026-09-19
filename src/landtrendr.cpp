@@ -360,25 +360,30 @@ std::vector<double> fit_piecewise_ols(const std::vector<int>& x, const std::vect
 
 // SSE of a piecewise-linear (verts, fitted) trajectory against the actual
 // values, at every observation (not just at the vertices themselves).
+//
+// `verts` are indices into the sorted `x`/`y` arrays, and vet_verts()/
+// remove_weakest_vertex_by_mse() never touch the first/last vertex, so
+// verts.front()==0 and verts.back()==x.size()-1 always -- every observation
+// therefore falls in exactly one segment's contiguous index range
+// [verts[j], verts[j+1]], with no need to search for it. Each segment starts
+// one past the previous one's end vertex so that shared vertex isn't counted
+// twice.
 double compute_full_sse(const std::vector<int>& x, const std::vector<double>& y,
                          const std::vector<int>& verts, const std::vector<double>& fitted) {
     double sse = 0.0;
-    int n = static_cast<int>(x.size());
-    for (int i = 0; i < n; ++i) {
-        double interp_y = fitted.front();
-        int xi = x[i];
-        for (size_t j = 0; j + 1 < verts.size(); ++j) {
-            int x0 = x[verts[j]];
-            int x1 = x[verts[j + 1]];
-            if (xi >= x0 && xi <= x1) {
-                interp_y = (x1 > x0)
-                    ? fitted[j] + (fitted[j + 1] - fitted[j]) * static_cast<double>(xi - x0) / (x1 - x0)
-                    : fitted[j];
-                break;
-            }
+    for (size_t j = 0; j + 1 < verts.size(); ++j) {
+        int i0 = verts[j];
+        int i1 = verts[j + 1];
+        int x0 = x[i0];
+        double span = static_cast<double>(x[i1] - x0);
+        int start = (j == 0) ? i0 : i0 + 1;
+        for (int i = start; i <= i1; ++i) {
+            double interp_y = (span > 0.0)
+                ? fitted[j] + (fitted[j + 1] - fitted[j]) * static_cast<double>(x[i] - x0) / span
+                : fitted[j];
+            double err = y[i] - interp_y;
+            sse += err * err;
         }
-        double err = y[i] - interp_y;
-        sse += err * err;
     }
     return sse;
 }
@@ -399,14 +404,16 @@ std::vector<double> fit_piecewise_sequential(const std::vector<int>& x, const st
     }
 
     for (int j = 0; j < k - 1; ++j) {
-        int x0 = x[verts[j]];
-        int x1 = x[verts[j + 1]];
+        int i0 = verts[j];
+        int i1 = verts[j + 1];
+        int x0 = x[i0];
+        int x1 = x[i1];
 
+        // Points in this segment: the contiguous index range [i0, i1] -- x is
+        // sorted and verts are indices into it, so no search is needed.
         std::vector<int> idx;
-        for (size_t i = 0; i < x.size(); ++i) {
-            if (x[i] >= x0 && x[i] <= x1) idx.push_back(static_cast<int>(i));
-        }
-        if (idx.empty()) { idx.push_back(verts[j]); idx.push_back(verts[j + 1]); }
+        idx.reserve(i1 - i0 + 1);
+        for (int i = i0; i <= i1; ++i) idx.push_back(i);
 
         double span = static_cast<double>(x1 - x0);
 
