@@ -113,3 +113,79 @@ if __name__ == "__main__":
 
 > [!TIP]
 > Always check the Dask Dashboard (usually available at `http://localhost:8787`). It provides a beautiful real-time visualization of all your servers, CPUs, memory usage, and task streams as the C++ engine crushes the pixels!
+
+---
+
+## 4. Troubleshooting a Multi-Machine LAN Cluster
+
+Connecting a mixed-OS cluster (e.g. a Windows desktop as scheduler + a macOS laptop as a worker) over a home/office network hits a handful of predictable snags. Here's what to check, roughly in the order you'll hit them.
+
+### 4.1. Windows Firewall blocks the remote worker
+
+Windows often marks a home/office network as **Public**, which blocks unsolicited inbound connections by default — the scheduler will start fine locally, but a worker on another machine will simply never be able to reach it.
+
+Fix it with a firewall rule scoped to your LAN subnet (run in an **elevated** PowerShell), rather than opening the ports to the world:
+
+```powershell
+New-NetFirewallRule -DisplayName "Dask Scheduler (LAN)" -Direction Inbound -Protocol TCP `
+    -LocalPort 8786,8787 -Action Allow -RemoteAddress 192.168.1.0/24
+```
+
+Replace `192.168.1.0/24` with your actual subnet. `8786` is the scheduler port, `8787` the dashboard.
+
+### 4.2. Keep Python, dask and distributed versions aligned on every machine
+
+The scheduler/worker wire protocol assumes matching (or very close) `dask`/`distributed` versions; a mismatch triggers a `VersionMismatchWarning` and can cause hard-to-diagnose failures under load. Before connecting a new worker, check:
+
+```bash
+python -c "import sys, dask, distributed; print(sys.version, dask.__version__, distributed.__version__)"
+```
+
+...and make sure it's close to what the scheduler machine reports. `cdts`'s published PyPI wheels currently cover Python 3.9–3.12 (Windows, Linux, macOS arm64) — there is no prebuilt 3.13 wheel yet, so standardize on a **Python 3.12** environment (venv or conda) on every machine to avoid an accidental from-source build.
+
+### 4.3. macOS: a worker crash-loops silently the moment a task touches `cdts`
+
+**Symptom:** `dask worker` starts and registers with the scheduler fine. But as soon as a real task imports `cdts` (e.g. the first `.cdts.run_landtrendr()` call), the worker process vanishes and Dask's Nanny silently respawns it with a new port — forever. No Python traceback reaches the scheduler or client; calling `client.run(...)` against that worker just raises `CommClosedError: ... Stream is closed`.
+
+**Cause:** `cdts` depends on `torch`, and on macOS both `torch` and cdts's own compiled C++ extension (`cdts._core`) link their own copy of the OpenMP runtime (`libomp`/`libiomp`). Loading both inside the same process aborts the whole process (`OMP: Error #15: Initializing libomp.dylib, but found libomp.dylib already initialized`) instead of raising a catchable Python exception — which is exactly what a Nanny-managed silent restart loop looks like from the outside.
+
+**Fix:** set these two environment variables before launching the worker on macOS:
+
+```bash
+KMP_DUPLICATE_LIB_OK=TRUE OMP_NUM_THREADS=1 dask worker tcp://<scheduler-ip>:8786 --nworkers <n> --nthreads 1
+```
+
+If a worker is still crash-looping and you need to see the actual OS-level error, look at the raw terminal where `dask worker` runs directly — `Segmentation fault`, `Illegal instruction`, or the `OMP: Error #15` line only ever prints there, never through the Dask protocol.
+
+### 4.4. `dask worker` can't find `cdts` even though you just installed it
+
+If `pip install cdts` (or `pip install -e .`) reported success but a worker still throws `ModuleNotFoundError: No module named 'cdts'`, the `dask` command on your `PATH` is almost certainly resolving to a *different* Python installation (a different conda env, a system Python, a pyenv shim) than the one you installed `cdts` into.
+
+Force it explicitly — activate the right environment, then launch via `python -m dask` instead of the bare `dask` binary, so it always uses the currently active interpreter:
+
+```bash
+conda activate cdts-worker   # or: source your-venv/bin/activate
+python -m dask worker tcp://<scheduler-ip>:8786 --nworkers <n> --nthreads 1
+```
+
+### 4.5. Sanity-check every worker before submitting real work
+
+From the client/head node, verify `cdts` actually imports on every connected worker *before* kicking off a real job — it's much faster to catch a broken worker this way than to debug a stuck/slow distributed run:
+
+```python
+from dask.distributed import Client
+
+client = Client("tcp://<scheduler-ip>:8786")
+
+def check():
+    import socket, sys
+    try:
+        from cdts.raster import run_landtrendr_array
+        return (socket.gethostname(), sys.executable, "ok")
+    except Exception as e:
+        return (socket.gethostname(), sys.executable, repr(e))
+
+print(client.run(check, on_error="return"))
+```
+
+A clean `"ok"` (or a normal, readable Python exception) per worker means you're good to go. A `CommClosedError` / `Stream is closed` here is the macOS crash-loop symptom from 4.3 — fix that first.
