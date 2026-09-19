@@ -13,7 +13,8 @@ def desawtooth(values: Union[np.ndarray, List[float]], stopat: float = 0.9) -> n
 def run_landtrendr(years: Union[np.ndarray, List[int]], values: Union[np.ndarray, List[float]], max_segments: int = 6, pval_threshold: float = 0.05,
                     recovery_threshold: float = 0.25, prevent_fast_recovery: bool = True,
                     spike_threshold: float = 0.9, best_model_proportion: float = 1.25,
-                    vertex_count_overshoot: int = 3, min_observations_needed: int = 6) -> List[Dict[str, Union[int, float]]]:
+                    vertex_count_overshoot: int = 3, min_observations_needed: int = 6,
+                    modifier: float = 1.0) -> List[Dict[str, Union[int, float]]]:
     """
     Run LandTrendr algorithm on a 1D time series of a single pixel.
 
@@ -31,6 +32,12 @@ def run_landtrendr(years: Union[np.ndarray, List[int]], values: Union[np.ndarray
             max_segments + 1, pruned back down before model selection. LT-GEE's vertexCountOvershoot.
         min_observations_needed (int): Below this many observations, skip fitting entirely and
             return the raw trajectory unsegmented. LT-GEE's minObservationsNeeded.
+        modifier (float): +1.0 or -1.0. The segmentation's asymmetric heuristics (trailing-edge
+            recovery suppression, the recovery-rate eligibility check) are only meaningful once the
+            series is oriented so an INCREASE always reads as the disturbance-like event being
+            searched for. Use -1.0 to detect index drops (e.g. vegetation loss on an NDVI-like
+            index) and +1.0 (the default) to detect index rises (e.g. vegetation gain). Output
+            vertex values are always in the original, unflipped scale regardless of modifier.
 
     Returns:
         list of dicts containing the fitted vertices (year, value).
@@ -44,6 +51,7 @@ def run_landtrendr(years: Union[np.ndarray, List[int]], values: Union[np.ndarray
     params.best_model_proportion = best_model_proportion
     params.vertex_count_overshoot = vertex_count_overshoot
     params.min_observations_needed = min_observations_needed
+    params.modifier = modifier
 
     # Ensure lists for C++ vector binding (or we could use pybind11::array in C++ directly for zero-copy)
     years_list = years.tolist() if isinstance(years, np.ndarray) else list(years)
@@ -56,7 +64,8 @@ def run_landtrendr(years: Union[np.ndarray, List[int]], values: Union[np.ndarray
 def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: int = 6, pval_threshold: float = 0.05, no_data_value: float = -9999.0,
                           recovery_threshold: float = 0.25, prevent_fast_recovery: bool = True,
                           spike_threshold: float = 0.9, best_model_proportion: float = 1.25,
-                          vertex_count_overshoot: int = 3, min_observations_needed: int = 6):
+                          vertex_count_overshoot: int = 3, min_observations_needed: int = 6,
+                          modifier: float = 1.0):
     """
     Run LandTrendr algorithm on a batch of pixels.
 
@@ -75,6 +84,9 @@ def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: in
             max_segments + 1, pruned back down before model selection. LT-GEE's vertexCountOvershoot.
         min_observations_needed (int): Below this many observations, skip fitting entirely and
             return the raw trajectory unsegmented. LT-GEE's minObservationsNeeded.
+        modifier (float): +1.0 or -1.0, orienting the segmentation's asymmetric heuristics --
+            see run_landtrendr's modifier docstring. Use -1.0 for loss (index-drop) detection,
+            +1.0 (the default) for gain (index-rise) detection.
 
     Returns:
         tuple of (vertices_array, counts_array, rmse_array)
@@ -92,6 +104,7 @@ def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: in
     params.best_model_proportion = best_model_proportion
     params.vertex_count_overshoot = vertex_count_overshoot
     params.min_observations_needed = min_observations_needed
+    params.modifier = modifier
 
     years = np.ascontiguousarray(years, dtype=np.int32)
     values = np.ascontiguousarray(values, dtype=np.float64)

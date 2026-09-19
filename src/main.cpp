@@ -29,7 +29,8 @@ PYBIND11_MODULE(_core, m) {
         .def_readwrite("spike_threshold", &cdts::landtrendr::LandTrendrParams::spike_threshold)
         .def_readwrite("best_model_proportion", &cdts::landtrendr::LandTrendrParams::best_model_proportion)
         .def_readwrite("vertex_count_overshoot", &cdts::landtrendr::LandTrendrParams::vertex_count_overshoot)
-        .def_readwrite("min_observations_needed", &cdts::landtrendr::LandTrendrParams::min_observations_needed);
+        .def_readwrite("min_observations_needed", &cdts::landtrendr::LandTrendrParams::min_observations_needed)
+        .def_readwrite("modifier", &cdts::landtrendr::LandTrendrParams::modifier);
 
     py::class_<cdts::landtrendr::Vertex>(lt, "Vertex")
         .def(py::init<int, double>())

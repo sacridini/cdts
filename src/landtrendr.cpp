@@ -699,6 +699,20 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
     // 1. Remove spikes / desawtoothing
     std::vector<double> filtered_values = desawtooth(values, params.spike_threshold);
 
+    // fit_trajectory_v2.pro then multiplies the desawtoothed series by `modifier`
+    // ("this sets everything so disturbance is always positive [increasing]") --
+    // desawtooth commutes exactly with a uniform sign flip (its correction/
+    // prop_correction math only ever compares magnitudes or differences), so
+    // applying modifier here rather than before desawtooth is bit-identical to
+    // the original's order, but lets desawtooth() itself stay orientation-
+    // agnostic. `mod_values` mirrors the same flip for the raw (non-desawtoothed)
+    // series used everywhere below that isn't candidate-vertex discovery.
+    std::vector<double> mod_values = values;
+    if (params.modifier != 1.0) {
+        for (auto& v : filtered_values) v *= params.modifier;
+        for (auto& v : mod_values) v *= params.modifier;
+    }
+
     // 2-3. Identify initial candidate vertices with LT-GEE's two complementary
     // strategies (Section 2.5.2): regression-based recursive splitting builds
     // a candidate pool of up to max_segments + 1 + vertexCountOvershoot
@@ -729,10 +743,10 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
 
     // Null model (mean of values) SSE, shared by every candidate's F-test.
     double mean_y = 0.0;
-    for (double v : values) mean_y += v;
+    for (double v : mod_values) mean_y += v;
     mean_y /= n;
     double sse_null = 0.0;
-    for (double v : values) {
+    for (double v : mod_values) {
         double err = v - mean_y;
         sse_null += err * err;
     }
@@ -746,7 +760,7 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
     // raises p-values (makes it harder to call a candidate significant) throughout
     // the whole ladder, biasing which model best_model_proportion ends up picking.
     auto score_pval = [&](const std::vector<int>& verts, const std::vector<double>& fitted) {
-        double sse = compute_full_sse(years, values, verts, fitted);
+        double sse = compute_full_sse(years, mod_values, verts, fitted);
         int V = static_cast<int>(verts.size());
         int df_regr = 2 * V - 2;
         int df_resid = n - df_regr - 1;
@@ -760,13 +774,13 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
 
     while (current_verts.size() >= 2) {
         // Primary fit: point-to-point/anchored-regression hybrid per segment.
-        std::vector<double> fitted = fit_piecewise_sequential(years, values, current_verts);
+        std::vector<double> fitted = fit_piecewise_sequential(years, mod_values, current_verts);
         double pval = score_pval(current_verts, fitted);
 
         // Fallback: if that fit isn't significant, retry with the exact global
         // OLS solve (LT-GEE's "simultaneous" LM fit) and keep it regardless.
         if (pval > params.pval_threshold) {
-            fitted = fit_piecewise_ols(years, values, current_verts);
+            fitted = fit_piecewise_ols(years, mod_values, current_verts);
             pval = score_pval(current_verts, fitted);
         }
 
@@ -791,7 +805,7 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
         ladder.push_back({current_verts, fitted, pval, recovery_ok});
 
         if (current_verts.size() <= 2) break;
-        current_verts = take_out_weakest(years, values, current_verts, fitted);
+        current_verts = take_out_weakest(years, mod_values, current_verts, fitted);
     }
 
     if (ladder.empty()) {
@@ -844,13 +858,19 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
         if (chosen == nullptr) chosen = &ladder.back();
     }
 
+    // fitted values live in modifier-space throughout the ladder (see mod_values
+    // above); multiply back by modifier (self-inverse, since it's always +-1.0)
+    // so callers always see real, original-scale values -- matching
+    // fit_trajectory_v2.pro's `best_model.yfit = best.yfit * modifier`.
     for (size_t i = 0; i < chosen->verts.size(); ++i) {
-        vertices.push_back({years[chosen->verts[i]], chosen->fitted[i]});
+        vertices.push_back({years[chosen->verts[i]], chosen->fitted[i] * params.modifier});
     }
 
     // RMSE of the chosen model's fit against every observation -- LT-GEE's
-    // per-pixel noise estimate for DSNR (see TrajectoryResult).
-    double chosen_sse = compute_full_sse(years, values, chosen->verts, chosen->fitted);
+    // per-pixel noise estimate for DSNR (see TrajectoryResult). Computed in
+    // modifier-space against mod_values (matching chosen->fitted); the result
+    // is identical either way since SSE is invariant to a uniform sign flip.
+    double chosen_sse = compute_full_sse(years, mod_values, chosen->verts, chosen->fitted);
     int chosen_df = static_cast<int>(chosen->verts.size());
     out.rmse = std::sqrt(chosen_sse / std::max(1, n - chosen_df));
 

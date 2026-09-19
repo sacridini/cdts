@@ -28,13 +28,17 @@ def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_se
                           recovery_threshold: float = 0.25, prevent_fast_recovery: bool = True,
                           spike_threshold: float = 0.9, best_model_proportion: float = 1.25,
                           vertex_count_overshoot: int = 3, min_observations_needed: int = 6,
-                          no_data_value: float = 0.0, return_rmse: bool = False):
+                          no_data_value: float = 0.0, return_rmse: bool = False, modifier: float = 1.0):
     """
     Apply LandTrendr across a 3D numpy array (time_steps, rows, cols) using C++ batch processing with OpenMP.
 
     If return_rmse is True, also returns a (rows, cols) array of each pixel's
     fit RMSE against every observation -- LT-GEE's per-pixel noise estimate,
     used to compute DSNR (disturbance magnitude / RMSE) in extract_events().
+
+    modifier (float): +1.0 or -1.0, orienting the segmentation's asymmetric heuristics --
+        see run_landtrendr's modifier docstring. Use -1.0 for loss (index-drop) detection,
+        +1.0 (the default) for gain (index-rise) detection.
     """
     from .landtrendr import run_landtrendr_batch
     import os as _os
@@ -59,6 +63,7 @@ def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_se
         recovery_threshold=recovery_threshold, prevent_fast_recovery=prevent_fast_recovery,
         spike_threshold=spike_threshold, best_model_proportion=best_model_proportion,
         vertex_count_overshoot=vertex_count_overshoot, min_observations_needed=min_observations_needed,
+        modifier=modifier,
     )
 
     # vertices_array shape: (rows * cols, max_vertices, 2)
@@ -211,10 +216,19 @@ def run_landtrendr_image(input_path: str, output_dir: str, start_year: int = 200
                             recovery_threshold: float = 0.25, prevent_fast_recovery: bool = True,
                             spike_threshold: float = 0.9, best_model_proportion: float = 1.25,
                             vertex_count_overshoot: int = 3, min_observations_needed: int = 6,
-                            no_data_value: float = 0.0) -> None:
+                            no_data_value: float = 0.0, modifier: Optional[float] = None) -> None:
     """
     High-level function to process a full GeoTIFF file using LandTrendr with chunking to save RAM.
+
+    Segmentation is only run once per call, oriented by `modifier` (see run_landtrendr's
+    modifier docstring) -- since that orientation has to match the `event_type` being
+    extracted, `modifier` defaults to -1.0 (index-drop) for event_type="loss" and +1.0
+    (index-rise) for event_type="gain" unless explicitly overridden. A pipeline that wants
+    both loss and gain events for the same input should call this twice.
     """
+    if modifier is None:
+        modifier = -1.0 if event_type.lower() == "loss" else 1.0
+
     if not os.path.exists(input_path):
         raise FileNotFoundError(f"Input file not found: {input_path}")
         
@@ -284,6 +298,7 @@ def run_landtrendr_image(input_path: str, output_dir: str, start_year: int = 200
                     min_observations_needed=min_observations_needed,
                     no_data_value=no_data_value,
                     return_rmse=True,
+                    modifier=modifier,
                 )
 
                 events = extract_events(

@@ -22,6 +22,16 @@ struct LandTrendrParams {
     int min_observations_needed = 6;       // Below this many observations, skip fitting entirely
                                             // and pass the raw trajectory through unsegmented
                                             // (LT-GEE's minObservationsNeeded)
+    double modifier = 1.0;                 // +1.0 or -1.0. fit_trajectory_v2.pro multiplies the
+                                            // (desawtoothed) series by this before segmentation so
+                                            // that whichever direction of change the caller cares
+                                            // about always reads as an INCREASE internally -- the
+                                            // asymmetric heuristics (split_series' trailing-edge
+                                            // recovery suppression, check_slopes' recovery-rate
+                                            // eligibility check) are only meaningful relative to
+                                            // that convention. Output vertex values are multiplied
+                                            // back by modifier before being returned, so callers
+                                            // always see real, original-scale values regardless.
 };
 
 // Struct to hold output vertices
