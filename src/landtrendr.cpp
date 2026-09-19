@@ -657,8 +657,13 @@ int find_recovery_violator(const std::vector<int>& years, const std::vector<doub
     for (size_t i = 0; i + 1 < verts.size(); ++i) {
         double val_diff = fitted[i + 1] - fitted[i];
         double yr_diff = static_cast<double>(years[verts[i + 1]] - years[verts[i]]);
-        if (val_diff > 0.0 && yr_diff > 0.0) {
-            double scaled_slope = (val_diff / yr_diff) / range_of_vals;
+        // check_slopes.pro: "disturbance is always considered to have a positive
+        // slope, and recovery a negative slope" -- fitted/mod_values are already
+        // in modifier-space (increasing = disturbance), so the segments to
+        // scrutinize here are the NEGATIVE-slope (recovery-direction) ones, not
+        // positive ones.
+        if (val_diff < 0.0 && yr_diff > 0.0) {
+            double scaled_slope = std::abs(val_diff / yr_diff) / range_of_vals;
             if (scaled_slope > recovery_threshold && scaled_slope > worst_scaled) {
                 worst_scaled = scaled_slope;
                 worst_seg = static_cast<int>(i);
@@ -673,6 +678,7 @@ struct CandidateModel {
     std::vector<int> verts;
     std::vector<double> fitted;
     double pval;
+    double f_stat;
     bool recovery_ok;
 };
 
@@ -759,29 +765,36 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
     // relative to the naive "V parameters" reading, which lowers ms_regr and thus
     // raises p-values (makes it harder to call a candidate significant) throughout
     // the whole ladder, biasing which model best_model_proportion ends up picking.
-    auto score_pval = [&](const std::vector<int>& verts, const std::vector<double>& fitted) {
+    struct PvalStat { double pval; double f_stat; };
+    auto score_pval = [&](const std::vector<int>& verts, const std::vector<double>& fitted) -> PvalStat {
         double sse = compute_full_sse(years, mod_values, verts, fitted);
         int V = static_cast<int>(verts.size());
         int df_regr = 2 * V - 2;
         int df_resid = n - df_regr - 1;
-        if (df_regr <= 0 || df_resid <= 0) return 1.0;
+        if (df_regr <= 0 || df_resid <= 0) return {1.0, 0.0};
         double ms_regr = (sse_null - sse) / df_regr;
         double ms_resid = sse / df_resid;
         // calc_fitting_stats3.pro: avoid a division glitch when ms_regr underflows.
         double f_stat = (ms_regr < 0.00001) ? 0.00001 : ms_regr / (ms_resid > 0 ? ms_resid : 1e-6);
-        return f_pval(f_stat, df_regr, df_resid);
+        return {f_pval(f_stat, df_regr, df_resid), f_stat};
     };
+
+    // n_vertices_orig: tbcd_v2.pro's `n_vertices`, the vertex count right after
+    // vet_verts3 -- bounds the pick_best_model6/check_slopes retry loop below
+    // (`increment gt n_vertices`), independent of how many candidates the
+    // ladder itself ends up holding.
+    int n_vertices_orig = static_cast<int>(current_verts.size());
 
     while (current_verts.size() >= 2) {
         // Primary fit: point-to-point/anchored-regression hybrid per segment.
         std::vector<double> fitted = fit_piecewise_sequential(years, mod_values, current_verts);
-        double pval = score_pval(current_verts, fitted);
+        PvalStat stat = score_pval(current_verts, fitted);
 
         // Fallback: if that fit isn't significant, retry with the exact global
         // OLS solve (LT-GEE's "simultaneous" LM fit) and keep it regardless.
-        if (pval > params.pval_threshold) {
+        if (stat.pval > params.pval_threshold) {
             fitted = fit_piecewise_ols(years, mod_values, current_verts);
-            pval = score_pval(current_verts, fitted);
+            stat = score_pval(current_verts, fitted);
         }
 
         // Recovery enforcement logic (tbcd_v2.pro's check_slopes): a candidate
@@ -802,7 +815,7 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
         // eligibility check (this flag) is ported, not the removal targeting.
         bool recovery_ok = (find_recovery_violator(years, fitted, current_verts, params.recovery_threshold) == -1);
 
-        ladder.push_back({current_verts, fitted, pval, recovery_ok});
+        ladder.push_back({current_verts, fitted, stat.pval, stat.f_stat, recovery_ok});
 
         if (current_verts.size() <= 2) break;
         current_verts = take_out_weakest(years, mod_values, current_verts, fitted);
@@ -812,51 +825,60 @@ TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
         return out;
     }
 
-    // 5. Model selection, matching tbcd_v2.pro's pick_best_model6: eligible is
-    // every recovery-valid candidate in the ladder -- pval_threshold is NOT a
-    // pre-filter here in the original algorithm (it only gates whether the
-    // model finally chosen below counts as "significant enough", checked after
-    // selection, not before). best_model_proportion then picks the MOST-vertex
-    // candidate among the eligible ones whose p-value is still within
-    // (2 - best_model_proportion) times the lowest p-value found among them.
-    // If every candidate violates the recovery constraint, fall back to the
-    // very simplest candidate in the ladder regardless of recovery.
-    std::vector<const CandidateModel*> eligible;
-    for (const auto& c : ladder) {
-        if (c.recovery_ok) eligible.push_back(&c);
-    }
+    // 5. Model selection -- a faithful port of tbcd_v2.pro's actual selection
+    // loop (not just pick_best_model6 in isolation): pick_best_model6 chooses
+    // among ALL candidates by p-value/best_model_proportion regardless of
+    // recovery validity; check_slopes is then run ONLY on that one selection;
+    // if it fails, that candidate's working p-value is poisoned to 1.0 (never
+    // eligible again) and selection retries -- up to n_vertices_orig times.
+    // This is NOT equivalent to "pre-filter to recovery-valid, then pick
+    // best": a candidate can still win even though a *different*, better-
+    // fitting candidate exists, if every candidate that beats it on p-value
+    // gets vetoed first. `work_pval` is ladder[i].pval, mutated by poisoning.
+    std::vector<double> work_pval(ladder.size());
+    for (size_t i = 0; i < ladder.size(); ++i) work_pval[i] = ladder[i].pval;
 
-    const CandidateModel* chosen = nullptr;
-    if (!eligible.empty()) {
-        double min_pval = std::numeric_limits<double>::max();
-        for (auto* c : eligible) min_pval = std::min(min_pval, c->pval);
-        // Exact formula from Oregon State's original IDL LandTrendr (the algorithm GEE's
-        // ee.Algorithms.TemporalSegmentation.LandTrendr was ported from), tbcd_v2.pro's
-        // pick_best_model6 (use_fstat=0, the default path since 2009): threshold =
-        // (2 - bestmodelproportion) * min(p_of_f), selecting the most-vertex candidate whose
-        // p-value is still within that threshold. Confirms the earlier live-GEE-calibrated
-        // division approximation's direction (raising the proportion narrows the band and
-        // simplifies the fit) and refines its magnitude.
-        double threshold = (2.0 - params.best_model_proportion) * min_pval;
+    // pick_best_model6 (use_fstat=0, the default path since 2009): threshold =
+    // (2 - bestmodelproportion) * min(p_of_f) over the CURRENT (possibly
+    // poisoned) working p-values; return the first (= most-vertex, since the
+    // ladder is built most-to-least-detailed) candidate within that band, or
+    // -1 if none qualifies -- which happens whenever best_model_proportion > 1
+    // (the threshold then falls below even the minimum p-value itself), the
+    // intended trigger for the min-f_stat fallback below.
+    auto pick_best_model6 = [&]() -> int {
+        double mn = *std::min_element(work_pval.begin(), work_pval.end());
+        double thr = (2.0 - params.best_model_proportion) * mn;
+        for (size_t i = 0; i < work_pval.size(); ++i) {
+            if (work_pval[i] <= thr) return static_cast<int>(i);
+        }
+        return -1;
+    };
 
-        size_t most_verts = 0;
-        for (auto* c : eligible) {
-            if (c->pval <= threshold && c->verts.size() > most_verts) {
-                most_verts = c->verts.size();
-                chosen = c;
+    int best = 0;
+    int increment = 0;
+    bool notdone = true;
+    while (notdone) {
+        ++increment;
+        int picked = pick_best_model6();
+        if (picked != -1) {
+            best = picked;
+            bool ok = ladder[best].recovery_ok;
+            if (!ok) work_pval[best] = 1.0;
+            notdone = !ok && !(increment > n_vertices_orig);
+        } else {
+            // best_model_proportion > 1: fall back to the candidate with the
+            // single lowest f_stat across the WHOLE original ladder (matching
+            // tbcd_v2.pro exactly -- unconditional, not filtered by recovery).
+            best = 0;
+            double min_f = ladder[0].f_stat;
+            for (size_t i = 1; i < ladder.size(); ++i) {
+                if (ladder[i].f_stat < min_f) { min_f = ladder[i].f_stat; best = static_cast<int>(i); }
             }
+            notdone = false;
         }
     }
 
-    if (chosen == nullptr) {
-        // Every candidate violated the recovery constraint: fall back to the
-        // simplest recovery-valid candidate (there is none if this still misses,
-        // so fall back further to the simplest candidate overall).
-        for (auto it = ladder.rbegin(); it != ladder.rend(); ++it) {
-            if (it->recovery_ok) { chosen = &(*it); break; }
-        }
-        if (chosen == nullptr) chosen = &ladder.back();
-    }
+    const CandidateModel* chosen = &ladder[best];
 
     // fitted values live in modifier-space throughout the ladder (see mod_values
     // above); multiply back by modifier (self-inverse, since it's always +-1.0)

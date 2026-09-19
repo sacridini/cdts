@@ -123,11 +123,16 @@ def test_run_landtrendr_sequential_fit_smooths_noisy_segment():
     # raw 0.50/0.50, but a slightly sloped regression line through all 4 points.
     # best_model_proportion=0.5 asks for the 3-vertex candidate that actually
     # exercises this per-segment choice, rather than the simpler compromise fit
-    # the default would pick (see test_run_landtrendr_basic).
+    # the default would pick (see test_run_landtrendr_basic). modifier=-1.0
+    # orients the segmentation for a value DROP (see run_landtrendr's modifier
+    # docstring); without it, the default (+1.0, gain/index-rise orientation)
+    # reads this series' own drop as a too-fast "recovery" and rejects the
+    # 3-vertex candidate outright, unrelated to what this test exercises.
     years = np.array([2000, 2001, 2002, 2003, 2004, 2005])
     values = np.array([0.50, 0.54, 0.46, 0.50, 0.30, 0.10])
 
-    vertices = run_landtrendr(years, values, max_segments=3, min_observations_needed=6, best_model_proportion=0.5)
+    vertices = run_landtrendr(years, values, max_segments=3, min_observations_needed=6,
+                               best_model_proportion=0.5, modifier=-1.0)
     by_year = {v['year']: v['value'] for v in vertices}
 
     assert 2000 in by_year and 2003 in by_year
