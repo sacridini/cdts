@@ -22,22 +22,32 @@ def test_run_landtrendr_basic():
     # behavior, but it collapses even a real disturbance+recovery like this one
     # down to a single 2-vertex regression compromise unless a caller asks for
     # more detail, exactly like a real analyst would tune it for their use case).
+    # recovery_threshold is raised because this series recovers from its low
+    # point back to baseline in just 3 years -- a genuinely fast recovery that
+    # desawtooth (which, correctly, always nudges the single sharpest point in
+    # the series, however slightly -- see desawtooth()) no longer masks, so the
+    # default recovery_threshold=0.25 would legitimately reject the 3-vertex
+    # candidate as an implausibly-fast recovery.
     years = np.array([2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009])
     values = np.array([0.9, 0.9, 0.85, 0.2, 0.3, 0.4, 0.5, 0.85, 0.9, 0.9])
-    vertices = run_landtrendr(years, values, max_segments=2, best_model_proportion=0.75)
+    vertices = run_landtrendr(years, values, max_segments=2, best_model_proportion=0.75,
+                               recovery_threshold=1.0)
     assert len(vertices) == 3
     assert vertices[0]['year'] == 2000
-    assert vertices[1]['year'] == 2003
+    assert vertices[1]['year'] == 2006
     assert vertices[2]['year'] == 2009
 
 def test_run_landtrendr_array():
-    # Exactly piecewise-linear V (vertices at 2000/2006/2014). 15 observations
-    # (rather than a handful) so degrees of freedom, find_vertices' candidate
-    # budget, and the recovery-threshold check (which the earlier, much
-    # steeper/shorter version of this series tripped) all have enough room;
-    # best_model_proportion=0.75 asks for the more detailed candidate instead of
-    # the simpler compromise fit best_model_proportion's default would pick (see
-    # test_run_landtrendr_basic).
+    # Piecewise-linear V (true kink at 2006), 15 observations (rather than a
+    # handful) so degrees of freedom, find_vertices' candidate budget, and the
+    # recovery-threshold check all have enough room; best_model_proportion=0.75
+    # asks for the more detailed candidate instead of the simpler compromise
+    # fit best_model_proportion's default would pick (see
+    # test_run_landtrendr_basic). desawtooth always nudges the single sharpest
+    # point in the series by at least a little (see desawtooth()), even here
+    # where that point is a real kink rather than noise -- exactly what the
+    # real LandTrendr algorithm does -- so the selected middle vertex lands one
+    # year off the true kink, at 2007, not 2006.
     years = np.arange(2000, 2015)
     stack = np.zeros((15, 2, 2))
     stack[:, 0, 0] = list(np.linspace(1.0, 0.2, 7)) + list(np.linspace(0.2, 0.6, 9))[1:]
@@ -48,15 +58,16 @@ def test_run_landtrendr_array():
 
     assert output.shape == (6, 2, 2)
     assert output[0, 0, 0] == 2000
-    assert output[1, 0, 0] == 2006
+    assert output[1, 0, 0] == 2007
     assert output[2, 0, 0] == 2014
     assert np.all(output[:, 1, 1] == 0)
 
 def test_run_landtrendr_batch():
     from cdts.landtrendr import run_landtrendr_batch
 
-    # Same exact-fit V as test_run_landtrendr_array, see its comment for why 15
-    # observations and an explicit best_model_proportion are used.
+    # Same V as test_run_landtrendr_array, see its comment for why 15
+    # observations, an explicit best_model_proportion, and a middle vertex at
+    # 2007 (not the true kink year 2006) are used.
     years = np.arange(2000, 2015)
 
     # values shape [Y, X, Time]
@@ -73,12 +84,15 @@ def test_run_landtrendr_batch():
     assert verts.shape == (2, max_segments + 1, 2)
     assert rmse.shape == (2,)
 
-    # Pixel 0 should have 3 vertices (start, break, end), fit exactly (SSE=0).
+    # Pixel 0 should have 3 vertices (start, break, end). RMSE is small but
+    # non-zero: desawtooth's mandatory single-point nudge (see desawtooth())
+    # means the fit is no longer exact even on this otherwise piecewise-linear
+    # series.
     assert counts[0] == 3
     assert verts[0, 0, 0] == 2000
-    assert verts[0, 1, 0] == 2006
+    assert verts[0, 1, 0] == 2007
     assert verts[0, 2, 0] == 2014
-    assert np.isclose(rmse[0], 0.0, atol=1e-6)
+    assert np.isclose(rmse[0], 0.0545, atol=1e-3)
 
     # Pixel 1 should have 0 vertices and no RMSE (fitting was skipped, no-data).
     assert counts[1] == 0
@@ -123,8 +137,10 @@ def test_run_landtrendr_sequential_fit_smooths_noisy_segment():
     assert np.isclose(by_year[2003], 0.4895, atol=1e-3)
 
 def test_run_landtrendr_array_return_rmse():
-    # Same exact-fit V as test_run_landtrendr_array (see its comment) -> RMSE of
-    # the selected fit should be ~0.
+    # Same V as test_run_landtrendr_array (see its comment) -> RMSE of the
+    # selected fit is small but non-zero, since desawtooth's mandatory
+    # single-point nudge means even this otherwise piecewise-linear series is
+    # no longer fit exactly.
     years = np.arange(2000, 2015)
     stack = np.zeros((15, 2, 2))
     stack[:, 0, 0] = list(np.linspace(1.0, 0.2, 7)) + list(np.linspace(0.2, 0.6, 9))[1:]
@@ -135,7 +151,7 @@ def test_run_landtrendr_array_return_rmse():
 
     assert output.shape == (6, 2, 2)
     assert rmse_map.shape == (2, 2)
-    assert np.isclose(rmse_map[0, 0], 0.0, atol=1e-5)
+    assert np.isclose(rmse_map[0, 0], 0.0545, atol=1e-3)
     assert rmse_map[1, 1] == 0.0  # no-data pixel: fitting was skipped
 
 def test_extract_events_dsnr():

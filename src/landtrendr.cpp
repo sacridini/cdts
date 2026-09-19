@@ -91,62 +91,63 @@ double f_pval(double f_stat, double df1, double df2) {
 namespace cdts {
 namespace landtrendr {
 
-// Internal function to calculate desawtooth corrections
-struct DesawtoothCorrection {
-    std::vector<double> correction;
-    std::vector<double> prop_correction;
-};
+// Single-index version of find_correction.pro's per-point formula -- shared
+// by desawtooth()'s initial full pass and its incremental per-step update
+// (only a fixed-width window around whichever index was just corrected can
+// change, so recomputing just those beats rebuilding the whole array).
+inline void correction_at(const std::vector<double>& v, int i,
+                           double& correction, double& prop_correction) {
+    double diff_2 = std::abs(v[i - 1] - v[i + 1]);
+    double diff_minus1 = std::abs(v[i] - v[i + 1]);
+    double diff_plus1 = std::abs(v[i] - v[i - 1]);
 
-DesawtoothCorrection find_correction(const std::vector<double>& vals) {
-    int n = vals.size();
-    DesawtoothCorrection res;
-    res.correction.assign(n, 0.0);
-    res.prop_correction.assign(n, 0.0);
-
-    for (int i = 1; i < n - 1; ++i) {
-        double diff_2 = std::abs(vals[i - 1] - vals[i + 1]);
-        double diff_minus1 = std::abs(vals[i] - vals[i + 1]);
-        double diff_plus1 = std::abs(vals[i] - vals[i - 1]);
-        
-        double md = std::max(diff_minus1, diff_plus1);
-        if (md == 0.0) {
-            md = diff_2; // avoid division by zero. If md is 0, diff_2 is 0. prop_correction will be 0.
-        }
-
-        if (md > 0.0) {
-            res.prop_correction[i] = 1.0 - (diff_2 / md);
-        } else {
-            res.prop_correction[i] = 0.0;
-        }
-
-        res.correction[i] = res.prop_correction[i] * (((vals[i - 1] + vals[i + 1]) / 2.0) - vals[i]);
+    double md = std::max(diff_minus1, diff_plus1);
+    if (md == 0.0) {
+        md = diff_2; // avoid division by zero -- diff_2 is then 0 too, so prop_correction is 0.
     }
 
-    return res;
+    prop_correction = (md > 0.0) ? (1.0 - diff_2 / md) : 0.0;
+    correction = prop_correction * (((v[i - 1] + v[i + 1]) / 2.0) - v[i]);
 }
 
 std::vector<double> desawtooth(const std::vector<double>& vals, double stopat) {
     std::vector<double> v = vals;
-    double prop = 1.0;
+    int n = static_cast<int>(v.size());
+    if (n < 3) return v;
 
+    std::vector<double> correction(n, 0.0), prop_correction(n, 0.0);
+    for (int i = 1; i < n - 1; ++i) {
+        correction_at(v, i, correction[i], prop_correction[i]);
+    }
+
+    // desawtooth.pro's while loop checks `prop` *before* each pass using the
+    // value left over from the previous pass (seeded at 1.0), then always
+    // applies that pass's strongest correction regardless of its own
+    // magnitude -- only the *next* pass's entry is gated by it. So the very
+    // first correction always happens, however small, and only further
+    // corrections are conditional on the threshold. `wh_max` also tracks the
+    // true (possibly negative) argmax of prop_correction, not max(0, ...).
+    double prop = 1.0;
     while (prop > stopat) {
-        DesawtoothCorrection c = find_correction(v);
-        
-        prop = 0.0;
-        int wh_max = -1;
-        
-        // Find max prop_correction
-        for (size_t i = 0; i < c.prop_correction.size(); ++i) {
-            if (c.prop_correction[i] > prop) {
-                prop = c.prop_correction[i];
+        int wh_max = 0;
+        double max_prop = prop_correction[0];
+        for (int i = 1; i < n; ++i) {
+            if (prop_correction[i] > max_prop) {
+                max_prop = prop_correction[i];
                 wh_max = i;
             }
         }
-        
-        if (prop > stopat && wh_max != -1) {
-            v[wh_max] = v[wh_max] + c.correction[wh_max];
-        } else {
-            break;
+
+        v[wh_max] = v[wh_max] + correction[wh_max];
+        prop = max_prop;
+
+        // Only entries whose formula reads v[wh_max] can have changed: i and
+        // i's immediate neighbors read v[i-1..i+1], so indices wh_max-2 ..
+        // wh_max+2 are the full blast radius.
+        int lo = std::max(1, wh_max - 2);
+        int hi = std::min(n - 2, wh_max + 2);
+        for (int i = lo; i <= hi; ++i) {
+            correction_at(v, i, correction[i], prop_correction[i]);
         }
     }
 
