@@ -63,7 +63,7 @@ def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_se
         recovery_threshold=recovery_threshold, prevent_fast_recovery=prevent_fast_recovery,
         spike_threshold=spike_threshold, best_model_proportion=best_model_proportion,
         vertex_count_overshoot=vertex_count_overshoot, min_observations_needed=min_observations_needed,
-        modifier=modifier,
+        modifier=modifier, n_jobs=n_jobs
     )
 
     # vertices_array shape: (rows * cols, max_vertices, 2)

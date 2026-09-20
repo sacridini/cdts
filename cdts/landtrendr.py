@@ -65,7 +65,7 @@ def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: in
                           recovery_threshold: float = 0.25, prevent_fast_recovery: bool = True,
                           spike_threshold: float = 0.9, best_model_proportion: float = 1.25,
                           vertex_count_overshoot: int = 3, min_observations_needed: int = 6,
-                          modifier: float = 1.0):
+                          modifier: float = 1.0, n_jobs: int = -1):
     """
     Run LandTrendr algorithm on a batch of pixels.
 
@@ -109,7 +109,7 @@ def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: in
     years = np.ascontiguousarray(years, dtype=np.int32)
     values = np.ascontiguousarray(values, dtype=np.float64)
 
-    return _core.landtrendr.fit_trajectory_batch(values, years, params, no_data_value)
+    return _core.landtrendr.fit_trajectory_batch(values, years, params, no_data_value, n_jobs)
 
 def apply_vertices(vertex_years: Union[np.ndarray, List[int]], other_band_years: Union[np.ndarray, List[int]], other_band_values: Union[np.ndarray, List[float]]) -> List[Dict[str, Union[int, float]]]:
     """
