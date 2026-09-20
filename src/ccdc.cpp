@@ -122,7 +122,7 @@ bool fit_harmonic_robust(const std::vector<int>& dates,
                          int start_idx, int end_idx,
                          Eigen::VectorXd& beta_out, double& rmse_out) {
     int n = end_idx - start_idx + 1;
-    int k = 6; 
+    int k = (n < 24) ? 4 : 6; 
     if (n < k) return false;
     
     Eigen::MatrixXd X(n, k);
@@ -138,20 +138,23 @@ bool fit_harmonic_robust(const std::vector<int>& dates,
         X(i, 1) = dates[start_idx + i];
         X(i, 2) = c_wt;
         X(i, 3) = s_wt;
-        X(i, 4) = c_wt * c_wt - s_wt * s_wt;
-        X(i, 5) = 2.0 * s_wt * c_wt;
+        if (k == 6) {
+            X(i, 4) = c_wt * c_wt - s_wt * s_wt;
+            X(i, 5) = 2.0 * s_wt * c_wt;
+        }
     }
     
     // IRLS Loop (3 iterations is usually enough for CCDC initialization)
     Eigen::VectorXd w = Eigen::VectorXd::Ones(n);
+    Eigen::VectorXd beta_k;
     for (int iter = 0; iter < 4; ++iter) {
         Eigen::VectorXd w2 = w.cwiseAbs2(); 
         Eigen::MatrixXd XtWX = X.transpose() * w2.asDiagonal() * X;
         Eigen::VectorXd XtWY = X.transpose() * w2.cwiseProduct(Y);
         
-        beta_out = XtWX.ldlt().solve(XtWY);
+        beta_k = XtWX.ldlt().solve(XtWY);
         
-        Eigen::VectorXd residuals = Y - X * beta_out;
+        Eigen::VectorXd residuals = Y - X * beta_k;
         
         std::vector<double> abs_res(n);
         for(int i=0; i<n; ++i) abs_res[i] = std::abs(residuals(i));
@@ -171,7 +174,10 @@ bool fit_harmonic_robust(const std::vector<int>& dates,
         }
     }
     
-    Eigen::VectorXd residuals = Y - X * beta_out;
+    beta_out = Eigen::VectorXd::Zero(6);
+    for (int c = 0; c < k; ++c) beta_out(c) = beta_k(c);
+    
+    Eigen::VectorXd residuals = Y - X * beta_k;
     double sse = residuals.squaredNorm();
     rmse_out = std::sqrt(sse / (n - k));
     return true;
@@ -214,6 +220,25 @@ std::vector<CCDCSegment> fit_ccdc_core(const std::vector<int>& dates,
     int n = valid_dates.size();
     if (n < params.min_obs) return segments;
     
+    // Calculate adj_rmse for each band (median of absolute diffs of adjacent points)
+    std::vector<double> adj_rmse(num_bands, 0.0);
+    for (int b = 0; b < num_bands; ++b) {
+        std::vector<double> diffs;
+        diffs.reserve(n - 1);
+        for (int i = 1; i < n; ++i) {
+            diffs.push_back(std::abs(valid_bands[b][i] - valid_bands[b][i-1]));
+        }
+        if (!diffs.empty()) {
+            std::nth_element(diffs.begin(), diffs.begin() + diffs.size() / 2, diffs.end());
+            adj_rmse[b] = diffs[diffs.size() / 2];
+        }
+        if (adj_rmse[b] < 1e-4) adj_rmse[b] = 1e-4;
+    }
+    
+    // Compute Tmax_cg (chi-square critical value for outlier detection)
+    int df_chi = params.detection_bands.empty() ? num_bands : params.detection_bands.size();
+    double tmax_cg = chi2_ppf(params.tmax_cg_prob_threshold, df_chi);
+    
     int start_idx = 0;
     while (start_idx < n) {
         // We need at least min_obs to initialize a model
@@ -247,25 +272,45 @@ std::vector<CCDCSegment> fit_ccdc_core(const std::vector<int>& dates,
             double sin_wt = valid_sin[i];
             double cos_2wt = cos_wt * cos_wt - sin_wt * sin_wt;
             double sin_2wt = 2.0 * sin_wt * cos_wt;
-            
-            // Calculate a unified Change Metric across all bands
-            double change_metric = 0.0;
-            
-            for (int b = 0; b < num_bands; ++b) {
-                double actual = valid_bands[b][i];
-                double pred = betas[b](0) + betas[b](1)*t + 
-                              betas[b](2)*cos_wt + betas[b](3)*sin_wt + 
-                              betas[b](4)*cos_2wt + betas[b](5)*sin_2wt;
-                              
-                double residual = std::abs(actual - pred);
-                
-                // Normalize by RMSE
-                double norm_res = residual / rmses[b];
-                change_metric += norm_res * norm_res;
-            }
-            
-            // Dynamic threshold check
-            if (change_metric > chi2_crit) {
+                        // Calculate a unified Change Metric across all bands
+              double change_metric = 0.0;
+              
+              const std::vector<int>& dbands = params.detection_bands.empty() ? 
+                                               std::vector<int>() : params.detection_bands;
+              int loop_bands = dbands.empty() ? num_bands : dbands.size();
+
+              for (int j = 0; j < loop_bands; ++j) {
+                  int b = dbands.empty() ? j : dbands[j];
+                  double actual = valid_bands[b][i];
+                  double pred = betas[b](0) + betas[b](1)*t + 
+                                betas[b](2)*cos_wt + betas[b](3)*sin_wt + 
+                                betas[b](4)*cos_2wt + betas[b](5)*sin_2wt;
+                                
+                  double residual = std::abs(actual - pred);
+                  
+                  // Normalize by maximum of adj_rmse and model rmse
+                  double mini_rmse = std::max(adj_rmse[b], rmses[b]);
+                  double norm_res = residual / mini_rmse;
+                  change_metric += norm_res * norm_res;
+              }
+              
+              // False change (cloud/shadow) rejection
+              if (change_metric > tmax_cg) {
+                  // Massive anomaly detected, assume unmasked cloud.
+                  // Erase the observation and try the next one at this same index.
+                  valid_dates.erase(valid_dates.begin() + i);
+                  valid_cos.erase(valid_cos.begin() + i);
+                  valid_sin.erase(valid_sin.begin() + i);
+                  for (int b = 0; b < num_bands; ++b) {
+                      valid_bands[b].erase(valid_bands[b].begin() + i);
+                  }
+                  n--;
+                  i--; // Offset loop increment
+                  continue;
+              }
+              
+              // Dynamic threshold check
+              if (change_metric > chi2_crit) {
                 anom_count++;
                 if (anom_count == params.conseq_anom) {
                     bool valid_break = true;
@@ -382,7 +427,8 @@ std::vector<CCDCSegment> fit_ccdc(const std::vector<int>& dates,
         global_cos[t] = std::cos(W * dates[t]);
         global_sin[t] = std::sin(W * dates[t]);
     }
-    double chi2_crit = chi2_ppf(params.chi2_prob_threshold, band_values.size());
+    int df_chi = params.detection_bands.empty() ? band_values.size() : params.detection_bands.size();
+    double chi2_crit = chi2_ppf(params.chi2_prob_threshold, df_chi);
     return fit_ccdc_core(dates, global_cos, global_sin, band_values, qa, params, chi2_crit);
 }
 
@@ -418,7 +464,8 @@ pybind11::tuple fit_ccdc_batch(
         global_sin[t] = std::sin(W * dates[t]);
     }
     
-    double chi2_crit = chi2_ppf(params.chi2_prob_threshold, num_bands);
+    int df_chi = params.detection_bands.empty() ? num_bands : params.detection_bands.size();
+    double chi2_crit = chi2_ppf(params.chi2_prob_threshold, df_chi);
     
     int params_per_segment = return_coefs ? (3 + num_bands * 7) : 1;
     

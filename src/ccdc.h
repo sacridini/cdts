@@ -20,6 +20,8 @@ struct CCDCParams {
     int min_obs = 12;
     int conseq_anom = 3;  // CCDC defaults to 3, COLD to 6
     double chi2_prob_threshold = 0.99;
+    double tmax_cg_prob_threshold = 0.999999;
+    std::vector<int> detection_bands; // If empty, use all bands.
 };
 
 // Main CCDC logic that operates on multiple bands simultaneously

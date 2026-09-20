@@ -8,7 +8,9 @@ def run_ccdc(
     qa: Union[np.ndarray, List[int]], 
     min_obs: int = 12, 
     conseq_anom: int = 3, 
-    chi2_prob_threshold: float = 0.99
+    chi2_prob_threshold: float = 0.99,
+    tmax_cg_prob_threshold: float = 0.999999,
+    detection_bands: List[int] = None
 ) -> List[Dict[str, Any]]:
     """
     Continuous Change Detection and Classification (CCDC).
@@ -21,6 +23,9 @@ def run_ccdc(
     params.min_obs = min_obs
     params.conseq_anom = conseq_anom
     params.chi2_prob_threshold = chi2_prob_threshold
+    params.tmax_cg_prob_threshold = tmax_cg_prob_threshold
+    if detection_bands is not None:
+        params.detection_bands = detection_bands
     
     # Ensure values is 2D: (num_bands, num_dates)
     if isinstance(values, np.ndarray):
@@ -88,7 +93,7 @@ def predict_synthetic_image(ccdc_coefs_stack: np.ndarray, target_julian_day: int
                 
     return synthetic_image
 
-def run_ccdc_batch(dates: np.ndarray, values: np.ndarray, qa: np.ndarray, max_segments: int = 6, return_coefs: bool = True, conseq_anom: int = 3, n_jobs: int = -1):
+def run_ccdc_batch(dates: np.ndarray, values: np.ndarray, qa: np.ndarray, max_segments: int = 6, return_coefs: bool = True, conseq_anom: int = 3, tmax_cg_prob_threshold: float = 0.999999, detection_bands: List[int] = None, n_jobs: int = -1):
     """
     Run CCDC algorithm on a batch of pixels.
     
@@ -99,6 +104,8 @@ def run_ccdc_batch(dates: np.ndarray, values: np.ndarray, qa: np.ndarray, max_se
         max_segments (int): Maximum number of segments to fit.
         return_coefs (bool): Whether to return harmonic coefficients.
         conseq_anom (int): Consecutive anomalies to trigger a break.
+        tmax_cg_prob_threshold (float): Probability threshold for false change detection (cloud/outlier).
+        detection_bands (List[int]): Which bands to sum for change metric (0-indexed).
         n_jobs (int): Number of threads for OpenMP to use. Default -1 (use all).
         
     Returns:
@@ -106,6 +113,9 @@ def run_ccdc_batch(dates: np.ndarray, values: np.ndarray, qa: np.ndarray, max_se
     """
     params = _core.ccdc.CCDCParams()
     params.conseq_anom = conseq_anom
+    params.tmax_cg_prob_threshold = tmax_cg_prob_threshold
+    if detection_bands is not None:
+        params.detection_bands = detection_bands
     
     dates = np.ascontiguousarray(dates, dtype=np.int32)
     values = np.ascontiguousarray(values, dtype=np.float64)

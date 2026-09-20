@@ -59,7 +59,9 @@ PYBIND11_MODULE(_core, m) {
         .def(py::init<>())
         .def_readwrite("min_obs", &cdts::ccdc::CCDCParams::min_obs)
         .def_readwrite("conseq_anom", &cdts::ccdc::CCDCParams::conseq_anom)
-        .def_readwrite("chi2_prob_threshold", &cdts::ccdc::CCDCParams::chi2_prob_threshold);
+        .def_readwrite("chi2_prob_threshold", &cdts::ccdc::CCDCParams::chi2_prob_threshold)
+        .def_readwrite("tmax_cg_prob_threshold", &cdts::ccdc::CCDCParams::tmax_cg_prob_threshold)
+        .def_readwrite("detection_bands", &cdts::ccdc::CCDCParams::detection_bands);
 
     py::class_<cdts::ccdc::CCDCSegment>(mc, "CCDCSegment")
         .def(py::init<>())

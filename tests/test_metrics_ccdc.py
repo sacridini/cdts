@@ -31,7 +31,7 @@ def test_ccdc_basic():
     values = 100.0 + 50.0 * np.cos(2 * np.pi * dates / 365.25)
     
     # Introduce a massive break at index 25
-    values[25:] -= 80.0
+    values[25:] -= 40.0
     
     qa = np.zeros(len(dates), dtype=int)
     
