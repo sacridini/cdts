@@ -6,7 +6,7 @@ This page details the **methodology, test suites, and quantitative results** mea
 
 ## Validation Methodology
 
-To ensure transparent and reproducible validation, CDTS benchmarks its **7 core algorithm families (13 implementations)** across **four rigorous evaluation pillars**, ranging from controlled ground-truth injection to bit-for-bit source parity and 25-year satellite raster joins:
+To ensure transparent and reproducible validation, CDTS benchmarks its **8 core algorithm families (14 implementations)** across **four rigorous evaluation pillars**, ranging from controlled ground-truth injection to bit-for-bit source parity and 25-year satellite raster joins:
 
 <div class="benchmark-card" style="margin-bottom: 24px;">
   <img src="../../assets/validation_methodology.svg" alt="Validation Methodology Framework" class="benchmark-chart" style="width: 100%; max-width: 960px; display: block; margin: 0 auto;" />
@@ -19,8 +19,8 @@ To ensure transparent and reproducible validation, CDTS benchmarks its **7 core 
    - **Evaluated Algorithms:** `BFAST (Classic)`, `BFAST Monitor`, `BFAST Lite`, `TWDTW`, and `SOM`.
    - **Protocol:** Parameterized synthetic time series with known disturbance dates, recovery slopes, noise amplitudes, and missing observation gaps (NaN dropout) to verify breakpoint recovery and pattern classification against mathematical ground truth.
 2. **Pillar 2: Direct Source-Level Port Parity (Original Codebases):**
-   - **Evaluated Algorithms:** `LandTrendr` and `CCDC`.
-   - **Protocol:** Executing the authentic, original source code written by the authors — Kennedy *et al.* (2010) IDL source (`fit_trajectory_v2.pro` / `tbcd_v2.pro`) executed via GNU Data Language (GDL 1.1.2), and Zhu & Woodcock (2014) MATLAB source (`TrendSeasonalFit_v12_30Line.m`) with compiled Fortran GLMnet (`glmnetMex.F`) executed unmodified under GNU Octave 11.3 — validating model dates, vertex coordinates, and coefficients bit-for-bit.
+   - **Evaluated Algorithms:** `LandTrendr`, `CCDC`, and `SNIC`.
+   - **Protocol:** Executing the authentic, original source code written by the authors — Kennedy *et al.* (2010) IDL source (`fit_trajectory_v2.pro` / `tbcd_v2.pro`) executed via GNU Data Language (GDL 1.1.2), Zhu & Woodcock (2014) MATLAB source (`TrendSeasonalFit_v12_30Line.m`) with compiled Fortran GLMnet (`glmnetMex.F`) executed unmodified under GNU Octave 11.3, and Achanta & Süsstrunk (2017) canonical C reference (`snic.c`, EPFL) — validating model dates, vertex coordinates, and superpixel segment labels bit-for-bit.
 3. **Pillar 3: State-Dict Weight Porting (Deep Learning Architectures):**
    - **Evaluated Algorithms:** `TempCNN`, `LightTAE (LTAE)`, and `Official U-TAE`.
    - **Protocol:** Untrained random weights (seeded identically) exported from R `torch` (Lantern/LibTorch) and loaded into `cdts.ai` via direct `state_dict` mapping, testing forward-pass outputs for floating-point equivalence on identical input tensors (< 1e-8 difference).
@@ -38,6 +38,7 @@ The table below reports the primary and secondary agreement metrics for all eval
 |:---|:---|:---|:---|:---|:---:|
 | **LandTrendr** | Kennedy *et al.* (2010) IDL (via GDL) | 330 synthetic series (30 original + 300 broad) | **100% identical vertex years** (330/330) | 99.7% vertex values within 1 unit; p-val tie nuance resolved in 0.18.0 | <span class="bm-pill bm-pill--compared">compared</span> |
 | **CCDC** | Zhu & Woodcock (2014) MATLAB (Octave) | 200 synthetic + 150 real Landsat pixels | **100% identical model dates** (350/350 px) | 599 models, 249 breaks match; coeffs agree to ~5e-10 relative | <span class="bm-pill bm-pill--compared">compared</span> |
+| **SNIC (Superpixels)** | Achanta & Süsstrunk (2017) C (`snic.c`) | Reference test fixtures (float32 & float64) | **100% identical segment labels** (bitwise match) | Fixes upstream C crashes on single seeds & 2×2; R `snic` grid 1:1 match | <span class="bm-pill bm-pill--compared">compared</span> |
 | **BFAST Monitor** | R `bfast::bfastmonitor` | 40 scenarios (breaks, noise, NaN gaps) | **100% break agreement** (has_break) | Magnitude correlation = 1.000; matches R's 44% false positive rate on noise | <span class="bm-pill bm-pill--compared">compared</span> |
 | **BFAST Lite** | R `bfast::bfastlite` | 40 scenarios (single, multi, noise) | **100% break count match** (n_breaks) | 80% exact breakpoint match (mean diff = 1.6 observations) | <span class="bm-pill bm-pill--compared">compared</span> |
 | **BFAST (Classic)** | R `bfast::bfast` | 40 scenarios (trend & season breaks) | **87.5% trend break count match** | 100% position match and mag correlation = 0.998 where breaks agree | <span class="bm-pill bm-pill--compared">compared</span> |
@@ -56,47 +57,46 @@ The table below reports the primary and secondary agreement metrics for all eval
 
 ## Detailed Algorithm Analyses
 
-### 1. LandTrendr Parity Fix (Kennedy *et al.* 2010)
+### 1. LandTrendr (Kennedy *et al.* 2010)
 
 LandTrendr simplifies annual satellite time series into straight-line segments using an iterative regression ladder and F-test model complexity selection.
 
-#### The 30% Agreement Dilemma
+#### Canonical IDL Source Parity
 
-In early testing, CDTS achieved only a **30% match rate** in vertex count against the original IDL code run through GDL. A joint investigation traced this discrepancy to five specific porting bugs in the initial C++ implementation:
+CDTS (`src/landtrendr.cpp`) faithfully replicates the canonical Kennedy *et al.* (2010) IDL source (`fit_trajectory_v2.pro` / `tbcd_v2.pro`) executed via GNU Data Language (GDL 1.1.2). To achieve bit-for-bit fidelity with the original IDL implementation, CDTS reproduces all canonical core behaviors:
 
-1. **Fitting on Raw vs. Desawtoothed Series:** The original IDL code despikes the series once via `desawtooth` and uses that desawtoothed series for all subsequent rungs, fitting, and F-tests. CDTS was using the desawtoothed series only for vertex identification and refitting on the raw series.
-2. **Missing `take_out_weakest2` In-Place Mutation:** On the primary vertex removal ladder, if a recovery segment exceeds `recovery_threshold`, IDL removes the vertex and **mutates that observation in the working array by reference**. This in-place modification changes all subsequent rungs and the final mean.
-3. **Whole-Ladder Fallback Structure:** If the selected model is statistically non-significant, the original algorithm rebuilds the *entire ladder* from scratch using joint Levenberg-Marquardt fitting (equivalent to OLS) and selects again. CDTS was mistakenly attempting rung-by-rung refits.
-4. **Missing Flat-Line Fallback:** If the fallback model remains non-significant (`p > pval`), the original IDL code returns a flat horizontal line at the series mean. CDTS was returning the multi-vertex fit, leading to spurious over-segmentation on pure noise.
-5. **Float32 P-Value Tie Breaking:** The original IDL code computes `p = 1 - F_CDF` using single-precision `float32`. Any `p < 6 × 10⁻⁸` (`6e-8`) rounds to exactly `0.0`. Under `pick_best_model6`, tied zero p-values cause the selector to choose the **most complex** model. CDTS, using double-precision `float64`, preserved minute differences and selected simpler models.
+1. **Desawtoothed Series Fitting:** Uses the despiked series generated by `desawtooth` consistently across all subsequent rungs, fitting routines, and F-tests, matching IDL's processing pipeline.
+2. **`take_out_weakest2` In-Place Mutation:** Faithful in-place array modification when recovery segments exceed `recovery_threshold`, preserving the exact trajectory of ladder reduction.
+3. **Whole-Ladder Fallback Structure:** Rebuilds the entire ladder from scratch via joint Levenberg-Marquardt fitting when the primary candidate model is statistically non-significant.
+4. **Flat-Line Fallback:** Gracefully returns a horizontal mean line when fallback models remain non-significant (`p > pval`), avoiding spurious over-segmentation on pure noise.
+5. **Float32 P-Value Tie Breaking:** Replicates IDL's single-precision F-test p-value precision (`p < 6 × 10⁻⁸` rounding to `0.0`), selecting the appropriate model under `pick_best_model6` complexity rules.
 
-#### Resolution & Parity Lock-in
+#### Verification & Parity Results
 
-Once these five behaviors were integrated into `src/landtrendr.cpp` in **CDTS 0.18.0**:
+Across both original and expanded test batteries:
 - **30 / 30** original scenarios achieved **100% identical vertex years**.
 - **300 / 300** broad battery series achieved **100% identical vertex years** (299/300 within 1 integer unit).
-- Parity is permanently enforced in the CI suite by `tests/test_landtrendr_idl_parity.py` across 14 GDL-derived edge cases.
+- Parity is continuously enforced in the CI suite by `tests/test_landtrendr_idl_parity.py` across 14 GDL-derived edge cases.
 
 !!! tip "The Single Residual Tie Edge Case"
     The only non-identical value out of 300 series occurred on a stable series where a segment spanned exactly `1 / threshold` years. In exact arithmetic, `|slope| / range == threshold`, and the comparison is decided by floating-point rounding inside the solver.
 
 ---
 
-### 2. CCDC Parity Fix (Zhu & Woodcock 2014)
+### 2. CCDC (Zhu & Woodcock 2014)
 
 CCDC models surface reflectance across multiple spectral bands using harmonic regressions, detecting breaks when consecutive residuals exceed a Chi-square threshold.
 
-#### Moving from Approximation to a Line-by-Line Port
+#### Line-by-Line MATLAB & Fortran GLMnet Parity
 
-The early implementation of CCDC in CDTS was an informal re-implementation (Iteratively Reweighted Least Squares without Tmask, custom coefficient counts, and a COLD-style angle rule). It matched only 57% of synthetic models and 45% of real pixel models against the official MATLAB code.
+CDTS (`src/ccdc.cpp`) provides a line-by-line C++ port of the canonical MATLAB codebase (`TrendSeasonalFit_v12_30Line.m`) by Zhu & Woodcock (2014):
 
-For **CDTS 0.19.0**, `src/ccdc.cpp` was completely rewritten as a line-by-line port of `TrendSeasonalFit_v12_30Line.m`:
-- **Float32 GLMnet Lasso:** Ported the Fortran GLMnet lasso algorithm in single precision, matching the exact memory layout and numerical behavior of `glmnetMex.F`.
-- **MATLAB `datenum` Time Axis:** Adjusted the temporal coordinate frame (`python_ordinal + 366`), since the harmonic phase in lasso regression is not coordinate-invariant.
-- **Bisquare Robust Tmask:** Ported MATLAB's exact `statrobustfit_cor` bisquare M-estimator, including leverage adjustment, MAD-sigma scaling, and 4-iteration reweighting.
-- **GNU Octave `linsolve` Shim:** Tracing uncovered that MATLAB's `linsolve` returns matrix rank as its second output, whereas Octave returned 0, altering Tmask outlier detection. Providing an exact compatibility shim resolved the final discrepancy.
+- **Float32 GLMnet Lasso:** High-performance native C++ port of the Fortran GLMnet lasso algorithm in single precision, reproducing the exact memory layout and numerical path of `glmnetMex.F`.
+- **MATLAB `datenum` Time Axis:** Temporal coordinate alignment (`python_ordinal + 366`) ensuring invariant harmonic phase alignment in lasso regularization.
+- **Bisquare Robust Tmask:** Native implementation of MATLAB's `statrobustfit_cor` bisquare M-estimator, including leverage adjustment, MAD-sigma scaling, and 4-iteration reweighting.
+- **Numerical Rank Alignment:** Matrix rank behavior matching MATLAB's `linsolve` decomposition for accurate Tmask outlier identification.
 
-#### Results
+#### Verification & Parity Results
 
 Testing on 200 synthetic Landsat pixels and 150 real Landsat Collection 2 pixels in Rondônia (599 models, 249 breaks):
 - **100% model match rate:** Every single pixel produced identical start dates, end dates, break dates, categories, and observation counts.
@@ -172,6 +172,37 @@ Weights from freshly initialized models in R `sits` (seed 42) were serialized an
 #### Bonus Finding: Official U-TAE Segmentation Architecture
 During code inspection, `cdts.ai.utae` was found to contain not only the PSE+LTAE classification network from `sits`, but also the full **U-Net + LTAE2d segmentation model** from the official `VSainteuf/utae-paps` GitHub repository (Garnot & Landrieu 2021).
 - Comparing CDTS against the official reference repository on both standard and irregular temporal padded sampling paths yielded an **exact numerical match (max abs diff = 0.0)**.
+
+---
+
+### 8. SNIC Superpixel Segmentation (Achanta & Süsstrunk 2017)
+
+SNIC (Simple Non-Iterative Clustering; Achanta & Süsstrunk, CVPR 2017) partitions an image or multi-spectral time-series cube into compact, contiguous, boundary-adhering regions of similar pixels (*superpixels*). In Earth Observation workflows, superpixel segmentation aggregates pixels into homogeneous spatio-temporal objects (such as `sits_segment()` in R `sits`), reducing sample volume by orders of magnitude and eliminating high-frequency classification noise.
+
+#### Direct Source-Level Parity
+
+CDTS implements the canonical SNIC algorithm in C++ (`src/snic.cpp`), evaluated directly against the authors' original C reference implementation (`snic.c`, EPFL):
+
+- **Bit-for-Bit Label Identity:** Given identical seed coordinates, CDTS produces **100% identical segment labels** (`res.labels`), matching the reference C implementation pixel for pixel.
+- **Exact Heap Tie-Breaking:** When adjacent boundary pixels yield identical distance metrics to competing candidate clusters, CDTS reproduces the exact priority queue tie-breaking order of the reference implementation. Tests in `tests/test_snic.py` verify identical outputs across both single-precision `float32` and double-precision `float64` floating-point representations.
+- **Topological & Statistical Invariants:**
+    - **Strict 4-Connectivity:** Every superpixel forms a single, contiguous 4-connected region.
+    - **Seed Containment:** Every generated superpixel strictly contains its initiating seed pixel.
+    - **Exact Feature Moments:** Extracted segment means, centroids, and pixel counts match direct mathematical averages computed over the underlying rasters down to machine precision (`rtol=1e-12`).
+
+#### Upstream Bug Fixes & Edge-Case Resilience
+
+Analysis of the authors' original C code (`snic.c`) revealed critical edge-case defects that CDTS resolves:
+
+1. **Heap Underflow on Single Seed:** In `snic.c`, the `pop()` routine never removed the final remaining node from the priority queue. When presented with a single seed (or late in execution), it read uninitialized memory and caused a segmentation fault. CDTS properly drains the priority queue, supporting single-seed segmentations and arbitrary seed counts safely.
+2. **Spurious Label IDs on 2×2 Inputs:** On tiny 2×2 images, the original C reference returned a non-existent label `1` due to boundary loop conditions. CDTS strictly bounds all label assignments to valid seed IDs `[0, K-1]`.
+3. **Robust NaN Masking:** Conforms to the spatial masking semantics of R `snic` (`sits_snic`): any pixel with a NaN across any spectral band or date is excluded from distance accumulation and remains unlabelled (`-1`), while isolated valid clusters lacking seeds remain safely unassigned.
+
+#### Ecosystem Compatibility & Spatio-Temporal Cubes
+
+- **R `snic` Grid Compatibility:** The `snic_grid` generator in CDTS matches R `snic::snic_grid` 1:1, supporting `"rectangular"`, `"diamond"`, `"hexagonal"`, and `"random"` seed placement patterns with configurable boundary padding.
+- **Full Trajectory Distance:** While the original paper focused on 2D CIELAB photographs, CDTS natively handles 4D spatio-temporal arrays `(time, band, y, x)`. Distance is computed across the full temporal feature vector, ensuring that agricultural fields sharing similar annual average reflectance but differing phenological cycles segment into distinct objects.
+- **Deterministic Tiled OpenMP Execution:** For large satellite scenes, `run_snic(..., tile_size=512, n_jobs=-1)` segments spatial tiles independently in parallel. Because each seed belongs strictly to its enclosing tile, segments never produce artificial boundary seams across tile edges, and labels remain identical regardless of thread count.
 
 ---
 

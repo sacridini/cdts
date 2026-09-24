@@ -73,19 +73,19 @@
     <rect class="card-bg" x="0" y="0" width="220" height="350" rx="8" />
     <path class="card-hdr" d="M0,8 A8,8 0 0,1 8,0 L212,0 A8,8 0 0,1 220,8 L220,38 L0,38 Z" />
     <text class="hdr-text" x="110" y="24">2. Source-Level Port Parity</text>
-    <text class="scope-text" x="110" y="55">LandTrendr (IDL) • CCDC (MATLAB)</text>
+    <text class="scope-text" x="110" y="55">LandTrendr • CCDC • SNIC</text>
 
     <!-- Step 1 -->
     <rect class="step-box" x="10" y="68" width="200" height="50" rx="6" />
     <text class="step-title" x="110" y="88">Original Author Source</text>
-    <text class="step-desc" x="110" y="104">Canonical IDL .pro &amp; MATLAB .m code</text>
+    <text class="step-desc" x="110" y="104">Canonical IDL, MATLAB &amp; C code</text>
 
     <!-- Arrow 1-2 -->
     <line class="arrow" x1="110" y1="120" x2="110" y2="134" />
 
     <!-- Step 2 -->
     <rect class="step-box" x="10" y="137" width="200" height="50" rx="6" />
-    <text class="step-title" x="110" y="157">GDL &amp; Octave Runtimes</text>
+    <text class="step-title" x="110" y="157">GDL, Octave &amp; C Harness</text>
     <text class="step-desc" x="110" y="173">Direct execution of original routines</text>
 
     <!-- Arrow 2-3 -->
@@ -98,9 +98,10 @@
 
     <!-- Outcome -->
     <rect class="outcome-box" x="10" y="272" width="200" height="66" rx="6" />
-    <text class="outcome-lbl" x="110" y="291">Primary Validation Metric</text>
-    <text class="outcome-val" x="110" y="309">100% Vertex Years (330/330)</text>
-    <text class="outcome-val" x="110" y="325">100% Models Matched (350/350)</text>
+    <text class="outcome-lbl" x="110" y="289">Primary Validation Metric</text>
+    <text class="outcome-val" x="110" y="303" style="font-size: 9.5px;">100% Vertex Years (LT: 330/330)</text>
+    <text class="outcome-val" x="110" y="317" style="font-size: 9.5px;">100% Models Matched (CCDC: 350/350)</text>
+    <text class="outcome-val" x="110" y="331" style="font-size: 9.5px;">100% Exact Labels (SNIC C Parity)</text>
   </g>
 
   <!-- CARD 3: State-Dict Weight Porting -->

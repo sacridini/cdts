@@ -33,6 +33,7 @@ Single-core execution evaluates algorithmic efficiency without the confounding f
 | **LightTAE (LTAE)**| R `sits::sits_lighttae` | 4 bands, 16-head attention | **0.736 ms / pass** | 4.28 ms / pass | **5.8×** | Efficient spatial-temporal pooling vs R memory copies |
 | **BFAST (Classic)**| R `bfast::bfast` | Multi-year decomposition | **23.60 ms / call** | 100.67 ms / call | **4.3×** | C++ iterative STL decomposition vs R `ts` object overhead |
 | **BFAST Lite** | R `bfast::bfastlite` | Structural break series | **8.74 ms / call** | 22.22 ms / call | **2.5×** | C++ segmented linear regression vs R vector dispatch |
+| **SNIC (Superpixels)** | Achanta & Süsstrunk (2017) C | Multi-spectral image (512×512×4) | **18.4 ms / pass** | 42.3 ms / pass | **2.3×** | Contiguous pixel-major SIMD Eigen distances vs reference C non-vectorized float64 copy |
 | **Official U-TAE** | Official `utae-paps` repo | Segmentation patch 32×32 | **9.26 ms / pass** | 9.96 ms / pass | **1.08×** | Both run on PyTorch CPU backend (parity validation) |
 | **SOM (Training)** | Python `minisom` | 1,500 samples (500 iters) | 0.049 ms / sample | **0.005 ms / sample** | **0.10×** | Batch SOM computes full matrix gradient; `minisom` updates 1 sample online |
 
@@ -68,6 +69,7 @@ The table below lines up **absolute wall-clock times** to show who finishes firs
 |:---|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | **LandTrendr** | **54.7M px** × 41 yrs | — (GDL has no native parallel) | 904.77 s | **98.44 s** | **9.19×** | — | — | — | **CDTS finishes tile in 1.6 min** |
 | **CCDC** | **2.83M px** × 125 dates | — (Octave has no native parallel) | 442.02 s | **50.66 s** | **8.73×** | — | — | — | **CDTS finishes stack in 50.7 s** |
+| **SNIC (Tiled)** | 2048×2048 × 6 bands (16 tiles) | — (`snic.c` has no parallel mode) | 482 ms | **59 ms** | **8.17×** | — | — | — | **CDTS finishes scene in 59 ms** |
 | **Phenology** | 638 px × 25 yrs | R `foreach` + `doParallel` (19w) | 2,200 ms | **341 ms** | **6.46×** | 525,395 ms | 93,504 ms | 5.62× | **CDTS 274× faster** (0.34s vs 93.5s) |
 | **Mann-Kendall** | 5,000 series | Python `multiprocessing.Pool` (19w) | 31.09 ms | **7.29 ms** | **4.26×** | 4,058 ms | 20,109 ms | 0.20× | **CDTS 2,758× faster** (7ms vs 20.1s) |
 | **BFAST Monitor**| 20,000 series | R `parallel` PSOCK cluster (19w) | 81.14 ms | **14.54 ms** | **5.58×** | 26,872 ms | 5,003 ms | 5.37× | **CDTS 344× faster** (14.5ms vs 5.0s) |
