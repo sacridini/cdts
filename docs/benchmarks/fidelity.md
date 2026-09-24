@@ -9,7 +9,7 @@ This page details the **methodology, test suites, and quantitative results** mea
 To ensure transparent and rigorous validation, every algorithm was tested using one of four rigorous evaluation strategies:
 
 ```mermaid
-flowchart TD
+flowchart LR
     subgraph S1["1. Ground-Truth Injection"]
         direction TB
         G1["Synthetic Series"] --> G2["Injected Breaks & Trends"]
@@ -33,6 +33,8 @@ flowchart TD
         R1["Real Landsat & MODIS Stacks"] --> R2["Long-Format Pixel-Year Join"]
         R2 --> R3["MAE, RMSE, Error Tolerance Windows"]
     end
+
+    S1 ~~~ S2 ~~~ S3 ~~~ S4
 ```
 
 1. **Controlled Ground-Truth Injection (Statistical Algorithms):**
