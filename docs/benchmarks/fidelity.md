@@ -6,47 +6,29 @@ This page details the **methodology, test suites, and quantitative results** mea
 
 ## Validation Methodology
 
-To ensure transparent and rigorous validation, every algorithm was tested using one of four rigorous evaluation strategies:
+To ensure transparent and reproducible validation, CDTS benchmarks its **7 core algorithm families (13 implementations)** across **four rigorous evaluation pillars**, ranging from controlled ground-truth injection to bit-for-bit source parity and 25-year satellite raster joins:
 
-```mermaid
-flowchart LR
-    subgraph S1["1. Ground-Truth Injection"]
-        direction TB
-        G1["Synthetic Series"] --> G2["Injected Breaks & Trends"]
-        G2 --> G3["Exact Statistical & Index Agreement"]
-    end
+<div class="benchmark-card" style="margin-bottom: 24px;">
+  <img src="../../assets/validation_methodology.svg" alt="Validation Methodology Framework" class="benchmark-chart" style="width: 100%; max-width: 960px; display: block; margin: 0 auto;" />
+  <p class="bm-kpi-sub" style="margin-top: 12px; text-align: center;">
+    The 4 evaluation strategies (pillars) used across CDTS algorithm families to guarantee mathematical and numerical fidelity.
+  </p>
+</div>
 
-    subgraph S2["2. Source-Level Port Parity"]
-        direction TB
-        O1["Original IDL & MATLAB Source"] --> O2["GDL & GNU Octave Runtime"]
-        O2 --> O3["Bit-for-Bit Vertex & Model Validation"]
-    end
-
-    subgraph S3["3. State-Dict Weight Porting"]
-        direction TB
-        W1["Export Tensor state_dict"] --> W2["Load into PyTorch cdts.ai"]
-        W2 --> W3["Floating-Point Output Diff (1e-8)"]
-    end
-
-    subgraph S4["4. Real Multi-Decadal Stacks"]
-        direction TB
-        R1["Real Landsat & MODIS Stacks"] --> R2["Long-Format Pixel-Year Join"]
-        R2 --> R3["MAE, RMSE, Error Tolerance Windows"]
-    end
-
-    S1 ~~~ S2 ~~~ S3 ~~~ S4
-```
-
-1. **Controlled Ground-Truth Injection (Statistical Algorithms):**
-   Using parameterized synthetic time series with known disturbance dates, recovery slopes, noise amplitudes, and missing observation gaps (NaN dropout). This isolates algorithm behavior and permits exact metric verification.
-2. **Direct Source-Level Parity (LandTrendr & CCDC):**
-   Executing the authentic, original source code written by the authors:
-   - **LandTrendr:** The original Kennedy *et al.* (2010) IDL source (`fit_trajectory_v2.pro` / `tbcd_v2.pro`) executed via GNU Data Language (GDL 1.1.2) with verified shims for missing builtins.
-   - **CCDC:** The original Zhu & Woodcock (2014) MATLAB source (`TrendSeasonalFit_v12_30Line.m`) with compiled Fortran GLMnet (`glmnetMex.F`) executed unmodified under GNU Octave 11.3.
-3. **Weight Porting & Architectural Equivalence (Deep Learning):**
-   Untrained random weights (seeded identically) exported from R `torch` (Lantern/LibTorch) and loaded into `cdts.ai` via direct `state_dict` mapping. By supplying the exact same input tensor to both models, outputs can be tested for bitwise floating-point equivalence without confounding training noise.
-4. **Multi-Decadal Real-World Rasters (Phenology):**
-   Using real 25-year Landsat/MODIS EVI stacks (638 pixels × 575 timesteps, 2001–2025). Outputs are evaluated via a full outer join across pixel coordinates, years, curve types, and phenometric indices.
+1. **Pillar 1: Controlled Ground-Truth Injection (Statistical Algorithms):**
+   - **Evaluated Scope:** `BFAST (Classic)`, `BFAST Monitor`, `BFAST Lite`, `TWDTW`, and `SOM`.
+   - **Protocol:** Using parameterized synthetic time series with known disturbance dates, recovery slopes, noise amplitudes, and missing observation gaps (NaN dropout). This isolates algorithm behavior and permits exact metric verification against mathematical ground truth.
+2. **Pillar 2: Direct Source-Level Port Parity (LandTrendr & CCDC):**
+   - **Evaluated Scope:** `LandTrendr` and `CCDC`.
+   - **Protocol:** Executing the authentic, original source code written by the original algorithm authors:
+     - **LandTrendr:** The original Kennedy *et al.* (2010) IDL source (`fit_trajectory_v2.pro` / `tbcd_v2.pro`) executed via GNU Data Language (GDL 1.1.2) with verified shims for missing builtins.
+     - **CCDC:** The original Zhu & Woodcock (2014) MATLAB source (`TrendSeasonalFit_v12_30Line.m`) with compiled Fortran GLMnet (`glmnetMex.F`) executed unmodified under GNU Octave 11.3.
+3. **Pillar 3: Weight Porting & Architectural Equivalence (Deep Learning):**
+   - **Evaluated Scope:** `TempCNN`, `LightTAE (LTAE)`, and `Official U-TAE`.
+   - **Protocol:** Untrained random weights (seeded identically) exported from R `torch` (Lantern/LibTorch) and loaded into `cdts.ai` via direct `state_dict` mapping. By supplying the exact same input tensor to both models, outputs can be tested for bitwise floating-point equivalence without confounding training noise.
+4. **Pillar 4: Multi-Decadal Real-World Rasters (Phenology):**
+   - **Evaluated Scope:** `Phenology Extraction` (Beck, Elmore, Gu double-logistic formulations).
+   - **Protocol:** Using real 25-year Landsat/MODIS EVI stacks (638 pixels × 575 timesteps, 2001–2025). Outputs are evaluated via a full outer join across pixel coordinates, years, curve types, and phenometric indices.
 
 ---
 
