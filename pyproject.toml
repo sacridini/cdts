@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cdts"
-version = "0.19.0"
+version = "0.20.0"
 description = "Change Detection and Time Series for Python (CDTS) - LandTrendr and CCDC tools for Python"
 license = "GPL-2.0-or-later"
 license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
