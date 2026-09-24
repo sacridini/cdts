@@ -67,8 +67,8 @@ In early testing, CDTS achieved only a **30% match rate** in vertex count agains
 1. **Fitting on Raw vs. Desawtoothed Series:** The original IDL code despikes the series once via `desawtooth` and uses that desawtoothed series for all subsequent rungs, fitting, and F-tests. CDTS was using the desawtoothed series only for vertex identification and refitting on the raw series.
 2. **Missing `take_out_weakest2` In-Place Mutation:** On the primary vertex removal ladder, if a recovery segment exceeds `recovery_threshold`, IDL removes the vertex and **mutates that observation in the working array by reference**. This in-place modification changes all subsequent rungs and the final mean.
 3. **Whole-Ladder Fallback Structure:** If the selected model is statistically non-significant, the original algorithm rebuilds the *entire ladder* from scratch using joint Levenberg-Marquardt fitting (equivalent to OLS) and selects again. CDTS was mistakenly attempting rung-by-rung refits.
-4. **Missing Flat-Line Fallback:** If the fallback model remains non-significant ($p > \text{pval}$), the original IDL code returns a flat horizontal line at the series mean. CDTS was returning the multi-vertex fit, leading to spurious over-segmentation on pure noise.
-5. **Float32 P-Value Tie Breaking:** The original IDL code computes $p = 1 - \text{F\_CDF}$ using single-precision `float32`. Any $p < 6 \times 10^{-8}$ rounds to exactly `0.0`. Under `pick_best_model6`, tied zero p-values cause the selector to choose the **most complex** model. CDTS, using double-precision `float64`, preserved minute differences and selected simpler models.
+4. **Missing Flat-Line Fallback:** If the fallback model remains non-significant (`p > pval`), the original IDL code returns a flat horizontal line at the series mean. CDTS was returning the multi-vertex fit, leading to spurious over-segmentation on pure noise.
+5. **Float32 P-Value Tie Breaking:** The original IDL code computes `p = 1 - F_CDF` using single-precision `float32`. Any `p < 6 × 10⁻⁸` (`6e-8`) rounds to exactly `0.0`. Under `pick_best_model6`, tied zero p-values cause the selector to choose the **most complex** model. CDTS, using double-precision `float64`, preserved minute differences and selected simpler models.
 
 #### Resolution & Parity Lock-in
 
@@ -78,7 +78,7 @@ Once these five behaviors were integrated into `src/landtrendr.cpp` in **CDTS 0.
 - Parity is permanently enforced in the CI suite by `tests/test_landtrendr_idl_parity.py` across 14 GDL-derived edge cases.
 
 !!! tip "The Single Residual Tie Edge Case"
-    The only non-identical value out of 300 series occurred on a stable series where a segment spanned exactly $1/\text{threshold}$ years. In exact arithmetic, $|\text{slope}|/\text{range} = \text{threshold}$, and the comparison is decided by floating-point rounding inside the solver.
+    The only non-identical value out of 300 series occurred on a stable series where a segment spanned exactly `1 / threshold` years. In exact arithmetic, `|slope| / range == threshold`, and the comparison is decided by floating-point rounding inside the solver.
 
 ---
 
@@ -100,7 +100,7 @@ For **CDTS 0.19.0**, `src/ccdc.cpp` was completely rewritten as a line-by-line p
 
 Testing on 200 synthetic Landsat pixels and 150 real Landsat Collection 2 pixels in Rondônia (599 models, 249 breaks):
 - **100% model match rate:** Every single pixel produced identical start dates, end dates, break dates, categories, and observation counts.
-- Harmonic coefficients and residual magnitudes matched to **$\sim 5 \times 10^{-10}$ relative tolerance** (the export limit).
+- Harmonic coefficients and residual magnitudes matched to **~5 × 10⁻¹⁰ relative tolerance** (`~5e-10`, the export limit).
 - Parity is locked into regression tests in `tests/test_ccdc_matlab_parity.py`.
 
 ---
@@ -155,7 +155,7 @@ TWDTW (Maus *et al.* 2016) calculates the optimal alignment between satellite ti
 
 - Evaluated against Python `minisom` using 1,500 samples distributed across 5 Gaussian clusters.
 - **Adjusted Rand Index (ARI):** CDTS vs. `minisom` yielded an ARI of **0.394**.
-- **Algorithmic Distinction:** This is expected. `minisom` implements **Online SOM** (stochastic sequential updates per sample), whereas CDTS implements **Batch SOM** (accumulating activations across the dataset before updating weights). Batch SOM is deterministic and readily parallelizable across threads. Both implementations recover the 5-cluster ground truth equally well ($\text{ARI} \approx 0.465$ for CDTS and $0.473$ for `minisom`), with quantization errors within 4% of each other.
+- **Algorithmic Distinction:** This is expected. `minisom` implements **Online SOM** (stochastic sequential updates per sample), whereas CDTS implements **Batch SOM** (accumulating activations across the dataset before updating weights). Batch SOM is deterministic and readily parallelizable across threads. Both implementations recover the 5-cluster ground truth equally well (`ARI ≈ 0.465` for CDTS and `0.473` for `minisom`), with quantization errors within 4% of each other.
 
 ---
 
@@ -166,7 +166,7 @@ For deep-learning architectures, we verified that `cdts.ai` represents an exact 
 #### TempCNN & LightTAE (vs. R `sits`)
 Weights from freshly initialized models in R `sits` (seed 42) were serialized and loaded directly into `cdts.ai.TempCNN` and `cdts.ai.utae.LightTAE`:
 - Parameter tensor shapes and layer names matched **1:1 with zero translation tables required**.
-- Given identical random inputs, the maximum absolute difference between CDTS outputs and R `sits` outputs was **$5.59 \times 10^{-9}$** for TempCNN and **$8.94 \times 10^{-8}$** for LightTAE, with a Pearson correlation of **1.000000**.
+- Given identical random inputs, the maximum absolute difference between CDTS outputs and R `sits` outputs was **5.59 × 10⁻⁹** (`5.59e-9`) for TempCNN and **8.94 × 10⁻⁸** (`8.94e-8`) for LightTAE, with a Pearson correlation of **1.000000**.
 - CDTS reproduces LibTorch forward passes down to machine floating-point precision.
 
 #### Bonus Finding: Official U-TAE Segmentation Architecture

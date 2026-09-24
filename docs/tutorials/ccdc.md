@@ -127,7 +127,7 @@ The number of parameters per segment is `3 + (num_bands * 9)`. The indices are:
 - **Index 2**: `t_break` (Date of the detected break/change, if any; 0 if no break)
 - **For each band (starting at Index 3)**:
   - `rmse` (Root Mean Square Error of the fit)
-  - 8 Harmonic Coefficients: Intercept, Slope, $cos(\omega t)$, $sin(\omega t)$, $cos(2\omega t)$, $sin(2\omega t)$, $cos(3\omega t)$, $sin(3\omega t)$ (where $\omega = 2\pi / 365.25$). As in the original, $t$ is the MATLAB datenum (Python ordinal day + 366); `cdts.ccdc.predict` and `predict_synthetic_image` take ordinal days and handle the offset.
+  - 8 Harmonic Coefficients: Intercept, Slope, `cos(ωt)`, `sin(ωt)`, `cos(2ωt)`, `sin(2ωt)`, `cos(3ωt)`, `sin(3ωt)` (where `ω = 2π / 365.25`). As in the original, `t` is the MATLAB datenum (Python ordinal day + 366); `cdts.ccdc.predict` and `predict_synthetic_image` take ordinal days and handle the offset.
 
 ### Extracting the Date of the First Change
 

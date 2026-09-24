@@ -54,13 +54,13 @@ The chart below shows the speedup achieved when scaling from **1 thread to all 2
   </div>
   <img src="../../assets/benchmarks_parallel.svg" alt="Multi-Core Scaling" class="benchmark-chart" />
   <p class="bm-kpi-sub" style="margin-top: 10px;">
-    Relative parallel scaling factor ($T_1 / T_{\text{multi}}$) on 20 threads. Notice the Python IPC penalty on Mann-Kendall, where Python <code>multiprocessing.Pool</code> ran 5× slower than sequential execution ($0.20\times$) due to serialization overhead.
+    Relative parallel scaling factor (T₁ / T_multi) on 20 threads. Notice the Python IPC penalty on Mann-Kendall, where Python <code>multiprocessing.Pool</code> ran 5× slower than sequential execution (0.20×) due to serialization overhead.
   </p>
 </div>
 
 ### Relative Gain vs. Absolute Time
 
-A common benchmarking pitfall is looking only at relative gain ($T_1 / T_{multi}$). Reference tools running in R or Python often show high relative scaling simply because their single-threaded baselines are slow.
+A common benchmarking pitfall is looking only at relative gain (T₁ / T_multi). Reference tools running in R or Python often show high relative scaling simply because their single-threaded baselines are slow.
 
 The table below lines up **absolute wall-clock times** to show who finishes first when both sides utilize all available CPU cores:
 
@@ -80,7 +80,7 @@ The table below lines up **absolute wall-clock times** to show who finishes firs
 | **LightTAE** | Batch = 512 | R `torch` intra-op threads | 32.77 ms | **14.61 ms** | **2.24×** | 42.08 ms | 26.98 ms | 1.56× | **CDTS 1.85× faster** (14.6ms vs 27.0ms) |
 
 !!! warning "The Python IPC Penalty on Mann-Kendall"
-    On a batch of 5,000 short time series, running Python's standard `multiprocessing.Pool(19)` caused execution time to explode from **4.06 seconds** (sequential) to **20.11 seconds** (parallel) — a **5× slowdown** ($0.20\times$ speedup). The operating system overhead of pickling objects, IPC socket transfers, and process synchronization dwarfed the actual statistical computation. In contrast, CDTS's native OpenMP thread pool in C++ has sub-microsecond synchronization overhead, achieving a true **4.26× speedup** (down to **7.29 milliseconds**).
+    On a batch of 5,000 short time series, running Python's standard `multiprocessing.Pool(19)` caused execution time to explode from **4.06 seconds** (sequential) to **20.11 seconds** (parallel) — a **5× slowdown** (0.20× speedup). The operating system overhead of pickling objects, IPC socket transfers, and process synchronization dwarfed the actual statistical computation. In contrast, CDTS's native OpenMP thread pool in C++ has sub-microsecond synchronization overhead, achieving a true **4.26× speedup** (down to **7.29 milliseconds**).
 
 ---
 

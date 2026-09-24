@@ -8,7 +8,7 @@
 - **Low Memory Footprint**: Uses a 2-row algorithm to keep the dynamic programming matrix strictly inside the CPU L1 Cache.
 - **Multivariate (Multi-Band) Support**: Handles multiple spectral bands simultaneously using Eigen's Euclidean norms.
 - **Sakoe-Chiba Band**: Constrains the time-warping window to avoid impossible phenological alignments.
-- **Lower Bounding (LB Keogh)**: Prunes non-matching pixels in $O(N)$ time before the $O(N \times M)$ DTW matrix is even allocated.
+- **Lower Bounding (LB Keogh)**: Prunes non-matching pixels in `O(N)` time before the `O(N × M)` DTW matrix is even allocated.
 - **Subsequence Matching**: Can search for short crop patterns inside long continuous time series.
 
 ## Usage
