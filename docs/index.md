@@ -13,6 +13,7 @@ An ultra-fast, cloud-native Python library for **Remote Sensing Time-Series Anal
 
 [Get Started](getting-started/installation.md){ .md-button .md-button--primary }
 [Browse Tutorials](tutorials/index.md){ .md-button }
+[Benchmarks & Fidelity](benchmarks/index.md){ .md-button }
 [View on GitHub :material-github:](https://github.com/sacridini/cdts){ .md-button }
 
 </div>
@@ -100,6 +101,14 @@ CDTS relies on the SpatioTemporal Asset Catalog (STAC) standard and can pull tim
     Full walkthroughs with theory, code, and validation against reference implementations.
 
     [:octicons-arrow-right-24: Tutorials](tutorials/index.md)
+
+-   :material-chart-box:{ .lg .middle } **Benchmarks & Validation**
+
+    ---
+
+    Explore empirical fidelity tests against original IDL, MATLAB, and R tools, plus multi-core CPU scaling.
+
+    [:octicons-arrow-right-24: Benchmarks Suite](benchmarks/index.md)
 
 -   :material-console:{ .lg .middle } **Use the CLI**
 

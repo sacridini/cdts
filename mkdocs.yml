@@ -59,6 +59,9 @@ markdown_extensions:
   - md_in_html
   - tables
 
+extra_css:
+  - assets/benchmarks.css
+
 extra:
   social:
     - icon: fontawesome/brands/github
@@ -101,5 +104,9 @@ nav:
           - Google Earth Engine (GEE): tutorials/gee-downloads.md
       - Infrastructure:
           - Parallel & Cloud Processing: tutorials/parallel-cloud-processing.md
+  - Benchmarks & Validation:
+      - Overview & Methodology: benchmarks/index.md
+      - Algorithm Fidelity: benchmarks/fidelity.md
+      - Performance & Scaling: benchmarks/performance.md
   - CLI Reference: cli.md
   - API Reference: api.md
