@@ -9,7 +9,9 @@
 //    Fortran GLMnet in SINGLE precision -- glmnetMex.F copies the double
 //    inputs into `real` arrays, including the date column (~7e5, where float32
 //    resolution is 1/16 day). glmnet_lasso() below is a float32 port of
-//    elnetu/standard/elnet1 with the same operation order.
+//    elnetu/standard/elnet1 with the same operation order. Being derived from
+//    GLMnet (GPL-2.0-only), this file is distributed under GPL version 2; see
+//    THIRD_PARTY_NOTICES.md.
 //  * the design matrix uses MATLAB datenum time (= Python ordinal + 366);
 //    a lasso is not invariant to shifting the harmonic phase.
 #include "ccdc.h"

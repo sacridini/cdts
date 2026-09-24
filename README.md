@@ -414,3 +414,9 @@ CDTS safely blends Python-based distributed workflows (Dask) with highly paralle
 - **OpenMP CPU Scaling**: All C++ algorithms expose the `n_jobs` parameter, and default to it (`n_jobs=-1`) in their Python entry points. `n_jobs=-1` reserves one CPU core (`std::max(1, max_threads - 1)`) so the host OS stays responsive during intensive workloads — standardized across every parallel algorithm (LandTrendr, CCDC, TWDTW, SOM, Phenology, Mann-Kendall, BFAST Monitor, BFAST Lite). Pass an explicit positive integer to use a specific thread count instead (e.g. all cores with no reservation, or fewer to leave more headroom).
 - **Memory Footprint**: Algorithms like TWDTW are strictly optimized via a 2-Row Dynamic Programming algorithm, restricting mathematical matrices to the CPU's L1 cache and avoiding heavy allocations.
 - **Cross-Platform Compatibility**: Uses safe `#ifdef _OPENMP` boundaries to gracefully fallback to single-threaded operations on macOS environments using Apple Clang (which lacks native `libomp`), allowing `pip install` to succeed universally.
+
+---
+
+## License
+
+CDTS is free software, licensed under the [GNU General Public License v2.0 or later](LICENSE) (`GPL-2.0-or-later`). Several algorithms are ports of existing open-source implementations (bfast, strucchangeRcpp, GLMnet, pymannkendall, GERSL/CCDC, ...); their origins, licenses and copyright notices are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Because the CCDC lasso solver derives from GPL-2.0-only code, the compiled extension as a whole is distributed under GPL version 2.
