@@ -18,19 +18,26 @@ def run_landtrendr(years: Union[np.ndarray, List[int]], values: Union[np.ndarray
     """
     Run LandTrendr algorithm on a 1D time series of a single pixel.
 
+    A port of the original LandTrendr-2012 IDL segmentation (fit_trajectory_v2 /
+    tbcd_v2, Kennedy et al. 2010), validated vertex-for-vertex against that code.
+
     Args:
         years (np.ndarray): 1D array of years.
-        values (np.ndarray): 1D array of spectral values.
+        values (np.ndarray): 1D array of spectral values. NaN marks a missing year: it is
+            left out of the fit, and a missing first/last year gets a flat edge vertex,
+            as in the original.
         max_segments (int): Maximum number of segments to fit.
         pval_threshold (float): P-value threshold for segment significance.
         recovery_threshold (float): Max allowed recovery rate per year.
-        prevent_fast_recovery (bool): Reject segments with biologically impossible fast recovery.
+        prevent_fast_recovery (bool): Kept for API compatibility; has no effect. As in the
+            original, the recovery_threshold check is always applied (pass a large
+            recovery_threshold to effectively disable it).
         spike_threshold (float): Desawtooth dampening factor (1.0 = no dampening). LT-GEE's spikeThreshold.
         best_model_proportion (float): Prefer the most-vertex candidate model whose p-value is at
             most this proportion of the lowest p-value found among candidates. LT-GEE's bestModelProportion.
         vertex_count_overshoot (int): Extra vertices allowed in the initial candidate pool beyond
             max_segments + 1, pruned back down before model selection. LT-GEE's vertexCountOvershoot.
-        min_observations_needed (int): Below this many observations, skip fitting entirely and
+        min_observations_needed (int): Below this many (valid) observations, skip fitting entirely and
             return the raw trajectory unsegmented. LT-GEE's minObservationsNeeded.
         modifier (float): +1.0 or -1.0. The segmentation's asymmetric heuristics (trailing-edge
             recovery suppression, the recovery-rate eligibility check) are only meaningful once the
@@ -74,15 +81,16 @@ def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: in
         values (np.ndarray): 3D array of spectral values [Y, X, Time].
         max_segments (int): Maximum number of segments to fit.
         pval_threshold (float): P-value threshold for segment significance.
-        no_data_value (float): No data value in the array.
+        no_data_value (float): No data value in the array. Years holding it (or NaN) are left
+            out of that pixel's fit, like NaN in run_landtrendr; all-no-data pixels are skipped.
         recovery_threshold (float): Max allowed recovery rate per year.
-        prevent_fast_recovery (bool): Reject segments with biologically impossible fast recovery.
+        prevent_fast_recovery (bool): Kept for API compatibility; has no effect (see run_landtrendr).
         spike_threshold (float): Desawtooth dampening factor (1.0 = no dampening). LT-GEE's spikeThreshold.
         best_model_proportion (float): Prefer the most-vertex candidate model whose p-value is at
             most this proportion of the lowest p-value found among candidates. LT-GEE's bestModelProportion.
         vertex_count_overshoot (int): Extra vertices allowed in the initial candidate pool beyond
             max_segments + 1, pruned back down before model selection. LT-GEE's vertexCountOvershoot.
-        min_observations_needed (int): Below this many observations, skip fitting entirely and
+        min_observations_needed (int): Below this many (valid) observations, skip fitting entirely and
             return the raw trajectory unsegmented. LT-GEE's minObservationsNeeded.
         modifier (float): +1.0 or -1.0, orienting the segmentation's asymmetric heuristics --
             see run_landtrendr's modifier docstring. Use -1.0 for loss (index-drop) detection,

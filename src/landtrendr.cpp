@@ -23,16 +23,7 @@
 // Math Functions for Statistical Significance (P-value / F-Stat)
 // -------------------------------------------------------------
 double gammln(double xx) {
-    double x, y, tmp, ser;
-    static double cof[6] = {76.18009172947146, -86.50532032941677,
-                            24.01409824083091, -1.231739572450155,
-                            0.1208650973866179e-2, -0.5395239384953e-5};
-    y = x = xx;
-    tmp = x + 5.5;
-    tmp -= (x + 0.5) * std::log(tmp);
-    ser = 1.000000000190015;
-    for (int j = 0; j <= 5; j++) ser += cof[j] / ++y;
-    return -tmp + std::log(2.5066282746310005 * ser / x);
+    return std::lgamma(xx);
 }
 
 double betacf(double a, double b, double x) {
@@ -46,7 +37,7 @@ double betacf(double a, double b, double x) {
     if (std::abs(d) < 1.0e-30) d = 1.0e-30;
     d = 1.0 / d;
     h = d;
-    for (m = 1; m <= 100; m++) {
+    for (m = 1; m <= 1000; m++) {
         m2 = 2 * m;
         aa = m * (b - m) * x / ((qam + m2) * (a + m2));
         d = 1.0 + aa * d;
@@ -63,7 +54,7 @@ double betacf(double a, double b, double x) {
         d = 1.0 / d;
         del = d * c;
         h *= del;
-        if (std::abs(del - 1.0) < 3.0e-7) break;
+        if (std::abs(del - 1.0) < 1.0e-15) break;
     }
     return h;
 }
@@ -478,46 +469,22 @@ std::vector<double> fit_piecewise_ols(const std::vector<int>& x, const std::vect
     return beta;
 }
 
-// SSE of a piecewise-linear (verts, fitted) trajectory against the actual
-// values, at every observation (not just at the vertices themselves).
-//
-// `verts` are indices into the sorted `x`/`y` arrays, and vet_verts()/
-// take_out_weakest() never touch the first/last vertex, so
-// verts.front()==0 and verts.back()==x.size()-1 always -- every observation
-// therefore falls in exactly one segment's contiguous index range
-// [verts[j], verts[j+1]], with no need to search for it. Each segment starts
-// one past the previous one's end vertex so that shared vertex isn't counted
-// twice.
-double compute_full_sse(const std::vector<int>& x, const std::vector<double>& y,
-                         const std::vector<int>& verts, const std::vector<double>& fitted) {
-    double sse = 0.0;
-    for (size_t j = 0; j + 1 < verts.size(); ++j) {
-        int i0 = verts[j];
-        int i1 = verts[j + 1];
-        int x0 = x[i0];
-        double span = static_cast<double>(x[i1] - x0);
-        int start = (j == 0) ? i0 : i0 + 1;
-        for (int i = start; i <= i1; ++i) {
-            double interp_y = (span > 0.0)
-                ? fitted[j] + (fitted[j + 1] - fitted[j]) * static_cast<double>(x[i] - x0) / span
-                : fitted[j];
-            double err = y[i] - interp_y;
-            sse += err * err;
-        }
-    }
-    return sse;
-}
-
 // Fits vertex y-values early-to-late, choosing per segment between a
 // point-to-point line (endpoints pinned to the actual data values) and a
 // simple regression line fit over that segment's own observations -- LT-GEE's
 // flexible per-segment fitting (Kennedy et al. 2010, Section 2.5.3). For
 // segments after the first, the regression is anchored at the already-fixed
-// start value so consecutive segments stay connected.
+// start value so consecutive segments stay connected. This is tbcd_v2.pro's
+// find_best_trace; if `slopes` is given it receives each segment's slope the
+// way find_best_trace records it (the chosen line's own slope coefficient,
+// not a re-derived vertex difference -- check_slopes compares it against a
+// threshold, so the rounding path matters on exact ties).
 std::vector<double> fit_piecewise_sequential(const std::vector<int>& x, const std::vector<double>& y,
-                                              const std::vector<int>& verts) {
+                                              const std::vector<int>& verts,
+                                              std::vector<double>* slopes = nullptr) {
     int k = static_cast<int>(verts.size());
     std::vector<double> fitted(k, 0.0);
+    if (slopes) slopes->assign(std::max(0, k - 1), 0.0);
     if (k < 2) {
         if (k == 1) fitted[0] = y[verts[0]];
         return fitted;
@@ -583,31 +550,22 @@ std::vector<double> fit_piecewise_sequential(const std::vector<int>& x, const st
         if (reg_sse < p2p_sse) {
             fitted[j] = reg_y0;
             fitted[j + 1] = reg_y1;
+            if (slopes) (*slopes)[j] = reg_slope;
         } else {
             fitted[j] = p2p_y0;
-            fitted[j + 1] = p2p_y1;
+            fitted[j + 1] = p2p_y0 + p2p_slope * span;
+            if (slopes) (*slopes)[j] = p2p_slope;
         }
     }
     return fitted;
 }
 
-// Removes whichever single interior vertex tbcd_v2.pro's take_out_weakest2 would
-// remove in its "run_mse" branch. For each candidate, draws a straight line
-// directly between its two flanking (already-fitted) vertex values -- skipping
-// the candidate -- and scores it by that line's SSE against the actual
-// observations in that local window, divided by the window's x-span. This is a
-// strictly local computation (unlike refitting the whole trajectory per
-// candidate), and it uses the CURRENT level's fitted vertex values as the line's
-// endpoints, not a fresh regression.
-//
-// take_out_weakest2's OTHER branch -- when a segment violates the recovery
-// threshold, surgically drop/smooth that specific vertex instead of picking one
-// by local MSE -- was ported and tried here too (see find_recovery_violator
-// below for the violator search it shared). It measured WORSE against a live-GEE
-// baseline on real tile data (more false-positive loss/gain detections, weaker
-// magnitude correlation) than just using this function unconditionally, so it
-// isn't wired in; find_recovery_violator now only feeds the eligibility check in
-// fit_trajectory_impl, not vertex removal.
+// Removes whichever single interior vertex tbcd_v2.pro's take_out_weakest (and
+// the "run_mse" branch of take_out_weakest2) would remove. For each candidate,
+// draws a straight line directly between its two flanking (already-fitted)
+// vertex values -- skipping the candidate -- and scores it by that line's SSE
+// against the actual observations in that local window, divided by the window's
+// x-span. The first minimum wins, matching IDL's where(mse eq min(mse))[0].
 std::vector<int> take_out_weakest(const std::vector<int>& x, const std::vector<double>& y,
                                    const std::vector<int>& verts, const std::vector<double>& vertvals) {
     int k = static_cast<int>(verts.size());
@@ -639,262 +597,356 @@ std::vector<int> take_out_weakest(const std::vector<int>& x, const std::vector<d
     return result;
 }
 
-// Finds the worst recovery-threshold violator among a candidate's segments
-// (tbcd_v2.pro's check_slopes): among segments whose scaled recovery rate
-// exceeds the threshold, returns the position in `verts` of the segment's LATTER
-// vertex -- assumed to be the culprit, matching the original's own stated
-// assumption (tracking forward through time). Returns -1 if nothing violates.
-// Used here only to gate eligibility (fit_trajectory_impl's recovery_ok) -- see
-// take_out_weakest's docstring above for why it doesn't also drive removal.
-int find_recovery_violator(const std::vector<int>& years, const std::vector<double>& fitted,
-                            const std::vector<int>& verts, double recovery_threshold) {
-    double range_of_vals = *std::max_element(fitted.begin(), fitted.end())
-                          - *std::min_element(fitted.begin(), fitted.end());
-    if (range_of_vals <= 0.0) return -1;
-
-    int worst_seg = -1;
-    double worst_scaled = -1.0;
-    for (size_t i = 0; i + 1 < verts.size(); ++i) {
-        double val_diff = fitted[i + 1] - fitted[i];
-        double yr_diff = static_cast<double>(years[verts[i + 1]] - years[verts[i]]);
-        // check_slopes.pro: "disturbance is always considered to have a positive
-        // slope, and recovery a negative slope" -- fitted/mod_values are already
-        // in modifier-space (increasing = disturbance), so the segments to
-        // scrutinize here are the NEGATIVE-slope (recovery-direction) ones, not
-        // positive ones.
-        if (val_diff < 0.0 && yr_diff > 0.0) {
-            double scaled_slope = std::abs(val_diff / yr_diff) / range_of_vals;
-            if (scaled_slope > recovery_threshold && scaled_slope > worst_scaled) {
-                worst_scaled = scaled_slope;
-                worst_seg = static_cast<int>(i);
-            }
-        }
-    }
-    return (worst_seg == -1) ? -1 : (worst_seg + 1);
-}
-
-// One candidate model in the vertex-count ladder (see fit_trajectory).
+// One rung of tbcd_v2.pro's model ladder (one element of its `info` array).
+// Everything is in modifier-space, indexed into the valid-observation arrays.
 struct CandidateModel {
     std::vector<int> verts;
-    std::vector<double> fitted;
-    double pval;
+    std::vector<double> vertvals;
+    std::vector<double> slopes;  // per segment, exactly as tbcd_v2.pro stores info.slope
     double f_stat;
-    bool recovery_ok;
+    double pval;
 };
 
-TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
-                                      const std::vector<double>& values,
-                                      const LandTrendrParams& params) {
-    TrajectoryResult out;
-    std::vector<Vertex>& vertices = out.vertices;
-    int n = years.size();
-    if (n == 0 || values.empty() || n != values.size()) {
-        return out;
+// Piecewise-linear fitted value at every observation (fill_from_vertices.pro).
+std::vector<double> interpolate_fit(const std::vector<int>& x, const std::vector<int>& verts,
+                                    const std::vector<double>& vertvals) {
+    std::vector<double> yfit(x.size(), 0.0);
+    for (size_t j = 0; j + 1 < verts.size(); ++j) {
+        int i0 = verts[j], i1 = verts[j + 1];
+        double span = static_cast<double>(x[i1] - x[i0]);
+        double slope = (span > 0.0) ? (vertvals[j + 1] - vertvals[j]) / span : 0.0;
+        for (int i = i0; i <= i1; ++i) yfit[i] = vertvals[j] + slope * (x[i] - x[i0]);
     }
+    return yfit;
+}
 
-    // Too few observations to justify fitting/simplifying at all (LT-GEE's
-    // minObservationsNeeded) -- pass the raw trajectory through unsegmented.
-    // No fit was performed, so there's no meaningful RMSE (left at 0).
-    if (n < std::max(2, params.min_observations_needed)) {
-        for (int i = 0; i < n; ++i) {
-            vertices.push_back({years[i], values[i]});
-        }
-        return out;
-    }
+// calc_fitting_stats3.pro. Every call site in tbcd_v2.pro passes
+// n_predictors = 2*(vertex count) - 2 (each segment counted as slope+intercept).
+//
+// The p-value deliberately reproduces the original's single-precision
+// `p_of_f = 1 - f_test1(...)`: the F CDF is rounded to float32 and subtracted
+// from 1 in float32, so every p below ~6e-8 collapses to exactly 0. That is not
+// cosmetic -- pick_best_model6's threshold is (2 - bestmodelproportion) * min(p),
+// so when several candidates tie at p == 0 the most-vertex one wins, whereas a
+// full-precision p would keep them distinct and pick a simpler model. Verified
+// against the original IDL run under GDL: without this, strong single
+// disturbances are systematically under-segmented relative to the reference.
+struct FitStats { double f_stat; double pval; };
 
-    // 1. Remove spikes / desawtoothing
-    std::vector<double> filtered_values = desawtooth(values, params.spike_threshold);
-
-    // fit_trajectory_v2.pro then multiplies the desawtoothed series by `modifier`
-    // ("this sets everything so disturbance is always positive [increasing]") --
-    // desawtooth commutes exactly with a uniform sign flip (its correction/
-    // prop_correction math only ever compares magnitudes or differences), so
-    // applying modifier here rather than before desawtooth is bit-identical to
-    // the original's order, but lets desawtooth() itself stay orientation-
-    // agnostic. `mod_values` mirrors the same flip for the raw (non-desawtoothed)
-    // series used everywhere below that isn't candidate-vertex discovery.
-    std::vector<double> mod_values = values;
-    if (params.modifier != 1.0) {
-        for (auto& v : filtered_values) v *= params.modifier;
-        for (auto& v : mod_values) v *= params.modifier;
-    }
-
-    // 2-3. Identify initial candidate vertices with LT-GEE's two complementary
-    // strategies (Section 2.5.2): regression-based recursive splitting builds
-    // a candidate pool of up to max_segments + 1 + vertexCountOvershoot
-    // vertices, then angle-based culling (vet_verts) prunes that overshoot
-    // slack back down to max_segments + 1 -- the fixed candidate set that
-    // step 4's model-selection ladder starts from. Kennedy et al. note both
-    // criteria matter jointly (neither alone reproduces their results).
-    int final_count = params.max_segments + 1;
-    if (final_count > n) final_count = n;
-    int overshoot_count = final_count + std::max(0, params.vertex_count_overshoot);
-    if (overshoot_count > n) overshoot_count = n;
-
-    std::vector<int> candidate_verts = find_vertices(years, filtered_values, overshoot_count, 2.0);
-    std::vector<int> current_verts = vet_verts(years, filtered_values, candidate_verts, final_count, 2.0);
-
-    // 4. Build the full ladder of candidate models, from max_segments+1 vertices
-    // down to 2. Each level's vertex set is fit with fit_piecewise_sequential
-    // (point-to-point vs. anchored-regression per segment, Section 2.5.3); if
-    // that fit isn't significant at pval_threshold, it's redone with the exact
-    // global OLS solve, which -- since the piecewise-linear model is linear in
-    // the vertex y-values -- is the closed-form equivalent of LT-GEE's
-    // "simultaneous" Levenberg-Marquardt fallback fit, retained regardless of
-    // its own p-value. Simplifying to the next level down removes whichever
-    // vertex increases SSE the least (Section 2.5.4). Every candidate is fit
-    // and scored so best_model_proportion (step 5) can choose among the whole
-    // ladder instead of only the first "good enough" one.
-    std::vector<CandidateModel> ladder;
-
-    // Null model (mean of values) SSE, shared by every candidate's F-test.
+FitStats calc_fitting_stats(const std::vector<double>& y, const std::vector<double>& yfit, int n_predictors) {
+    int n = static_cast<int>(y.size());
     double mean_y = 0.0;
-    for (double v : mod_values) mean_y += v;
+    for (double v : y) mean_y += v;
     mean_y /= n;
-    double sse_null = 0.0;
-    for (double v : mod_values) {
-        double err = v - mean_y;
-        sse_null += err * err;
+    double ss = 0.0, ss_resid = 0.0;
+    for (int i = 0; i < n; ++i) {
+        ss += (y[i] - mean_y) * (y[i] - mean_y);
+        ss_resid += (y[i] - yfit[i]) * (y[i] - yfit[i]);
     }
+    if (ss_resid > ss) ss_resid = ss;  // rounding guard when there is no trend
 
-    // p-of-F for a given (verts, fitted) pair against the shared null model above.
-    // Degrees of freedom exactly match calc_fitting_stats3.pro: every call site in
-    // tbcd_v2.pro passes n_predictors = 2*(vertex count) - 2, treating each of the
-    // V-1 segments as 2 independently-fit parameters (slope+intercept) rather than
-    // V shared vertex y-values. This matters a lot -- it roughly doubles df_regr
-    // relative to the naive "V parameters" reading, which lowers ms_regr and thus
-    // raises p-values (makes it harder to call a candidate significant) throughout
-    // the whole ladder, biasing which model best_model_proportion ends up picking.
-    struct PvalStat { double pval; double f_stat; };
-    auto score_pval = [&](const std::vector<int>& verts, const std::vector<double>& fitted) -> PvalStat {
-        double sse = compute_full_sse(years, mod_values, verts, fitted);
-        int V = static_cast<int>(verts.size());
-        int df_regr = 2 * V - 2;
-        int df_resid = n - df_regr - 1;
-        if (df_regr <= 0 || df_resid <= 0) return {1.0, 0.0};
-        double ms_regr = (sse_null - sse) / df_regr;
-        double ms_resid = sse / df_resid;
-        // calc_fitting_stats3.pro: avoid a division glitch when ms_regr underflows.
-        double f_stat = (ms_regr < 0.00001) ? 0.00001 : ms_regr / (ms_resid > 0 ? ms_resid : 1e-6);
-        return {f_pval(f_stat, df_regr, df_resid), f_stat};
-    };
+    int df_regr = n_predictors;
+    int df_resid = n - n_predictors - 1;
+    if (df_regr <= 0 || df_resid <= 0) return {0.0, 1.0};
 
-    // n_vertices_orig: tbcd_v2.pro's `n_vertices`, the vertex count right after
-    // vet_verts3 -- bounds the pick_best_model6/check_slopes retry loop below
-    // (`increment gt n_vertices`), independent of how many candidates the
-    // ladder itself ends up holding.
-    int n_vertices_orig = static_cast<int>(current_verts.size());
+    double ms_regr = (ss - ss_resid) / df_regr;
+    double ms_resid = ss_resid / df_resid;
+    // "because of glitch in f_test1, a zero mistakenly gets f score of 1"
+    double f_stat = (ms_regr < 0.00001) ? 0.00001 : ms_regr / ms_resid;
 
-    while (current_verts.size() >= 2) {
-        // Primary fit: point-to-point/anchored-regression hybrid per segment.
-        std::vector<double> fitted = fit_piecewise_sequential(years, mod_values, current_verts);
-        PvalStat stat = score_pval(current_verts, fitted);
+    double p_upper = f_pval(f_stat, df_regr, df_resid);
+    float cdf = static_cast<float>(1.0 - p_upper);
+    double pval = static_cast<double>(1.0f - cdf);
+    return {f_stat, pval};
+}
 
-        // Fallback: if that fit isn't significant, retry with the exact global
-        // OLS solve (LT-GEE's "simultaneous" LM fit) and keep it regardless.
-        if (stat.pval > params.pval_threshold) {
-            fitted = fit_piecewise_ols(years, mod_values, current_verts);
-            stat = score_pval(current_verts, fitted);
+double value_range(const std::vector<double>& v) {
+    return *std::max_element(v.begin(), v.end()) - *std::min_element(v.begin(), v.end());
+}
+
+// check_slopes.pro: a model is rejected if any recovery-direction (negative,
+// in modifier-space) segment is steeper than recovery_threshold, measured as a
+// proportion of the model's own fitted range (the range of a piecewise-linear
+// fit is the range of its vertex values).
+bool check_slopes(const CandidateModel& m, double threshold) {
+    double range_of_vals = value_range(m.vertvals);
+    for (double s : m.slopes) {
+        if (s < 0.0 && std::abs(s) / range_of_vals > threshold) return false;
+    }
+    return true;
+}
+
+// take_out_weakest2.pro, the vertex-removal step of the primary (F6) ladder.
+// If the previous rung has a recovery segment faster than `threshold`, the
+// vertex that ends that segment is treated as the culprit: an interior one is
+// dropped outright, the final one is flattened to the prior observation. In
+// both cases the OBSERVATION under that vertex is overwritten in `y` -- which
+// the original passes by reference, so the edit persists for every later
+// rung, for the F7 fallback and for the final flat-line mean. Otherwise it
+// falls through to take_out_weakest's local-MSE choice.
+std::vector<int> take_out_weakest2(const CandidateModel& info, double threshold,
+                                    const std::vector<int>& x, std::vector<double>& y,
+                                    const std::vector<int>& verts, std::vector<double> vertvals) {
+    int k = static_cast<int>(verts.size());
+    double range_of_vals = value_range(info.vertvals);
+
+    int violator = -1;
+    double worst = -1.0;
+    for (size_t s = 0; s < info.slopes.size(); ++s) {
+        double slope = info.slopes[s];
+        if (slope < 0.0 && slope != -1.0) {  // `ne -1` is in the original too
+            double scaled = std::abs(slope) / range_of_vals;
+            if (scaled > worst) { worst = scaled; violator = static_cast<int>(s); }
         }
-
-        // Recovery enforcement logic (tbcd_v2.pro's check_slopes): a candidate
-        // whose fitted segments imply a biologically-impossible fast green-up is
-        // not eligible for selection. Unconditional (no prevent_fast_recovery
-        // gate -- see the note on find_recovery_violator) and scaled by the
-        // fitted trajectory's own value range (check_slopes: scaled_slope =
-        // abs(slope)/range(yfit)) -- recovery_threshold is a proportion of the
-        // pixel's own dynamic range, not an absolute index-units-per-year rate.
-        //
-        // tbcd_v2.pro's take_out_weakest2 additionally uses this same violator
-        // search to pick which vertex to drop when simplifying (surgically
-        // removing/smoothing the culprit instead of the generic local-MSE
-        // choice). That was tried here too and measured WORSE against a live-GEE
-        // baseline on real tile data (more false-positive loss/gain detections,
-        // weaker magnitude correlation) than just using take_out_weakest()
-        // unconditionally, so it's deliberately not wired in below -- only the
-        // eligibility check (this flag) is ported, not the removal targeting.
-        bool recovery_ok = (find_recovery_violator(years, fitted, current_verts, params.recovery_threshold) == -1);
-
-        ladder.push_back({current_verts, fitted, stat.pval, stat.f_stat, recovery_ok});
-
-        if (current_verts.size() <= 2) break;
-        current_verts = take_out_weakest(years, mod_values, current_verts, fitted);
     }
 
-    if (ladder.empty()) {
-        return out;
-    }
-
-    // 5. Model selection -- a faithful port of tbcd_v2.pro's actual selection
-    // loop (not just pick_best_model6 in isolation): pick_best_model6 chooses
-    // among ALL candidates by p-value/best_model_proportion regardless of
-    // recovery validity; check_slopes is then run ONLY on that one selection;
-    // if it fails, that candidate's working p-value is poisoned to 1.0 (never
-    // eligible again) and selection retries -- up to n_vertices_orig times.
-    // This is NOT equivalent to "pre-filter to recovery-valid, then pick
-    // best": a candidate can still win even though a *different*, better-
-    // fitting candidate exists, if every candidate that beats it on p-value
-    // gets vetoed first. `work_pval` is ladder[i].pval, mutated by poisoning.
-    std::vector<double> work_pval(ladder.size());
-    for (size_t i = 0; i < ladder.size(); ++i) work_pval[i] = ladder[i].pval;
-
-    // pick_best_model6 (use_fstat=0, the default path since 2009): threshold =
-    // (2 - bestmodelproportion) * min(p_of_f) over the CURRENT (possibly
-    // poisoned) working p-values; return the first (= most-vertex, since the
-    // ladder is built most-to-least-detailed) candidate within that band, or
-    // -1 if none qualifies -- which happens whenever best_model_proportion > 1
-    // (the threshold then falls below even the minimum p-value itself), the
-    // intended trigger for the min-f_stat fallback below.
-    auto pick_best_model6 = [&]() -> int {
-        double mn = *std::min_element(work_pval.begin(), work_pval.end());
-        double thr = (2.0 - params.best_model_proportion) * mn;
-        for (size_t i = 0; i < work_pval.size(); ++i) {
-            if (work_pval[i] <= thr) return static_cast<int>(i);
+    if (violator != -1 && worst > threshold) {
+        int vi = violator + 1;
+        int idx = verts[vi];
+        if (vi == k - 1) {
+            y[idx] = y[idx - 1];
+            vertvals[k - 1] = y[idx];
+        } else {
+            double slope = (y[idx + 1] - y[idx - 1]) / static_cast<double>(x[idx + 1] - x[idx - 1]);
+            y[idx] = (x[idx] - x[idx - 1]) * slope + y[idx - 1];
+            std::vector<int> result = verts;
+            result.erase(result.begin() + vi);
+            return result;
         }
-        return -1;
-    };
+    }
+    return take_out_weakest(x, y, verts, vertvals);
+}
+
+// tbcd_v2.pro's selection loop around pick_best_model6 + check_slopes.
+// pick_best_model6 (use_fstat=0): threshold = (2 - bestmodelproportion) *
+// min(p) over the current working p-values; the first (= most-vertex) rung
+// within it wins, or none when bestmodelproportion > 1. A pick that fails
+// check_slopes has its p poisoned to 1 and selection retries, at most
+// n_vertices_orig times. With no pick, the primary (F6) ladder falls back to
+// the rung with the lowest ORIGINAL f_stat; the F7 ladder falls back to its
+// single-segment rung, marked non-significant (p = 1) so it ends up flat.
+int select_model(std::vector<CandidateModel>& ladder, double recovery_threshold,
+                 double best_model_proportion, int n_vertices_orig, bool is_f7) {
+    std::vector<double> fstats(ladder.size());
+    for (size_t i = 0; i < ladder.size(); ++i) fstats[i] = ladder[i].f_stat;
 
     int best = 0;
     int increment = 0;
     bool notdone = true;
     while (notdone) {
         ++increment;
-        int picked = pick_best_model6();
+        double mn = ladder[0].pval;
+        for (const auto& m : ladder) mn = std::min(mn, m.pval);
+        double thr = (2.0 - best_model_proportion) * mn;
+        int picked = -1;
+        for (size_t i = 0; i < ladder.size(); ++i) {
+            if (ladder[i].pval <= thr) { picked = static_cast<int>(i); break; }
+        }
+
         if (picked != -1) {
             best = picked;
-            bool ok = ladder[best].recovery_ok;
-            if (!ok) work_pval[best] = 1.0;
+            bool ok = check_slopes(ladder[best], recovery_threshold);
+            if (!ok) ladder[best].pval = 1.0;
             notdone = !ok && !(increment > n_vertices_orig);
         } else {
-            // best_model_proportion > 1: fall back to the candidate with the
-            // single lowest f_stat across the WHOLE original ladder (matching
-            // tbcd_v2.pro exactly -- unconditional, not filtered by recovery).
-            best = 0;
-            double min_f = ladder[0].f_stat;
-            for (size_t i = 1; i < ladder.size(); ++i) {
-                if (ladder[i].f_stat < min_f) { min_f = ladder[i].f_stat; best = static_cast<int>(i); }
+            if (is_f7) {
+                best = static_cast<int>(ladder.size()) - 1;
+                ladder[best].pval = 1.0;
+            } else {
+                best = static_cast<int>(std::min_element(fstats.begin(), fstats.end()) - fstats.begin());
             }
             notdone = false;
         }
     }
+    return best;
+}
 
-    const CandidateModel* chosen = &ladder[best];
+// Adds a flat vertex at the start (or end) of the full year range when the
+// first (last) year had no valid observation -- tbcd_v2.pro's "front end" /
+// "other end" blocks. If that pushes the model past max_count vertices, the
+// interior vertex with the least bend (angle_diff over all-year indices and
+// vertex values, scaled by their range) is dropped again.
+//
+// The original runs this on info.vertvals, an INTEGER array, so the angles
+// see vertex values truncated toward zero. In the "other end" block the
+// working array is a concatenation of those integers, which additionally
+// turns angle_diff's disturbance weight (ydiff2 * 2) / range into integer
+// division. Both quirks decide which vertex gets dropped, so both are kept.
+void extend_to_edge(std::vector<int>& idx, std::vector<double>& vals, bool front,
+                    int n_all, int max_count) {
+    if (front) {
+        idx.insert(idx.begin(), 0);
+        vals.insert(vals.begin(), vals.front());
+    } else {
+        idx.push_back(n_all - 1);
+        vals.push_back(vals.back());
+    }
+    int nv = static_cast<int>(idx.size());
+    if (nv - 1 <= max_count - 1) return;
 
-    // fitted values live in modifier-space throughout the ladder (see mod_values
-    // above); multiply back by modifier (self-inverse, since it's always +-1.0)
-    // so callers always see real, original-scale values -- matching
-    // fit_trajectory_v2.pro's `best_model.yfit = best.yfit * modifier`.
-    for (size_t i = 0; i < chosen->verts.size(); ++i) {
-        vertices.push_back({years[chosen->verts[i]], chosen->fitted[i] * params.modifier});
+    std::vector<long long> tv(nv);
+    for (int i = 0; i < nv; ++i) tv[i] = static_cast<long long>(std::trunc(vals[i]));
+    long long sc_yr = *std::max_element(tv.begin(), tv.end()) - *std::min_element(tv.begin(), tv.end());
+    if (sc_yr == 0) sc_yr = 1;
+
+    int minv = -1;
+    double min_ratio = std::numeric_limits<double>::max();
+    for (int i = 1; i < nv - 1; ++i) {
+        long long ydiff1 = tv[i] - tv[i - 1];
+        long long ydiff2 = tv[i + 1] - tv[i];
+        double angle1 = std::atan(static_cast<double>(ydiff1) / (idx[i] - idx[i - 1]));
+        double angle2 = std::atan(static_cast<double>(ydiff2) / (idx[i + 1] - idx[i]));
+        double weight = front ? std::max(0.0, (ydiff2 * 2.0) / static_cast<double>(sc_yr))
+                              : static_cast<double>(std::max(0LL, (ydiff2 * 2) / sc_yr));
+        double r = std::max(std::abs(angle1), std::abs(angle2)) * (weight + 1.0);
+        if (r < min_ratio) { min_ratio = r; minv = i; }
+    }
+    idx.erase(idx.begin() + minv);
+    vals.erase(vals.begin() + minv);
+}
+
+// A faithful port of fit_trajectory_v2.pro + tbcd_v2.pro (LandTrendr-2012,
+// Kennedy et al. 2010), validated vertex-for-vertex against the original IDL
+// source run under GDL. Deliberate API-level differences: NaN observations are
+// the "not in goods" years; returned vertex values are multiplied back out of
+// modifier-space and not truncated to integers (the original stores them in
+// an intarr); and degenerate inputs (too few observations, or no possible
+// split) return a sensible trajectory instead of the original's zeroed
+// placeholder structure.
+TrajectoryResult fit_trajectory_impl(const std::vector<int>& years,
+                                      const std::vector<double>& values,
+                                      const LandTrendrParams& params) {
+    TrajectoryResult out;
+    std::vector<Vertex>& vertices = out.vertices;
+    int n_all = static_cast<int>(years.size());
+    if (n_all == 0 || static_cast<int>(values.size()) != n_all) {
+        return out;
     }
 
-    // RMSE of the chosen model's fit against every observation -- LT-GEE's
-    // per-pixel noise estimate for DSNR (see TrajectoryResult). Computed in
-    // modifier-space against mod_values (matching chosen->fitted); the result
-    // is identical either way since SSE is invariant to a uniform sign flip.
-    double chosen_sse = compute_full_sse(years, mod_values, chosen->verts, chosen->fitted);
-    int chosen_df = static_cast<int>(chosen->verts.size());
-    out.rmse = std::sqrt(chosen_sse / std::max(1, n - chosen_df));
+    // `goods`: the observations actually used for fitting.
+    std::vector<int> goods;
+    for (int i = 0; i < n_all; ++i) {
+        if (!std::isnan(values[i])) goods.push_back(i);
+    }
+    int n = static_cast<int>(goods.size());
+    if (n == 0) return out;
+
+    // Too few observations to justify fitting/simplifying at all (LT-GEE's
+    // minObservationsNeeded) -- pass the raw trajectory through unsegmented.
+    // No fit was performed, so there's no meaningful RMSE (left at 0).
+    if (n < std::max(2, params.min_observations_needed)) {
+        for (int g : goods) vertices.push_back({years[g], values[g]});
+        return out;
+    }
+
+    std::vector<int> x(n);
+    std::vector<double> raw(n);
+    for (int i = 0; i < n; ++i) { x[i] = years[goods[i]]; raw[i] = values[goods[i]]; }
+
+    // 1. desawtooth, then flip into modifier-space ("this sets everything so
+    // disturbance is always positive"). This desawtoothed series is what the
+    // original feeds to EVERY later step -- vertex search, fitting, and the
+    // F-test -- not just vertex search.
+    std::vector<double> y = (params.spike_threshold < 1.0) ? desawtooth(raw, params.spike_threshold) : raw;
+    for (auto& v : y) v *= params.modifier;
+
+    // 2-3. Candidate vertices: regression-based splitting up to
+    // max_count + vertexcountovershoot, then angle-based culling back to max_count.
+    int max_count = params.max_segments + 1;
+    int overshoot_count = max_count + std::max(0, params.vertex_count_overshoot);
+    std::vector<int> orig_v = vet_verts(x, y, find_vertices(x, y, overshoot_count, 2.0), max_count, 2.0);
+    int n_vertices = static_cast<int>(orig_v.size());
+
+    // Primary (F6) model: find_best_trace -- per segment, early to late, the
+    // better of point-to-point and (anchored) regression.
+    auto make_f6 = [&](const std::vector<int>& v) {
+        CandidateModel m;
+        m.verts = v;
+        m.vertvals = fit_piecewise_sequential(x, y, v, &m.slopes);
+        FitStats st = calc_fitting_stats(y, interpolate_fit(x, v, m.vertvals), 2 * static_cast<int>(v.size()) - 2);
+        m.f_stat = st.f_stat;
+        m.pval = st.pval;
+        return m;
+    };
+
+    // Fallback (F7) model: find_best_trace3 -- all vertex values fit jointly
+    // (mpfitfun/Levenberg-Marquardt in the original; the model is linear in the
+    // vertex values, so the exact OLS solve is the same optimum). Its slopes
+    // divide by the vertex INDEX span, as find_best_trace3 does.
+    auto make_f7 = [&](const std::vector<int>& v) {
+        CandidateModel m;
+        m.verts = v;
+        m.vertvals = fit_piecewise_ols(x, y, v);
+        m.slopes.resize(v.size() - 1);
+        for (size_t s = 0; s + 1 < v.size(); ++s) {
+            m.slopes[s] = (m.vertvals[s + 1] - m.vertvals[s]) / static_cast<double>(v[s + 1] - v[s]);
+        }
+        FitStats st = calc_fitting_stats(y, interpolate_fit(x, v, m.vertvals), 2 * static_cast<int>(v.size()) - 2);
+        m.f_stat = st.f_stat;
+        m.pval = st.pval;
+        return m;
+    };
+
+    // 4. F6 ladder: every vertex count from n_vertices down to 2, each rung
+    // simplified from the previous one by take_out_weakest2 (which may edit y).
+    std::vector<CandidateModel> ladder;
+    ladder.push_back(make_f6(orig_v));
+    for (int i = 1; i <= n_vertices - 2; ++i) {
+        const CandidateModel& prev = ladder.back();
+        std::vector<int> v = take_out_weakest2(prev, params.recovery_threshold, x, y, prev.verts, prev.vertvals);
+        ladder.push_back(make_f6(v));
+    }
+    int best = select_model(ladder, params.recovery_threshold, params.best_model_proportion, n_vertices, false);
+
+    // 5. If the chosen F6 model isn't significant, rebuild the whole ladder
+    // from the original vertices with joint fitting and plain take_out_weakest.
+    if (ladder[best].pval > params.pval_threshold) {
+        ladder.clear();
+        ladder.push_back(make_f7(orig_v));
+        for (int i = 1; i <= n_vertices - 2; ++i) {
+            const CandidateModel& prev = ladder.back();
+            std::vector<int> v = take_out_weakest(x, y, prev.verts, prev.vertvals);
+            ladder.push_back(make_f7(v));
+        }
+        best = select_model(ladder, params.recovery_threshold, params.best_model_proportion, n_vertices, true);
+    }
+    const CandidateModel& chosen = ladder[best];
+
+    // 6. Output in all-year terms. A model that is still not significant
+    // becomes a flat line at the mean of the (possibly edited) working series
+    // across the whole year range; otherwise map vertices back to all-year
+    // indices and pad missing first/last years with flat vertices.
+    std::vector<int> out_idx;
+    std::vector<double> out_vals;
+    if (chosen.pval > params.pval_threshold) {
+        double mean_y = 0.0;
+        for (double v : y) mean_y += v;
+        mean_y /= n;
+        out_idx = {0, n_all - 1};
+        out_vals = {mean_y, mean_y};
+    } else {
+        for (int v : chosen.verts) out_idx.push_back(goods[v]);
+        out_vals = chosen.vertvals;
+        if (goods.front() != 0) extend_to_edge(out_idx, out_vals, true, n_all, max_count);
+        if (goods.back() != n_all - 1) extend_to_edge(out_idx, out_vals, false, n_all, max_count);
+    }
+
+    // Vertex values leave modifier-space (modifier is always +-1, so
+    // multiplying again undoes it) so callers see original-scale values.
+    for (size_t i = 0; i < out_idx.size(); ++i) {
+        vertices.push_back({years[out_idx[i]], out_vals[i] * params.modifier});
+    }
+
+    // RMSE of the output trajectory against every valid raw observation --
+    // LT-GEE's per-pixel noise estimate for DSNR (see TrajectoryResult).
+    std::vector<double> all_fit = interpolate_fit(years, out_idx, out_vals);
+    double sse = 0.0;
+    for (int i = 0; i < n; ++i) {
+        double err = raw[i] * params.modifier - all_fit[goods[i]];
+        sse += err * err;
+    }
+    int n_params = static_cast<int>(out_idx.size());
+    out.rmse = std::sqrt(sse / std::max(1, n - n_params));
 
     return out;
 }
@@ -960,8 +1012,14 @@ pybind11::tuple fit_trajectory_batch(
 
             for (int t = 0; t < times; ++t) {
                 double v = val_ptr[p * times + t];
-                pixel_values[t] = v;
-                if (v != no_data_value && !std::isnan(v)) has_valid_data = true;
+                // no-data years are simply absent from the fit (NaN = not in
+                // the original's `goods`), never fitted as real values.
+                if (v == no_data_value || std::isnan(v)) {
+                    pixel_values[t] = std::numeric_limits<double>::quiet_NaN();
+                } else {
+                    pixel_values[t] = v;
+                    has_valid_data = true;
+                }
             }
 
             if (!has_valid_data) continue;
