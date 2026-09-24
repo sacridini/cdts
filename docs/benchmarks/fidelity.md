@@ -16,19 +16,17 @@ To ensure transparent and reproducible validation, CDTS benchmarks its **7 core 
 </div>
 
 1. **Pillar 1: Controlled Ground-Truth Injection (Statistical Algorithms):**
-   - **Evaluated Scope:** `BFAST (Classic)`, `BFAST Monitor`, `BFAST Lite`, `TWDTW`, and `SOM`.
-   - **Protocol:** Using parameterized synthetic time series with known disturbance dates, recovery slopes, noise amplitudes, and missing observation gaps (NaN dropout). This isolates algorithm behavior and permits exact metric verification against mathematical ground truth.
-2. **Pillar 2: Direct Source-Level Port Parity (LandTrendr & CCDC):**
-   - **Evaluated Scope:** `LandTrendr` and `CCDC`.
-   - **Protocol:** Executing the authentic, original source code written by the original algorithm authors:
-     - **LandTrendr:** The original Kennedy *et al.* (2010) IDL source (`fit_trajectory_v2.pro` / `tbcd_v2.pro`) executed via GNU Data Language (GDL 1.1.2) with verified shims for missing builtins.
-     - **CCDC:** The original Zhu & Woodcock (2014) MATLAB source (`TrendSeasonalFit_v12_30Line.m`) with compiled Fortran GLMnet (`glmnetMex.F`) executed unmodified under GNU Octave 11.3.
-3. **Pillar 3: Weight Porting & Architectural Equivalence (Deep Learning):**
-   - **Evaluated Scope:** `TempCNN`, `LightTAE (LTAE)`, and `Official U-TAE`.
-   - **Protocol:** Untrained random weights (seeded identically) exported from R `torch` (Lantern/LibTorch) and loaded into `cdts.ai` via direct `state_dict` mapping. By supplying the exact same input tensor to both models, outputs can be tested for bitwise floating-point equivalence without confounding training noise.
-4. **Pillar 4: Multi-Decadal Real-World Rasters (Phenology):**
-   - **Evaluated Scope:** `Phenology Extraction` (Beck, Elmore, Gu double-logistic formulations).
-   - **Protocol:** Using real 25-year Landsat/MODIS EVI stacks (638 pixels × 575 timesteps, 2001–2025). Outputs are evaluated via a full outer join across pixel coordinates, years, curve types, and phenometric indices.
+   - **Evaluated Algorithms:** `BFAST (Classic)`, `BFAST Monitor`, `BFAST Lite`, `TWDTW`, and `SOM`.
+   - **Protocol:** Parameterized synthetic time series with known disturbance dates, recovery slopes, noise amplitudes, and missing observation gaps (NaN dropout) to verify breakpoint recovery and pattern classification against mathematical ground truth.
+2. **Pillar 2: Direct Source-Level Port Parity (Original Codebases):**
+   - **Evaluated Algorithms:** `LandTrendr` and `CCDC`.
+   - **Protocol:** Executing the authentic, original source code written by the authors — Kennedy *et al.* (2010) IDL source (`fit_trajectory_v2.pro` / `tbcd_v2.pro`) executed via GNU Data Language (GDL 1.1.2), and Zhu & Woodcock (2014) MATLAB source (`TrendSeasonalFit_v12_30Line.m`) with compiled Fortran GLMnet (`glmnetMex.F`) executed unmodified under GNU Octave 11.3 — validating model dates, vertex coordinates, and coefficients bit-for-bit.
+3. **Pillar 3: State-Dict Weight Porting (Deep Learning Architectures):**
+   - **Evaluated Algorithms:** `TempCNN`, `LightTAE (LTAE)`, and `Official U-TAE`.
+   - **Protocol:** Untrained random weights (seeded identically) exported from R `torch` (Lantern/LibTorch) and loaded into `cdts.ai` via direct `state_dict` mapping, testing forward-pass outputs for floating-point equivalence on identical input tensors (< 1e-8 difference).
+4. **Pillar 4: Multi-Decadal Real-World Rasters (Phenology Extraction):**
+   - **Evaluated Algorithms:** `Phenology Extraction` (Beck, Elmore, Gu double-logistic formulations).
+   - **Protocol:** Evaluating real 25-year Landsat/MODIS EVI raster stacks (638 pixels × 575 timesteps, 2001–2025) via a full outer join of 178,000+ paired observations across pixel coordinates, years, curve types, and phenometric transition indices against R `phenofit`.
 
 ---
 
