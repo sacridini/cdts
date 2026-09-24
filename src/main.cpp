@@ -11,6 +11,7 @@
 #include "bfast_monitor.h"
 #include "bfast_lite.h"
 #include "bfast.h"
+#include "snic.h"
 
 namespace py = pybind11;
 
@@ -280,4 +281,12 @@ PYBIND11_MODULE(_core, m) {
            py::arg("max_breaks_trend") = 5, py::arg("max_breaks_season") = 5,
            py::arg("max_iter") = 10, py::arg("level") = 0.05,
            py::arg("min_valid") = 20, py::arg("n_jobs") = -1);
+
+    // SNIC sub-module (superpixel segmentation of images and image time series)
+    py::module_ sn = m.def_submodule("snic", "SNIC: Simple Non-Iterative Clustering superpixels");
+
+    sn.def("snic_segment", &cdts::snic::snic_segment,
+           "Run SNIC on a planar [features, rows, cols] image from [n, 2] (row, col) seeds, tiles in parallel with OpenMP",
+           py::arg("data"), py::arg("seeds"), py::arg("compactness") = 10.0,
+           py::arg("tile_height") = 0, py::arg("tile_width") = 0, py::arg("n_jobs") = -1);
 }

@@ -26,6 +26,7 @@ CDTS covers a lot of ground — from classic pixel-based change detection to dee
     - [TWDTW (Time-Weighted DTW)](twdtw.md)
     - [Phenology Extraction](phenology.md)
     - [Mann-Kendall Trend Test](mann_kendall.md)
+    - [SNIC Segmentation](snic.md)
     - [SOM (Self-Organizing Maps)](som.md)
 
 -   :material-brain:{ .lg .middle } **AI & Deep Learning**

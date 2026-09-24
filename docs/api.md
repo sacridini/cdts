@@ -874,6 +874,38 @@ slope_map = trend_out[7]      # 'slope' row
 significant = trend_out[1] == 1.0  # 'h' row
 ```
 
+## Segmentation (SNIC)
+
+### `cdts.segmentation.run_snic`
+
+SNIC superpixel segmentation (Achanta & Süsstrunk, 2017) of an image or a whole time series cube, implemented in C++/Eigen/OpenMP; from the same seeds it gives the same labels as the authors' reference implementation. Every leading axis (e.g. `time`, `band`) becomes a feature, so segments group pixels with similar trajectories. See the [SNIC tutorial](tutorials/snic.md). Also available as `DataArray.cdts.run_snic(...)`, which returns an `xr.Dataset`.
+
+**Parameters**:
+- `data` (`np.ndarray`): `(y, x)`, `(feature, y, x)` or `(time, band, y, x)`. NaN pixels are left unlabelled.
+- `spacing` (`float | (float, float)`): seed spacing of the R `snic`/`sits_snic()` grids (default 10).
+- `compactness` (`float`): spatial regularity `M` (default 0.5, the sits default).
+- `seeds` (`(n, 2)` array, optional): explicit `(row, col)` seeds; overrides the grid.
+- `grid` (`str`): `"rectangular"`, `"diamond"`, `"hexagonal"` or `"random"`.
+- `padding` (`float | (float, float)`, optional): seed-free margin (default `spacing / 2`).
+- `tile_size` (`int | (int, int)`, optional): segment independent tiles in parallel.
+- `n_jobs` (`int`): OpenMP threads (`-1` = all but one).
+
+**Output**: `SnicResult` with `labels` `(y, x)`, `means` `(n_seeds, *feature_shape)`, `centroids` `(n_seeds, 2)`, `sizes`, `seeds`.
+
+```python
+from cdts import run_snic, snic_to_polygons
+res = run_snic(cube, spacing=10, compactness=0.5, tile_size=512)
+gdf = snic_to_polygons(res, transform=transform, crs=crs, include_means=True)
+```
+
+### `cdts.segmentation.snic_grid`
+
+Seed grids of the R `snic` package (`snic_grid`): `(n, 2)` 0-based `(row, col)`.
+
+### `cdts.segmentation.snic_to_polygons`
+
+Polygonises `SnicResult.labels` into a GeoDataFrame (`supercells`, `x`, `y`, `n_pixels`, optional `f0..fN` means, `geometry`), like `sits_segment()`.
+
 ## Change Monitoring (BFAST)
 
 ### `cdts.bfast.run_bfast_monitor_dask`

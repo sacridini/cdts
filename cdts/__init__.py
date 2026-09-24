@@ -12,6 +12,7 @@ except ImportError:
     pass
 
 from .spatial import apply_mmu_filter, apply_majority_filter
+from .segmentation import run_snic, snic_grid, snic_to_polygons
 from .smooth import apply_savgol_filter
 from .masks import extract_water_mask
 from .qc import qc_modis_summary, qc_modis_state, qc_sentinel2_scl
@@ -49,6 +50,7 @@ __all__ = [
     "extract_events", "predict_synthetic_image",
     "train_ccdc_classifier", "classify_ccdc_stack",
     "apply_mmu_filter", "apply_majority_filter", "apply_savgol_filter",
+    "run_snic", "snic_grid", "snic_to_polygons",
     "extract_water_mask",
     "qc_modis_summary", "qc_modis_state", "qc_sentinel2_scl",
     "run_tmask_pixel", "apply_tmask_stack",

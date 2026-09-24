@@ -87,6 +87,7 @@ nav:
           - TWDTW (Time-Weighted DTW): tutorials/twdtw.md
           - Phenology Extraction: tutorials/phenology.md
           - Mann-Kendall Trend Test: tutorials/mann_kendall.md
+          - SNIC Segmentation: tutorials/snic.md
           - SOM (Self-Organizing Maps): tutorials/som.md
       - AI & Deep Learning:
           - Overview: tutorials/ai.md
