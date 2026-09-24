@@ -26,21 +26,29 @@ def test_extract_events():
     assert np.isclose(gain_events["magnitude"][0, 0], 0.7)
     
 def test_ccdc_basic():
-    # Generate dummy data for a stable period (2 years)
-    dates = np.arange(1, 800, 16) # Landsat roughly every 16 days
-    values = 100.0 + 50.0 * np.cos(2 * np.pi * dates / 365.25)
-    
-    # Introduce a massive break at index 25
-    values[25:] -= 40.0
-    
-    qa = np.zeros(len(dates), dtype=int)
-    
-    # Run CCDC
+    # Landsat-like pixel (surface reflectance x 10000, Blue..SWIR2, the scale
+    # the original CCDC's lasso and range tests are defined on), observed every
+    # 16 days for 8 years, with a forest-to-bare change halfway through.
+    from datetime import date
+    rng = np.random.default_rng(0)
+    dates = np.arange(date(2000, 1, 1).toordinal(), date(2008, 1, 1).toordinal(), 16)
+    w = 2 * np.pi / 365.25
+    base = np.array([450.0, 750.0, 550.0, 3000.0, 1800.0, 900.0])
+    values = base[:, None] * (1 + 0.15 * np.cos(w * dates[None, :]))
+    values += rng.normal(0, 25, values.shape)
+    t_change = len(dates) // 2
+    values[:, t_change:] += np.array([150.0, 250.0, 450.0, -1300.0, 900.0, 700.0])[:, None]
+
+    qa = np.zeros(len(dates), dtype=int)  # Fmask 0 = clear land
+
     segments = run_ccdc(dates, values, qa)
-    
-    # It should have found 2 segments due to the break
-    assert len(segments) >= 2
-    assert segments[0]["t_break"] > 0
-    # coefs is now a list of lists: coefs[band][param]
-    assert len(segments[0]["coefs"]) == 1 # 1 band
-    assert len(segments[0]["coefs"][0]) == 6 # 6 parameters
+
+    assert len(segments) == 2
+    assert segments[0]["t_break"] == dates[t_change]
+    assert segments[0]["change_prob"] == 1
+    assert segments[1]["t_start"] == dates[t_change]
+    # coefs is a list of lists: coefs[band][8 harmonic coefficients]
+    assert len(segments[0]["coefs"]) == 6
+    assert len(segments[0]["coefs"][0]) == 8
+    # NIR dropped by ~1300
+    assert segments[0]["magnitude"][3] < -1000

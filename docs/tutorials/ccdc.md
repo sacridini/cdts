@@ -10,7 +10,7 @@ Instead of looking at data on an annual basis (like LandTrendr), CCDC models the
 
 Developed by Zhe Zhu and Curtis Woodcock (see [References](#7-references)), CCDC is particularly powerful because it can detect changes at any time of the year and immediately provide harmonic coefficients that describe the new land cover state, which are excellent features for Random Forest classification. The **COLD** variant (also referenced below) simply increases the number of consecutive anomalies required to flag a break, trading sensitivity for robustness.
 
-The `cdts` Python package implements the core harmonic modeling and break detection mathematically identical to the original C/C++ and MATLAB implementations, but wraps it in a modern, scalable architecture using `dask` and `xarray`.
+The `cdts` Python package is a C++ port of the original MATLAB implementation (`TrendSeasonalFit_v12_30Line.m` from GERSL/CCDC, including its Tmask cloud screening and its lasso fits through the bundled Fortran GLMnet, reproduced in single precision like the original), validated model-by-model against that code: identical model dates, categories and observation counts, with coefficients agreeing to ~1e-9. It wraps it in a modern, scalable architecture using `dask` and `xarray`.
 
 ---
 
@@ -23,7 +23,8 @@ In this tutorial, we will load a dense multi-band, multi-date raster stack, mask
 CCDC expects a dense, chronologically ordered time series of spectral bands and an associated Quality Assessment (QA) mask. 
 
 - **Stacking Bands**: When using GeoTIFFs, the data must be interleaved by date. For example, if you are tracking 6 bands (Blue, Green, Red, NIR, SWIR1, SWIR2) and 1 QA band, your GeoTIFF must have 7 bands for Date 1, 7 bands for Date 2, and so on.
-- **Dates**: You must provide a 1-dimensional list or array of dates, typically expressed as Julian days or ordinal dates (e.g., `datetime.toordinal()`).
+- **Dates**: a 1-dimensional list or array of Python ordinal days (`datetime.toordinal()`).
+- **Scale**: like the original, CCDC expects **surface reflectance x 10000** (valid range 0-10000). Its lasso penalty (lambda = 20), range test and cloud screen are defined on that scale, so 0-1 reflectance must be multiplied by 10000 first (Landsat Collection-2 Level-2 DNs: `0.275 * DN - 2000`).
 
 ```python
 import numpy as np
@@ -47,7 +48,7 @@ print(f"Data stack shape: {data_stack.shape}")
 
 ### Step 2.2: Extracting the QA Mask
 
-CCDC expects a dedicated 3D mask array where `0` indicates a clear, valid observation, and `1` indicates a cloud, shadow, or snow pixel to be ignored.
+CCDC expects a 3D array of **Fmask codes**, exactly like the original: `0` clear land, `1` water (both usable), `2` cloud shadow, `3` snow, `4` cloud, `255` no observation. Snow is handled specially (a mostly-snow pixel gets a dedicated snow model), so keep it as `3` rather than folding it into the cloud code.
 
 ```python
 num_bands_per_date = 7
@@ -67,51 +68,66 @@ for i in range(num_dates):
     # The 7th band is the QA mask
     qa_band = data_stack[start_idx + 6, :, :]
     
-    # Convert QA values to a binary mask (0 = clear, 1 = cloud/shadow)
-    # This depends on your specific QA band decoding logic. 
-    # Example for a simple cloud mask where values > 0 are clouds:
-    qa_stack[i, :, :] = (qa_band > 0).astype(np.uint8)
+    # Convert to Fmask codes. Example for a Landsat Collection-2 QA_PIXEL band:
+    fmask = np.zeros_like(qa_band, dtype=np.uint8)            # clear land
+    fmask[(qa_band & (1 << 7)) != 0] = 1                        # water
+    fmask[(qa_band & (1 << 4)) != 0] = 2                        # cloud shadow
+    fmask[(qa_band & (1 << 5)) != 0] = 3                        # snow
+    fmask[(qa_band & (1 << 3)) != 0] = 4                        # cloud
+    fmask[(qa_band & 1) != 0] = 255                             # fill / no data
+    qa_stack[i, :, :] = fmask
 ```
 
 ### Step 2.3: Running the Tool in Python
 
-We use the `cdts.ccdc.run_ccdc` function (or `run_ccdc_image` for direct file processing) to execute the algorithm.
+We use `cdts.raster.run_ccdc_array` for a stack (OpenMP over pixels), `cdts.ccdc.run_ccdc` for a single pixel, or `run_ccdc_image` for direct file processing.
 
 ```python
-from cdts.ccdc import run_ccdc
+from cdts.raster import run_ccdc_array
+
+# (bands, time, rows, cols)
+raster_stack = spectral_stack.reshape(num_dates, 6, rows, cols).transpose(1, 0, 2, 3)
 
 print("Running CCDC...")
-ccdc_results = run_ccdc(
+ccdc_results = run_ccdc_array(
     dates=dates,
-    spectral_stack=spectral_stack,
+    raster_stack=raster_stack.astype(float),
     qa_stack=qa_stack,
-    num_bands=6,
     max_segments=6,
     return_coefs=True,    # Set to True to get the harmonic models back
-    conseq_anom=3         # Number of consecutive anomalies to trigger a break
+    conseq_anom=6         # Number of consecutive anomalies to trigger a break
 )
 print("CCDC complete!")
 ```
+
+For a single pixel, `run_ccdc(dates, values, qa)` returns one dict per model with
+`t_start`, `t_end`, `t_break`, `coefs`, `rmse`, `magnitude`, `change_prob`,
+`category` and `num_obs`, with the original's meanings.
 
 ## 3. Detailed Parameter Explanation
 
 Tuning CCDC parameters is crucial for adapting the algorithm to specific ecosystems or sensor characteristics.
 
-- **`min_obs` (default: 12)**: The minimum number of valid, clear observations required to initialize a harmonic model. Setting this too low may result in unstable models.
-- **`conseq_anom` (default: 3)**: The number of consecutive anomalous observations required to officially flag a structural break. The **COLD** algorithm variant simply changes this to `6`.
-- **`chi2_prob_threshold` (default: 0.99)**: The probability threshold for the chi-square distribution test. It determines the sensitivity of anomaly detection. A lower value makes the model more sensitive to change (potentially increasing noise).
+The defaults are the original's (`CCDC_Parameters.txt` defaults: 0.99, 6, 8).
+
+- **`conseq_anom` (default: 6)**: consecutive anomalous observations required to flag a change (the original's `conse`).
+- **`chi2_prob_threshold` (default: 0.99)**: change probability; the change threshold is `chi2inv(p, len(detection_bands))`. A lower value makes the model more sensitive to change.
+- **`tmax_cg_prob_threshold` (default: 0.999999)**: observations above `chi2inv(p, ...)` are treated as outliers (e.g. unflagged clouds) and dropped.
+- **`num_c` (default: 8)**: maximum number of harmonic coefficients (4, 6 or 8); models grow from 4 to 6 to 8 coefficients as observations accumulate.
+- **`detection_bands` (default: `[1, 2, 3, 4, 5]`, Green..SWIR2)**, **`tmask_bands` (default: `[1, 4]`, Green and SWIR1)**, **`thermal_band`** (index of a brightness-temperature band in deg C x 100, if present), **`valid_range`**: the original's band roles, adjustable for other band layouts.
+- **`min_obs`**: kept for API compatibility; the original's 12-observation minimum (3 x 4 coefficients) is fixed.
 
 ## 4. Exporting and Interpreting Results
 
 When `return_coefs=True` is used, the output is a multi-dimensional array of shape `(max_segments, params_per_segment, rows, cols)`.
 
-The number of parameters per segment is `3 + (num_bands * 7)`. The indices are:
+The number of parameters per segment is `3 + (num_bands * 9)`. The indices are:
 - **Index 0**: `t_start` (Start date of the stable segment)
 - **Index 1**: `t_end` (End date of the stable segment)
 - **Index 2**: `t_break` (Date of the detected break/change, if any; 0 if no break)
 - **For each band (starting at Index 3)**:
   - `rmse` (Root Mean Square Error of the fit)
-  - 6 Harmonic Coefficients: Intercept, Slope, $cos(\omega t)$, $sin(\omega t)$, $cos(2\omega t)$, $sin(2\omega t)$ (where $\omega = 2\pi / 365.25$).
+  - 8 Harmonic Coefficients: Intercept, Slope, $cos(\omega t)$, $sin(\omega t)$, $cos(2\omega t)$, $sin(2\omega t)$, $cos(3\omega t)$, $sin(3\omega t)$ (where $\omega = 2\pi / 365.25$). As in the original, $t$ is the MATLAB datenum (Python ordinal day + 366); `cdts.ccdc.predict` and `predict_synthetic_image` take ordinal days and handle the offset.
 
 ### Extracting the Date of the First Change
 
@@ -160,7 +176,7 @@ print(f"Synthetic image shape: {synthetic_img.shape}")
 
 - **High-Quality QA Masks**: CCDC is extremely sensitive to missed clouds and cloud shadows, which will be falsely identified as land cover changes. Ensure your QA masks are rigorous (consider using the `Fmask` or `Tmask` algorithms).
 - **Data Density**: CCDC thrives on dense time series data. Harmonized Landsat and Sentinel-2 (HLS) data or multi-sensor virtual constellations work best.
-- **Minimum Observations**: Ensure `min_obs` is large enough to capture at least one full annual cycle (e.g., 12 to 15 observations) before allowing a model break.
+- **Minimum Observations**: a model is only initialised once there are at least 12 clear observations spanning at least one year, as in the original.
 - **Spatial chunking for distributed runs**: chunk the input spatially (e.g. `chunks={'time': -1, 'y': 256, 'x': 256}`). The `time` axis must **not** be chunked (`-1`), since CCDC needs a pixel's entire history to fit the harmonic model.
 - **Cluster tuning**: CCDC is CPU-intensive — prefer compute-optimized worker nodes (e.g. `c2-standard` on GCP, `c5` on AWS) over high-memory nodes, since spatial chunks can be kept small.
 - **Avoid `.compute()` on large outputs**: use `.to_zarr()` to sink data directly from the workers to cloud storage, bypassing your local head node entirely.

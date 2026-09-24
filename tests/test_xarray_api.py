@@ -29,7 +29,7 @@ def test_xarray_ccdc_accessor():
     # Run CCDC lazily with Strategy A (n_jobs=-1)
     max_segments = 4
     return_coefs = True
-    params_per_seg = 3 + (bands * 7) if return_coefs else 1
+    params_per_seg = 3 + (bands * 9) if return_coefs else 1  # rmse + 8 coefficients per band
     
     result = da_arr.cdts.run_ccdc(dates=dates, max_segments=max_segments, return_coefs=return_coefs, n_jobs=-1)
     

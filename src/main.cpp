@@ -61,7 +61,14 @@ PYBIND11_MODULE(_core, m) {
         .def_readwrite("conseq_anom", &cdts::ccdc::CCDCParams::conseq_anom)
         .def_readwrite("chi2_prob_threshold", &cdts::ccdc::CCDCParams::chi2_prob_threshold)
         .def_readwrite("tmax_cg_prob_threshold", &cdts::ccdc::CCDCParams::tmax_cg_prob_threshold)
-        .def_readwrite("detection_bands", &cdts::ccdc::CCDCParams::detection_bands);
+        .def_readwrite("detection_bands", &cdts::ccdc::CCDCParams::detection_bands)
+        .def_readwrite("num_c", &cdts::ccdc::CCDCParams::num_c)
+        .def_readwrite("tmask_bands", &cdts::ccdc::CCDCParams::tmask_bands)
+        .def_readwrite("thermal_band", &cdts::ccdc::CCDCParams::thermal_band)
+        .def_readwrite("valid_min", &cdts::ccdc::CCDCParams::valid_min)
+        .def_readwrite("valid_max", &cdts::ccdc::CCDCParams::valid_max)
+        .def_readwrite("thermal_min", &cdts::ccdc::CCDCParams::thermal_min)
+        .def_readwrite("thermal_max", &cdts::ccdc::CCDCParams::thermal_max);
 
     py::class_<cdts::ccdc::CCDCSegment>(mc, "CCDCSegment")
         .def(py::init<>())
@@ -70,7 +77,10 @@ PYBIND11_MODULE(_core, m) {
         .def_readwrite("t_break", &cdts::ccdc::CCDCSegment::t_break)
         .def_readwrite("coefs", &cdts::ccdc::CCDCSegment::coefs)
         .def_readwrite("rmse", &cdts::ccdc::CCDCSegment::rmse)
-        .def_readwrite("magnitude", &cdts::ccdc::CCDCSegment::magnitude);
+        .def_readwrite("magnitude", &cdts::ccdc::CCDCSegment::magnitude)
+        .def_readwrite("change_prob", &cdts::ccdc::CCDCSegment::change_prob)
+        .def_readwrite("category", &cdts::ccdc::CCDCSegment::category)
+        .def_readwrite("num_obs", &cdts::ccdc::CCDCSegment::num_obs);
 
     mc.def("fit_ccdc", &cdts::ccdc::fit_ccdc,
            "Run CCDC on a single pixel time series",

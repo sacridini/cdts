@@ -61,7 +61,11 @@ class BuildExt(build_ext):
             opts.append('-std=c++17')
             if has_flag(self.compiler, '-fvisibility=hidden'):
                 opts.append('-fvisibility=hidden')
-            
+            # No fused multiply-add contraction: CCDC reproduces the original's
+            # single-precision Fortran GLMnet rounding operation by operation.
+            if has_flag(self.compiler, '-ffp-contract=off'):
+                opts.append('-ffp-contract=off')
+
             # OpenMP support
             for ext in self.extensions:
                 if sys.platform == 'darwin':
@@ -87,7 +91,7 @@ class BuildExt(build_ext):
 
 setup(
     name='cdts',
-    version='0.18.0',
+    version='0.19.0',
     packages=['cdts'],
     ext_modules=ext_modules,
     setup_requires=['pybind11>=2.10.0'],

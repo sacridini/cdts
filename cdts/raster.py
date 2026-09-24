@@ -88,15 +88,16 @@ def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_se
 # ---------------------------------------------------------
 from .ccdc import run_ccdc
 
-def _process_pixel_ccdc(args: Tuple[int, int, np.ndarray, np.ndarray], dates: Union[np.ndarray, List[int]], max_segments: int, conseq_anom: int) -> Tuple[int, int, List[Dict[str, Any]]]:
+def _process_pixel_ccdc(args: Tuple[int, int, np.ndarray, np.ndarray], dates: Union[np.ndarray, List[int]], max_segments: int, conseq_anom: int = 6) -> Tuple[int, int, List[Dict[str, Any]]]:
     row, col, values, qa = args
     
     if np.all(values == 0) or np.all(np.isnan(values)):
         return row, col, []
         
-    # Mask out any dates where the pixel has NaN in any band
+    # Dates where the pixel has NaN in any band have no observation (Fmask 255)
     nan_mask = np.any(np.isnan(values), axis=0)
-    qa = np.where(nan_mask, 1, qa)
+    qa = np.where(nan_mask, 255, qa)
+    values = np.where(nan_mask[None, :], 0.0, values)
     
     try:
         segments = run_ccdc(dates, values, qa, conseq_anom=conseq_anom)
@@ -104,9 +105,15 @@ def _process_pixel_ccdc(args: Tuple[int, int, np.ndarray, np.ndarray], dates: Un
     except Exception:
         return row, col, []
 
-def run_ccdc_array(dates: "np.ndarray", raster_stack: "np.ndarray", qa_stack: "np.ndarray", max_segments: int = 6, n_jobs: int = -1, return_coefs: bool = True, conseq_anom: int = 3) -> "np.ndarray":
+def run_ccdc_array(dates: "np.ndarray", raster_stack: "np.ndarray", qa_stack: "np.ndarray", max_segments: int = 6, n_jobs: int = -1, return_coefs: bool = True, conseq_anom: int = 6, **ccdc_kwargs) -> "np.ndarray":
     """
     Apply CCDC across a 4D numpy array (bands, time, rows, cols) using C++ OpenMP batch processing.
+
+    dates are Python ordinal days, raster_stack surface reflectance x 10000 and
+    qa_stack (time, rows, cols) Fmask codes -- see cdts.ccdc.run_ccdc. Extra
+    keyword arguments are passed on to cdts.ccdc.run_ccdc_batch.
+    Returns (max_segments, 3 + bands * 9, rows, cols): t_start, t_end, t_break,
+    then per band rmse and the 8 harmonic coefficients.
     """
     from .ccdc import run_ccdc_batch
     import os as _os
@@ -115,7 +122,7 @@ def run_ccdc_array(dates: "np.ndarray", raster_stack: "np.ndarray", qa_stack: "n
         n_jobs = max(1, (_os.cpu_count() or 4) - 1)
         
     num_bands, time_steps, rows, cols = raster_stack.shape
-    params_per_segment = 3 + num_bands * 7 if return_coefs else 1
+    params_per_segment = 3 + num_bands * 9 if return_coefs else 1
     
     # Transpose raster_stack to [rows, cols, bands, time]
     values = np.transpose(raster_stack, (2, 3, 0, 1))
@@ -123,7 +130,9 @@ def run_ccdc_array(dates: "np.ndarray", raster_stack: "np.ndarray", qa_stack: "n
     # Transpose qa_stack from (time, rows, cols) to (rows, cols, time)
     qa = np.transpose(qa_stack, (1, 2, 0))
     
-    segments_array, counts_array = run_ccdc_batch(dates, values, qa, max_segments, return_coefs, conseq_anom, n_jobs)
+    segments_array, counts_array = run_ccdc_batch(dates, values, qa, max_segments=max_segments,
+                                                  return_coefs=return_coefs, conseq_anom=conseq_anom,
+                                                  n_jobs=n_jobs, **ccdc_kwargs)
     
     # segments_array shape: (rows * cols, max_segments, params_per_segment)
     # Reshape it to (rows, cols, max_segments, params_per_segment)
@@ -141,7 +150,7 @@ def run_ccdc_array(dates: "np.ndarray", raster_stack: "np.ndarray", qa_stack: "n
     return output_stack
 
 def run_ccdc_image(input_path: str, output_dir: str, dates: "np.ndarray", num_bands: int = 6, qa_band_idx: int = -1,
-                   max_segments: int = 6, chunk_size: int = 512, n_jobs: int = -1, prefix: str = "ccdc_break", return_coefs: bool = True, conseq_anom: int = 3) -> None:
+                   max_segments: int = 6, chunk_size: int = 512, n_jobs: int = -1, prefix: str = "ccdc_break", return_coefs: bool = True, conseq_anom: int = 6) -> None:
     """
     High-level function to process a full GeoTIFF stack using CCDC with chunking.
     Assumes the stack is interleaved by date.
@@ -166,7 +175,7 @@ def run_ccdc_image(input_path: str, output_dir: str, dates: "np.ndarray", num_ba
         out_path = os.path.join(output_dir, f"{prefix}_coefs.tif")
         p = profile.copy()
         
-        params_per_seg = (3 + num_bands * 7) if return_coefs else 1
+        params_per_seg = (3 + num_bands * 9) if return_coefs else 1
         total_bands = max_segments * params_per_seg
         
         p.update(count=total_bands, dtype='float32', nodata=0, driver='GTiff')

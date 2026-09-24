@@ -9,10 +9,12 @@ class CDTSAccessor:
     def __init__(self, xarray_obj: xr.DataArray) -> None:
         self._obj = xarray_obj
 
-    def run_ccdc(self, dates: np.ndarray, qa_stack: Optional[Any] = None, max_segments: int = 6, return_coefs: bool = True, conseq_anom: int = 3, n_jobs: int = -1) -> xr.DataArray:
+    def run_ccdc(self, dates: np.ndarray, qa_stack: Optional[Any] = None, max_segments: int = 6, return_coefs: bool = True, conseq_anom: int = 6, n_jobs: int = -1, **ccdc_kwargs) -> xr.DataArray:
         """
         Runs CCDC on an xarray DataArray using Dask for out-of-core and parallel execution.
-        Assumes DataArray shape: (bands, time, y, x).
+        Assumes DataArray shape: (bands, time, y, x), surface reflectance x 10000,
+        with qa_stack as Fmask codes (see cdts.ccdc.run_ccdc). Output parameters
+        per segment: t_start, t_end, t_break, then per band rmse and 8 coefficients.
         
         Strategy A: Dask handles cross-node distribution (map_blocks), OpenMP handles multi-core within the node (n_jobs=-1).
         WARNING: If using n_jobs=-1, ensure Dask is configured to run with only 1 worker process per physical machine!
@@ -25,7 +27,7 @@ class CDTSAccessor:
         elif isinstance(qa_stack, xr.DataArray):
             qa_stack = qa_stack.data
             
-        params_per_seg = (3 + bands * 7) if return_coefs else 1
+        params_per_seg = (3 + bands * 9) if return_coefs else 1
         
         def _ccdc_block(block, qa_block):
             if block.size == 0:
@@ -36,7 +38,8 @@ class CDTSAccessor:
                 max_segments=max_segments, 
                 n_jobs=n_jobs, 
                 return_coefs=return_coefs,
-                conseq_anom=conseq_anom
+                conseq_anom=conseq_anom,
+                **ccdc_kwargs
             )
             
         out = da.map_blocks(

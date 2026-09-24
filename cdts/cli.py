@@ -68,7 +68,7 @@ def run_ccdc_cli(args: argparse.Namespace) -> None:
             chunk_size=args.chunk_size,
             n_jobs=args.jobs,
             prefix=args.prefix,
-            conseq_anom=6 if args.cold else 3
+            conseq_anom=6 if args.cold else args.conse
         )
     except Exception as e:
         print(f"Error running CCDC: {e}")
@@ -201,7 +201,8 @@ def main() -> None:
     ccdc_parser.add_argument("--max-segments", type=int, default=6, help="Maximum number of segments (default: 6)")
     ccdc_parser.add_argument("--chunk-size", type=int, default=512, help="Size of the image chunks to process at once (default: 512)")
     ccdc_parser.add_argument("--jobs", type=int, default=-1, help="Number of CPU cores to use (-1 for all, default: -1)")
-    ccdc_parser.add_argument("--cold", action="store_true", help="Use COLD algorithm logic (6 consecutive anomalies instead of 3)")
+    ccdc_parser.add_argument("--conse", type=int, default=6, help="Consecutive anomalous observations to flag a change (default: 6, as in the original CCDC)")
+    ccdc_parser.add_argument("--cold", action="store_true", help="Deprecated: same as --conse 6 (now the default)")
     ccdc_parser.add_argument("--prefix", default="ccdc", help="Prefix for output files (default: ccdc)")
 
     # Shared time-series arguments for the bfast family (bfastmonitor/bfastlite/bfast) and
