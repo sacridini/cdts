@@ -56,7 +56,7 @@ Downloads analysis-ready time series data directly from Google Earth Engine (GEE
 
 | Argument | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
-| `roi` | `list` or `ee.Geometry`| **Required**| Bounding box `[min_lon, min_lat, max_lon, max_lat]` or an `ee.Geometry`. |
+| `roi` | `str`, `list`, file path, `GeoDataFrame` or `ee.Geometry`| **Required**| Area to download. Accepts a Landsat WRS-2 tile id (`'217/076'`), a Sentinel-2 MGRS tile id (`'23KPQ'`), a bounding box `[min_lon, min_lat, max_lon, max_lat]`, a path to a local vector file (Shapefile, GeoPackage, GeoJSON, KML) or raster file (GeoTIFF), a `GeoDataFrame`/shapely geometry, or an `ee.Geometry`. Local inputs are read offline and reprojected to lon/lat; their bounding box is downloaded. |
 | `start_date` | `str` | **Required**| Start date in `YYYY-MM-DD`. |
 | `end_date` | `str` | **Required**| End date in `YYYY-MM-DD`. |
 | `out_dir` | `str` | **Required**| Directory to save the output `.tif` files. |
@@ -91,6 +91,68 @@ download_gee_timeseries(
     project='my-gcp-project-id'
 )
 ```
+
+### `cdts.gee.downloader.download_gee_image`
+
+Downloads a single `ee.Image` to a local GeoTIFF, picking the fastest route that will work. This is what `download_gee_timeseries` calls once per composite. Use it directly when you build your own image or need the tuning options.
+
+`method='direct'` fixes one pixel grid for the whole ROI and fetches it as tiles with concurrent `ee.data.computePixels` calls. Each tile is written straight into its window of the output file, with no temporary tiles and no mosaicking. Tiles are sized on the fly from the concurrency Earth Engine allows, and concurrency adapts to `HTTP 429` responses. `method='drive'` runs a batch export through Google Drive. `method='auto'` uses `'direct'`, falling back to `'drive'` for images over `max_direct_mb` or on Earth Engine interactive compute limits.
+
+**Parameters**
+
+| Argument | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| `image` | `ee.Image` | **Required** | The image to download. |
+| `roi` | `ee.Geometry` | **Required** | Region whose bounding box is downloaded. Use `cdts.gee.roi.resolve_roi` to build it from a WRS-2 id, bbox, vector/raster file or GeoDataFrame. |
+| `out_filename` | `str` | **Required** | Output GeoTIFF path. Never left partially written. |
+| `method` | `str` | `'auto'` | `'auto'`, `'direct'` or `'drive'`. |
+| `scale` | `float` | `30` | Pixel size in meters (converted to degrees at the equator for a geographic CRS, as Earth Engine does). |
+| `crs` | `str` | `'EPSG:4326'` | Output CRS, e.g. `'EPSG:32723'`. |
+| `sub_tile_workers` | `int` | `16` | Upper bound on concurrent requests. The actual level starts at 4 and adapts to the account's limit (~40 standard tier, ~2 in Restricted Mode). |
+| `max_tile_mb` | `float` | `None` (32) | Cap on the raw size of one tile request (≤ 32). |
+| `max_direct_mb` | `float` | `4096` | In `'auto'` mode, larger images (raw size) go to a Drive export. |
+| `max_retries` / `base_backoff` | `int` / `float` | `5` / `5.0` | Retry policy for network or server errors. Throttled (`429`) requests get short jittered retries instead. |
+| `tile_size` | `float` | `None` | Deprecated and ignored (tiles used to be sized in degrees). |
+
+**Returns** the output path, or `None` if the download failed. Nothing is written at `out_filename` in that case.
+
+**Usage Example**
+
+```python
+from cdts.gee.auth import initialize_gee
+from cdts.gee.roi import resolve_roi
+from cdts.gee.harmonization import get_harmonized_collection
+from cdts.gee.composites import create_annual_medoid
+from cdts.gee.downloader import download_gee_image
+
+initialize_gee(project="my-gcp-project")
+roi = resolve_roi("data/study_area.gpkg")        # or "217/076", "23KPQ", [min_lon, min_lat, max_lon, max_lat]
+col = get_harmonized_collection(roi, "1985-01-01", "2025-12-31")
+
+for year in range(1985, 2026):
+    img = create_annual_medoid(col, year)
+    img = img.normalizedDifference(["SR_B5", "SR_B7"]).rename("NBR").toFloat()
+    download_gee_image(img, roi, f"nbr_{year}.tif", crs="EPSG:32723", sub_tile_workers=32)
+```
+
+### `cdts.gee.roi.resolve_roi`
+
+Turns any supported area description into the geometry the GEE functions need, so user code never has to build Earth Engine objects. `cdts.gee.roi.roi_bounds` is the fully offline part: it returns the lon/lat bounding box of a local input or a Sentinel-2 tile id. `cdts.gee.roi.s2_tile_utm_bounds('23KPQ')` gives a Sentinel-2 tile's exact UTM box (`('EPSG:32723', (600000, 7390200, 709800, 7500000))`).
+
+Sentinel-1 has no fixed tiling grid (relative orbits describe ground tracks, not areas), so describe Sentinel-1 areas with any of the inputs below.
+
+| Input | Example | Result |
+| :--- | :--- | :--- |
+| WRS-2 path/row | `'217/076'`, `'217_076'`, `'217076'` | Tile footprint, looked up from a Landsat Collection 2 scene |
+| Sentinel-2 MGRS tile | `'23KPQ'`, `'T23KPQ'` | 109.8 km tile computed offline from the id (within ~50 m of real S2 footprints). Tiles crossing the 180° meridian raise `ValueError` |
+| Bounding box | `[-43.6, -23.1, -43.1, -22.6]` | That box (lon/lat) |
+| Vector file | `'area.shp'`, `'area.gpkg'`, `'area.geojson'`, `'area.kml'` | Extent of all features, reprojected to lon/lat |
+| Raster file | `'reference.tif'` | Raster extent, reprojected to lon/lat |
+| GeoDataFrame / GeoSeries | `geopandas.read_file(...)` | Extent, reprojected to lon/lat (a missing CRS is assumed lon/lat, with a warning) |
+| shapely geometry | `box(...)` | Its bounds (assumed lon/lat) |
+| `ee.Geometry` | | Passed through |
+
+Local inputs are reduced to their bounding box. The download covers that box anyway, and a box keeps requests small however detailed the polygon is.
 
 ### `cdts.io.save_raster`
 
