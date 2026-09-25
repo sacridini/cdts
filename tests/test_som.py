@@ -32,13 +32,16 @@ def blobs(n_per_class=60, n_features=6, n_classes=4, seed=0):
     return X[perm], y[perm]
 
 
-def train_from_config(cfg, X, n_jobs=1):
+def train_from_config(cfg, X, init_weights, n_jobs=1):
     kw = dict(cfg["som"])
     som = SOM(**kw)
     if cfg["init"] == "random":
         som.random_weights_init(X)
     elif cfg["init"] == "pca":
-        som.pca_weights_init(X)
+        # eigh's eigenvector signs depend on the LAPACK build: start from
+        # MiniSom's stored PCA weights (PCA itself: test_pca_init_matches_minisom).
+        som.weights = init_weights.copy()
+    np.testing.assert_array_equal(som.get_weights(), init_weights)
     tr = cfg["train"]
     if cfg["method"] == "train_batch_offline":
         som.train(X, tr["num_iteration"], algorithm="batch", n_jobs=n_jobs)
@@ -57,7 +60,7 @@ def test_matches_minisom_fixture(name):
     cfg = json.loads(str(PARITY[name + "__config"]))
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        som = train_from_config(cfg, X)
+        som = train_from_config(cfg, X, PARITY[name + "__init"])
     np.testing.assert_allclose(som.get_weights(), want, rtol=0, atol=ATOL)
 
 
@@ -66,7 +69,7 @@ def test_matches_minisom_fixture(name):
 def test_batch_matches_fixture_with_threads(name, n_jobs):
     X = PARITY[name + "__data"]
     cfg = json.loads(str(PARITY[name + "__config"]))
-    som = train_from_config(cfg, X, n_jobs=n_jobs)
+    som = train_from_config(cfg, X, PARITY[name + "__init"], n_jobs=n_jobs)
     np.testing.assert_allclose(som.get_weights(), PARITY[name + "__weights"], rtol=0, atol=ATOL)
 
 
@@ -76,6 +79,16 @@ def test_initial_weights_match_minisom_draws():
     w = rng.rand(4, 5, 7) * 2 - 1
     w /= np.linalg.norm(w, axis=-1, keepdims=True)
     np.testing.assert_array_equal(SOM(4, 5, 7, random_seed=3).get_weights(), w)
+
+
+def test_pca_init_matches_minisom():
+    minisom = pytest.importorskip("minisom")
+    X, _ = blobs(n_features=8)
+    ref = minisom.MiniSom(5, 4, 8, random_seed=1)
+    som = SOM(5, 4, 8, random_seed=1)
+    ref.pca_weights_init(X)
+    som.pca_weights_init(X)
+    np.testing.assert_array_equal(som.get_weights(), ref.get_weights())
 
 
 @pytest.mark.parametrize("algorithm", ["online", "batch"])

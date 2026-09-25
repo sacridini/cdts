@@ -1,8 +1,8 @@
 """Regenerate tests/data/som_minisom_parity.npz from Python MiniSom.
 
 Trains MiniSom (the reference cdts.ai.SOM ports) on the cases below and stores
-the input data, the configuration and the trained codebook, so the parity
-tests run even where minisom is not installed.
+the input data, the configuration, the initialized and the trained codebook,
+so the parity tests run even where minisom is not installed.
 
     pip install minisom==2.3.6
     python tests/data/make_som_parity_fixtures.py
@@ -52,6 +52,8 @@ def main():
             som.random_weights_init(X)
         elif init == "pca":
             som.pca_weights_init(X)
+        # Stored so the PCA case does not depend on the LAPACK build's eigenvector signs.
+        out[name + "__init"] = som.get_weights().copy()
         getattr(som, method)(X, **train_kwargs)
         out[name + "__data"] = X
         out[name + "__weights"] = som.get_weights()
