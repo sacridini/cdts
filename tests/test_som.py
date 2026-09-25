@@ -18,8 +18,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PARITY = np.load(os.path.join(HERE, "data", "som_minisom_parity.npz"))
 PARITY_CASES = sorted({k.split("__")[0] for k in PARITY.files})
 
-# Bitwise equal where NumPy and the C runtime share exp(); a NumPy build with
-# its own SIMD exp (AVX-512) may differ by an ulp, hence the tolerance.
+# Bitwise equal where NumPy and the C runtime share exp(). The fixture was made
+# on Windows (MSVC exp) and a NumPy build with its own SIMD exp (AVX-512) or
+# glibc may differ by an ulp; some cases grow the weights to ~1e12, hence a
+# relative as well as an absolute tolerance.
+RTOL = 1e-12
 ATOL = 1e-10
 
 
@@ -61,7 +64,7 @@ def test_matches_minisom_fixture(name):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         som = train_from_config(cfg, X, PARITY[name + "__init"])
-    np.testing.assert_allclose(som.get_weights(), want, rtol=0, atol=ATOL)
+    np.testing.assert_allclose(som.get_weights(), want, rtol=RTOL, atol=ATOL)
 
 
 @pytest.mark.parametrize("name", [c for c in PARITY_CASES if c.startswith("batch")])
@@ -70,7 +73,7 @@ def test_batch_matches_fixture_with_threads(name, n_jobs):
     X = PARITY[name + "__data"]
     cfg = json.loads(str(PARITY[name + "__config"]))
     som = train_from_config(cfg, X, PARITY[name + "__init"], n_jobs=n_jobs)
-    np.testing.assert_allclose(som.get_weights(), PARITY[name + "__weights"], rtol=0, atol=ATOL)
+    np.testing.assert_allclose(som.get_weights(), PARITY[name + "__weights"], rtol=RTOL, atol=ATOL)
 
 
 def test_initial_weights_match_minisom_draws():
@@ -111,7 +114,7 @@ def test_matches_minisom_live(algorithm, neighborhood, topology):
     else:
         ref.train(X, 600, random_order=True)
         som.train(X, 600, random_order=True)
-    np.testing.assert_allclose(som.get_weights(), ref.get_weights(), rtol=0, atol=ATOL)
+    np.testing.assert_allclose(som.get_weights(), ref.get_weights(), rtol=RTOL, atol=ATOL)
     ref_bmus = np.array([np.ravel_multi_index(ref.winner(v), (6, 5)) for v in X])
     np.testing.assert_array_equal(som.predict(X), ref_bmus)
     assert som.quantization_error(X) == pytest.approx(ref.quantization_error(X), abs=1e-9)
