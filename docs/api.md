@@ -60,7 +60,7 @@ Downloads analysis-ready time series data directly from Google Earth Engine (GEE
 | `start_date` | `str` | **Required**| Start date in `YYYY-MM-DD`. |
 | `end_date` | `str` | **Required**| End date in `YYYY-MM-DD`. |
 | `out_dir` | `str` | **Required**| Directory to save the output `.tif` files. |
-| `method` | `str` | `'direct'` | Download method. Use `'direct'` for immediate tiled local download, or `'drive'` for batch export to Google Drive. |
+| `method` | `str` | `'auto'` | Download method. `'auto'` (default) uses a concurrent tiled direct download and falls back to a Google Drive batch export for very large images or ones that hit Earth Engine's interactive compute limits. `'direct'` and `'drive'` force one route. |
 | `composite_type`| `str` | `'annual'` | The type of temporal composition to apply. Options include `'annual'` (LandTrendr-style Medoid composites) and `'dense'` (all valid observations for CCDC). |
 | `bands` | `list` | `None` | Specific bands or indices to export. Supports standard bands (e.g., `'SR_B4'`) and on-the-fly indices (`'NDVI'`, `'NBR'`, `'EVI'`, `'NDWI'`, `'kNDVI'`). Defaults to all 6 spectral bands. |
 | `project` | `str` | `None` | Google Cloud Project ID for GEE authentication. Highly recommended to prevent access errors. |
@@ -70,13 +70,13 @@ Downloads analysis-ready time series data directly from Google Earth Engine (GEE
 ```python
 from cdts.gee import download_gee_timeseries
 
-# 1. Direct local tiled download for a small/medium region
+# 1. Automatic: direct tiled download, Drive export only when needed
 download_gee_timeseries(
     roi=[-47.95, -15.85, -47.85, -15.75], 
     start_date='2010-01-01',
     end_date='2020-12-31', 
     out_dir='./gee_data',
-    method='direct',
+    method='auto',
     composite_type='annual',
     project='my-gcp-project-id'
 )

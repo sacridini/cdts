@@ -8,13 +8,14 @@ Earth Engine requires the user to authenticate their machine with Google Cloud P
 
 > **Note:** Make sure the selected Google account has access to GEE. It is recommended to provide your GCP project name using the `project='your-project'` parameter.
 
-## Example 1: Direct Download (Multithread Tiled)
+## Example 1: Automatic Download (`method='auto'`, default)
 
-If you have a small to medium-sized area (e.g., a municipality or a specific polygon) and want the `.tif` file immediately on your machine, use the `method='direct'` option.
+For most areas you don't need to choose a method. With the default `method='auto'`, `cdts` plans each image before downloading it and picks the fastest route that will work:
 
-The `cdts` package will automatically slice your region into smaller grids (tiles), open dozens of concurrent threads to Google's servers, download the pieces, and seamlessly mosaic them together (using `rasterio.merge`).
+- **Direct tiled download** for images up to `max_direct_mb` (4 GB raw by default). `cdts` fixes a single pixel grid for the whole region, splits it into tiles sized in *bytes* rather than degrees, and fetches them concurrently with `ee.data.computePixels`. Each tile is written straight into its place in the output GeoTIFF, so tiles line up exactly with no seams and there is no mosaicking step. Tiles are split in space first; deep stacks such as a `'dense'` time series with hundreds of bands are also split by band, so they stay under Earth Engine's per-request limits (32 MB, 1024 bands).
+- **Google Drive export** (see Example 2) for images above that size, or when a tile hits an Earth Engine *interactive* compute limit (user memory limit, computation timeout), which retrying the same request cannot fix.
 
-> **Warning on API Limits:** Google's REST API has a strict 50 MB payload limit per request. While the tiling system mitigates this for standard annual composites, attempting to download a `'dense'` time series (which flattens dozens of images and hundreds of bands into a single stack) for a large region using `method='direct'` will likely trigger a *Payload Too Large* error. For dense time series or state-level areas, always use `method='drive'`.
+Concurrency adapts to your account. Earth Engine limits concurrent interactive requests per account (about 40 on a standard tier, only 2–3 for a project in noncommercial *Restricted Mode*). `cdts` starts with 4 concurrent requests, ramps up while requests succeed, and halves on every `HTTP 429`, so it settles just under whatever limit your account actually has.
 
 ```python
 from cdts.gee import download_gee_timeseries
@@ -23,15 +24,31 @@ from cdts.gee import download_gee_timeseries
 my_roi = [-47.95, -15.85, -47.85, -15.75]
 
 download_gee_timeseries(
-    roi=my_roi, 
+    roi=my_roi,
     start_date='2010-01-01',
-    end_date='2020-12-31', 
+    end_date='2020-12-31',
     out_dir='./gee_direct_data',
-    method='direct',           # Enables immediate tiled download and local mosaicking
+    method='auto',             # default: direct tiled download, Drive export when needed
     composite_type='annual',   # Generates LandTrendr-style Annual Medoid Composites
     project='my-gcp-project'   # Replace with your Google Cloud Project ID
 )
 ```
+
+To download a single `ee.Image` you built yourself, use `download_gee_image` directly. It accepts the same `method` and exposes the tuning knobs:
+
+```python
+from cdts.gee.downloader import download_gee_image
+
+download_gee_image(
+    image, roi, 'out.tif',
+    scale=30,
+    crs='EPSG:4326',           # or a projected CRS such as 'EPSG:32723'
+    sub_tile_workers=16,       # upper bound on concurrent requests (adapts downward on 429)
+    max_tile_mb=None,          # default: about one round of requests, 4-32 MB per tile
+)
+```
+
+Masked pixels are written with the GeoTIFF nodata value Earth Engine uses for the output type (`-inf` for float, the type minimum for signed integers, `0` for unsigned). You can force either route with `method='direct'` or `method='drive'`.
 
 ## Example 2: Exporting to Google Drive (Large Areas)
 

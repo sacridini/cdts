@@ -113,3 +113,31 @@ xychart-beta
     3. **Zero Queue Latency:** Under standard GEE quotas, large batch export tasks regularly wait hours in the queue (5.08 hours in this benchmark). CDTS begins processing immediately and finishes in under two minutes.
 
 
+
+---
+
+## Earth Engine Download Throughput (`download_gee_image`)
+
+`download_gee_image(method='direct'/'auto')` was rewritten on ideas from [geedim](https://github.com/leftfield-geospatial/geedim) (fixed pixel grid, byte-sized tiles, windowed writes), with four changes of its own: tiles are split in space before bands, tiles are sized on demand from the concurrency Earth Engine actually allows (guided scheduling), concurrency adapts to HTTP 429 responses, and requests go through `computePixels` in a single round trip. We compared it with the previous implementation (0.25° tiles, 4 threads, `getDownloadURL` + `rasterio.merge`) and with geedim 2.0.0.
+
+- **Region:** WRS-2 path/row 217/076 (Rio de Janeiro). `sub`: 0.5° × 0.5° (1856 × 1857 px at 30 m); `small`: 0.2° × 0.2°.
+- **Images:** 2020 annual medoid composite (6 bands, float32, 79 MB raw); NDVI of that composite (1 band, 13 MB raw); dense stack of Jan–Mar 2020 via `toBands()` (42 bands, 89 MB raw).
+- **Protocol:** 3 rounds with method order rotated each round. Every run uses a distinct expression (end date shifted by seconds, same scenes) so Earth Engine's result cache cannot favor later runs. Timings are wall-clock medians.
+- **Account:** noncommercial project in **Restricted Mode**, which allows only about **2 concurrent requests** (a standard tier allows about 40). Per-request latency varied up to 4× for identical requests.
+
+| Image | Previous `cdts` | geedim 2.0 (`max_requests=2`) | geedim 2.0 (default, 32 requests) | **New `cdts`** |
+|:---|:---:|:---:|:---:|:---:|
+| Medoid composite (79 MB) | 68.7 s (57.7–73.8) | 265.9 s, **1/3 failed** | failed (HTTP 429) | **77.1 s** (70.6–94.8) |
+| NDVI (13 MB) | 57.0 s (38.3–91.0) | 37.8 s | 47.9 s | **26.9 s** (21.1–30.7) |
+| Dense stack (42 bands) | **failed 3/3** | 74.9 s | failed (HTTP 429) | **34.4 s** (33.9–37.0) |
+
+All successful outputs are **pixel-identical** across the three implementations (same grid, same values, same `-inf` nodata).
+
+!!! note "Reading these numbers"
+    With only ~2 concurrent requests allowed, total time is bounded by Earth Engine's per-request compute speed (~0.7 MB/s for the medoid). No client can beat that. The new downloader's main speed lever, running up to `sub_tile_workers` requests at once (16 by default) with tiles small enough to keep them all busy, has almost no room to work here. The medoid result is a statistical tie with the previous implementation, whose four ~20 MB requests happen to suit a 2-request cap. Expect larger gains on a standard-tier account; they were not measurable with this project.
+
+!!! success "What changed regardless of quota"
+    1. **Dense stacks work.** Bands are split only when needed, so a `toBands()` stack stays under the 32 MB / 1024-band per-request limits. The previous implementation could not download it at all.
+    2. **Composites aren't recomputed per band.** geedim splits bands first, so a 6-band medoid is computed several times over the same area, which explains its 3.4× longer run. `cdts` splits space first.
+    3. **Adaptive concurrency.** Throttled requests reduce concurrency instead of failing, so no run of the new downloader failed. geedim at its default concurrency failed in 2 of 3 cases.
+    4. **No mosaic step.** Tiles go straight into their window of the output file, so peak memory is one tile instead of the whole image.

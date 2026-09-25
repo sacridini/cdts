@@ -129,7 +129,7 @@ def download_gee_timeseries(
     start_date: str, 
     end_date: str, 
     out_dir: str, 
-    method: str = 'direct',
+    method: str = 'auto',
     composite_type: str = 'annual',
     bands: Optional[list] = None,
     project: Optional[str] = None
@@ -142,7 +142,9 @@ def download_gee_timeseries(
         start_date (str): Start date (YYYY-MM-DD).
         end_date (str): End date (YYYY-MM-DD).
         out_dir (str): Output directory to save the files.
-        method (str): Download method ('direct' for local tiling, 'drive' for GDrive export).
+        method (str): Download method passed to download_gee_image: 'auto' (default;
+            tiled direct download, falling back to Drive export for very large or
+            compute-heavy images), 'direct' or 'drive'.
         composite_type (str): Type of composition ('annual' for LandTrendr Medoid, etc.).
         project (str, optional): Google Cloud Project ID for authentication.
     """
