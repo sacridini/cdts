@@ -108,9 +108,9 @@
   </g>
   <text class="bm-bar-label" x="0" y="310.0">SOM (Batch SOM)</text>
   <g class="bm-bar-group">
-    <title>SOM (Batch SOM) · CDTS: 5.41x gain</title>
-    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="292.0" width="432.1" height="28.0" rx="4" />
-    <text class="bm-bar-val" x="700.1" y="310.0">5.4x</text>
+    <title>SOM (Batch SOM, bit-exact minisom port) · CDTS: 4.64x gain (15 threads, Ryzen 7 7730U laptop)</title>
+    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="292.0" width="415.5" height="28.0" rx="4" />
+    <text class="bm-bar-val" x="683.5" y="310.0">4.6x</text>
   </g>
   <text class="bm-bar-label" x="0" y="348.0">Mann-Kendall</text>
   <g class="bm-bar-group">

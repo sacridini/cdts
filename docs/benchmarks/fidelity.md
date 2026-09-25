@@ -16,11 +16,11 @@ To ensure transparent and reproducible validation, CDTS benchmarks its **8 core 
 </div>
 
 1. **Pillar 1: Controlled Ground-Truth Injection (Statistical Algorithms):**
-   - **Evaluated Algorithms:** `BFAST (Classic)`, `BFAST Monitor`, `BFAST Lite`, `TWDTW`, and `SOM`.
+   - **Evaluated Algorithms:** `BFAST (Classic)`, `BFAST Monitor`, `BFAST Lite`, and `TWDTW`.
    - **Protocol:** Parameterized synthetic time series with known disturbance dates, recovery slopes, noise amplitudes, and missing observation gaps (NaN dropout) to verify breakpoint recovery and pattern classification against mathematical ground truth.
 2. **Pillar 2: Direct Source-Level Port Parity (Original Codebases):**
-   - **Evaluated Algorithms:** `LandTrendr`, `CCDC`, and `SNIC`.
-   - **Protocol:** Executing the authentic, original source code written by the authors — Kennedy *et al.* (2010) IDL source (`fit_trajectory_v2.pro` / `tbcd_v2.pro`) executed via GNU Data Language (GDL 1.1.2), Zhu & Woodcock (2014) MATLAB source (`TrendSeasonalFit_v12_30Line.m`) with compiled Fortran GLMnet (`glmnetMex.F`) executed unmodified under GNU Octave 11.3, and Achanta & Süsstrunk (2017) canonical C reference (`snic.c`, EPFL) — validating model dates, vertex coordinates, and superpixel segment labels bit-for-bit.
+   - **Evaluated Algorithms:** `LandTrendr`, `CCDC`, `SNIC`, and `SOM`.
+   - **Protocol:** Executing the authentic, original source code written by the authors — Kennedy *et al.* (2010) IDL source (`fit_trajectory_v2.pro` / `tbcd_v2.pro`) executed via GNU Data Language (GDL 1.1.2), Zhu & Woodcock (2014) MATLAB source (`TrendSeasonalFit_v12_30Line.m`) with compiled Fortran GLMnet (`glmnetMex.F`) executed unmodified under GNU Octave 11.3, Achanta & Süsstrunk (2017) canonical C reference (`snic.c`, EPFL), and Python `minisom` (Vettigli) for SOM — validating model dates, vertex coordinates, superpixel segment labels, and SOM codebooks bit-for-bit.
 3. **Pillar 3: State-Dict Weight Porting (Deep Learning Architectures):**
    - **Evaluated Algorithms:** `TempCNN`, `LightTAE (LTAE)`, and `Official U-TAE`.
    - **Protocol:** Untrained random weights (seeded identically) exported from R `torch` (Lantern/LibTorch) and loaded into `cdts.ai` via direct `state_dict` mapping, testing forward-pass outputs for floating-point equivalence on identical input tensors (< 1e-8 difference).
@@ -39,6 +39,7 @@ The table below reports the primary and secondary agreement metrics for all eval
 | **LandTrendr** | Kennedy *et al.* (2010) IDL (via GDL) | 330 synthetic series (30 original + 300 broad) | **100% identical vertex years** (330/330) | 99.7% vertex values within 1 unit; p-val tie nuance resolved in 0.18.0 | <span class="bm-pill bm-pill--compared">compared</span> |
 | **CCDC** | Zhu & Woodcock (2014) MATLAB (Octave) | 200 synthetic + 150 real Landsat pixels | **100% identical model dates** (350/350 px) | 599 models, 249 breaks match; coeffs agree to ~5e-10 relative | <span class="bm-pill bm-pill--compared">compared</span> |
 | **SNIC (Superpixels)** | Achanta & Süsstrunk (2017) C (`snic.c`) | Reference test fixtures (float32 & float64) | **100% identical segment labels** (bitwise match) | Fixes upstream C crashes on single seeds & 2×2; R `snic` grid 1:1 match | <span class="bm-pill bm-pill--compared">compared</span> |
+| **SOM (Clustering)** | Python `minisom` | 1,500 + 20,000 samples, online & batch | **max weight diff = 0.0 (exact match)** | Identical codebooks, BMUs (ARI = 1.0) and quantization error in all 6 scenarios | <span class="bm-pill bm-pill--compared">compared</span> |
 | **BFAST Monitor** | R `bfast::bfastmonitor` | 40 scenarios (breaks, noise, NaN gaps) | **100% break agreement** (has_break) | Magnitude correlation = 1.000; matches R's 44% false positive rate on noise | <span class="bm-pill bm-pill--compared">compared</span> |
 | **BFAST Lite** | R `bfast::bfastlite` | 40 scenarios (single, multi, noise) | **100% break count match** (n_breaks) | 80% exact breakpoint match (mean diff = 1.6 observations) | <span class="bm-pill bm-pill--compared">compared</span> |
 | **BFAST (Classic)** | R `bfast::bfast` | 40 scenarios (trend & season breaks) | **87.5% trend break count match** | 100% position match and mag correlation = 0.998 where breaks agree | <span class="bm-pill bm-pill--compared">compared</span> |
@@ -46,7 +47,6 @@ The table below reports the primary and secondary agreement metrics for all eval
 | **Phenology (Elmore)**| R `phenofit::curvefits` | Real 25-yr EVI raster (179,805 joined rows) | **MAE = 18.48 days** (across 17 metrics) | 82.4% of observations within 15 days of reference | <span class="bm-pill bm-pill--compared">compared</span> |
 | **Phenology (Gu)** | R `phenofit::curvefits` | Real 25-yr EVI raster (177,983 joined rows) | **MAE = 35.38 days** (across 17 metrics) | Asymmetric Gu formulation exhibits highest sensitivity in tail fitting | <span class="bm-pill bm-pill--compared">compared</span> |
 | **TWDTW** | R `twdtw` / `dtwSat` | 45 multi-class temporal trajectories | **100% classification agreement** | Distance correlation = 0.9381; both hit 100% accuracy vs ground truth | <span class="bm-pill bm-pill--compared">compared</span> |
-| **SOM (Clustering)** | Python `minisom` | 1,500 samples, 5 Gaussian clusters | **ARI = 0.394** (CDTS vs minisom) | Batch vs Online SOM update rules; both hit ARI ≈ 0.47 vs ground truth | <span class="bm-pill bm-pill--compared">compared</span> |
 | **TempCNN** | R `sits::sits_tempcnn` | 4 bands, 24 timesteps, 5 classes | **max abs diff = 5.59e-9** | Pearson correlation = 1.000000; 1:1 parameter name mapping | <span class="bm-pill bm-pill--compared">compared</span> |
 | **LightTAE (LTAE)** | R `sits::sits_lighttae` | 4 bands, 24 steps, 16 heads, 5 classes | **max abs diff = 8.94e-8** | Pearson correlation = 1.000000; exact layer-for-layer port | <span class="bm-pill bm-pill--compared">compared</span> |
 | **Official U-TAE** | Official `utae-paps` repo | Segmentation U-Net + LTAE2d (B=1, T=6) | **max abs diff = 0.0 (exact match)** | Exact bitwise agreement on both regular and padded sampling paths | <span class="bm-pill bm-pill--compared">compared</span> |
@@ -153,9 +153,12 @@ TWDTW (Maus *et al.* 2016) calculates the optimal alignment between satellite ti
 
 ### 6. Self-Organizing Maps (SOM)
 
-- Evaluated against Python `minisom` using 1,500 samples distributed across 5 Gaussian clusters.
-- **Adjusted Rand Index (ARI):** CDTS vs. `minisom` yielded an ARI of **0.394**.
-- **Algorithmic Distinction:** This is expected. `minisom` implements **Online SOM** (stochastic sequential updates per sample), whereas CDTS implements **Batch SOM** (accumulating activations across the dataset before updating weights). Batch SOM is deterministic and readily parallelizable across threads. Both implementations recover the 5-cluster ground truth equally well (`ARI ≈ 0.465` for CDTS and `0.473` for `minisom`), with quantization errors within 4% of each other.
+- `cdts.ai.SOM` is an operation-by-operation port of Python `minisom` 2.3.6: same `numpy.random.RandomState` draws for initialization and sample order, NumPy's pairwise summation for the distance norm, `argmin` tie-breaking on the square-rooted distance, and the same neighborhood, decay and update expressions. The batch trainer accumulates each neuron's numerator and denominator in sample order, exactly like `MiniSom.train_batch_offline`, so its output does not depend on `n_jobs`.
+- Evaluated with identical seed and `random_weights_init` on both sides, on 5 Gaussian clusters (1,500 samples, 5×5 grid; 20,000 samples, 10×10 grid), for `MiniSom.train` (sequential and random order) and `MiniSom.train_batch_offline` (1 thread and all threads):
+    - **Codebook:** max |w<sub>CDTS</sub> − w<sub>minisom</sub>| = **0.0** in all 6 scenarios.
+    - **BMU assignments:** 100% agreement (ARI = 1.0); quantization errors identical.
+- The unit tests cover 67 further configurations (all four neighborhood functions, rectangular and hexagonal topologies, every decay function, random/PCA initialization, 1–150 features) against stored `minisom` outputs.
+- **Earlier result (superseded):** before this port, CDTS ran its own Batch SOM variant (exponential sigma decay, no learning rate, and `num_iters` counted full-data epochs instead of single-sample updates), which gave ARI = 0.394 against `minisom` and was 6–10× slower on the same call.
 
 ---
 

@@ -59,52 +59,52 @@
     <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="140.0" width="393.7" height="28.0" rx="4" />
     <text class="bm-bar-val" x="661.7" y="158.0">43.9x</text>
   </g>
-  <text class="bm-bar-label" x="0" y="196.0">Mann-Kendall (vs pymannkendall)</text>
+  <text class="bm-bar-label" x="0" y="196.0">SOM training (vs minisom)</text>
+  <g class="bm-bar-group">
+    <title>SOM training: 37.2x speedup vs Python minisom (identical codebook, 1,500 samples, 500 online iterations); batch SOM 44-126x</title>
+    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="178.0" width="384.1" height="28.0" rx="4" />
+    <text class="bm-bar-val" x="652.1" y="196.0">37.2x</text>
+  </g>
+  <text class="bm-bar-label" x="0" y="234.0">Mann-Kendall (vs pymannkendall)</text>
   <g class="bm-bar-group">
     <title>Mann-Kendall: 36.4x average speedup vs Python pymannkendall</title>
-    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="178.0" width="382.7" height="28.0" rx="4" />
-    <text class="bm-bar-val" x="650.7" y="196.0">36.4x</text>
+    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="216.0" width="382.7" height="28.0" rx="4" />
+    <text class="bm-bar-val" x="650.7" y="234.0">36.4x</text>
   </g>
-  <text class="bm-bar-label" x="0" y="234.0">BFAST Monitor (vs R bfast)</text>
+  <text class="bm-bar-label" x="0" y="272.0">BFAST Monitor (vs R bfast)</text>
   <g class="bm-bar-group">
     <title>BFAST Monitor: 15.8x speedup vs R bfast::bfastmonitor()</title>
-    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="216.0" width="334.5" height="28.0" rx="4" />
-    <text class="bm-bar-val" x="602.5" y="234.0">15.8x</text>
+    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="254.0" width="334.5" height="28.0" rx="4" />
+    <text class="bm-bar-val" x="602.5" y="272.0">15.8x</text>
   </g>
-  <text class="bm-bar-label" x="0" y="272.0">TempCNN (vs R sits)</text>
+  <text class="bm-bar-label" x="0" y="310.0">TempCNN (vs R sits)</text>
   <g class="bm-bar-group">
     <title>TempCNN: 11.1x speedup forward pass vs R sits::sits_tempcnn()</title>
-    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="254.0" width="313.7" height="28.0" rx="4" />
-    <text class="bm-bar-val" x="581.7" y="272.0">11.1x</text>
+    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="292.0" width="313.7" height="28.0" rx="4" />
+    <text class="bm-bar-val" x="581.7" y="310.0">11.1x</text>
   </g>
-  <text class="bm-bar-label" x="0" y="310.0">LTAE / LightTAE (vs R sits)</text>
+  <text class="bm-bar-label" x="0" y="348.0">LTAE / LightTAE (vs R sits)</text>
   <g class="bm-bar-group">
     <title>LightTAE: 5.8x speedup forward pass vs R sits::sits_lighttae()</title>
-    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="292.0" width="276.3" height="28.0" rx="4" />
-    <text class="bm-bar-val" x="544.3" y="310.0">5.8x</text>
+    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="330.0" width="276.3" height="28.0" rx="4" />
+    <text class="bm-bar-val" x="544.3" y="348.0">5.8x</text>
   </g>
-  <text class="bm-bar-label" x="0" y="348.0">BFAST classic (vs R bfast)</text>
+  <text class="bm-bar-label" x="0" y="386.0">BFAST classic (vs R bfast)</text>
   <g class="bm-bar-group">
     <title>BFAST classic: 4.3x speedup vs R bfast::bfast()</title>
-    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="330.0" width="258.3" height="28.0" rx="4" />
-    <text class="bm-bar-val" x="526.3" y="348.0">4.3x</text>
+    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="368.0" width="258.3" height="28.0" rx="4" />
+    <text class="bm-bar-val" x="526.3" y="386.0">4.3x</text>
   </g>
-  <text class="bm-bar-label" x="0" y="386.0">BFAST Lite (vs R bfast)</text>
+  <text class="bm-bar-label" x="0" y="424.0">BFAST Lite (vs R bfast)</text>
   <g class="bm-bar-group">
     <title>BFAST Lite: 2.5x speedup vs R bfast::bfastlite()</title>
-    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="368.0" width="228.2" height="28.0" rx="4" />
-    <text class="bm-bar-val" x="496.2" y="386.0">2.5x</text>
+    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="406.0" width="228.2" height="28.0" rx="4" />
+    <text class="bm-bar-val" x="496.2" y="424.0">2.5x</text>
   </g>
-  <text class="bm-bar-label" x="0" y="424.0">Official U-TAE (vs utae-paps)</text>
+  <text class="bm-bar-label" x="0" y="462.0">Official U-TAE (vs utae-paps)</text>
   <g class="bm-bar-group">
     <title>U-TAE: 1.08x speedup vs official VSainteuf/utae-paps repo</title>
-    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="406.0" width="178.5" height="28.0" rx="4" />
-    <text class="bm-bar-val" x="446.5" y="424.0">1.1x</text>
-  </g>
-  <text class="bm-bar-label" x="0" y="462.0">SOM training (vs minisom)</text>
-  <g class="bm-bar-group">
-    <title>SOM Training: 0.10x (Batch SOM in CDTS computes full dataset gradient per iteration vs Online SOM in minisom)</title>
-    <rect class="bm-bar-rect bm-ref-bar" x="260.0" y="444.0" width="40.3" height="28.0" rx="4" />
-    <text class="bm-bar-val" x="308.3" y="462.0">0.10x</text>
+    <rect class="bm-bar-rect bm-cdts-bar" x="260.0" y="444.0" width="178.5" height="28.0" rx="4" />
+    <text class="bm-bar-val" x="446.5" y="462.0">1.1x</text>
   </g>
 </svg>
