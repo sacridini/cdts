@@ -1061,9 +1061,9 @@ final_classification = np.where(dist_map < 15.0, classes_map, -1)
 
 ### `cdts.ai.SOM`
 
-A Batch Self-Organizing Map accelerated by C++/OpenMP/Eigen, for unsupervised clustering and dimensionality reduction of time-series/spectral features (e.g. discovering trajectory clusters without labeled training data, or filtering noisy training samples before supervised classification).
+A Self-Organizing Map accelerated by C++/OpenMP, for unsupervised clustering and dimensionality reduction of time-series/spectral features (e.g. discovering trajectory clusters without labeled training data, or filtering noisy training samples before supervised classification).
 
-**Note on cross-validation against `sits`:** `sits_som_map()`'s default `mode="online"` is algorithmically different from this Batch SOM (sequential, one-sample-at-a-time updates vs. batch weighted-average updates), so identical codebooks/BMU assignments aren't possible even with matched hyperparameters. `sits_som_map(mode="batch", distance="euclidean")` *is* the directly comparable algorithm (both wrap a Euclidean batch SOM), and was used for a statistical comparison instead: on the same synthetic labeled dataset (4 Gaussian blobs, 6 features), both reach **100% neuron-majority-label purity** on well-separated clusters, and **~62-65% purity with comparable quantization error** (same order of magnitude) on deliberately overlapping clusters — i.e. `cdts`'s SOM performs comparably to `sits`'s on the same clustering task, as expected from two independent batch-SOM implementations, without claiming numerically identical output.
+**Parity with `minisom`:** `cdts.ai.SOM` is an operation-by-operation port of Python [`minisom`](https://github.com/JustGlowing/minisom) 2.3.x. With the same `random_seed` and arguments it draws the same initial weights and sample order and applies the same neighborhood, decay and update arithmetic, so the trained codebook is **bit-for-bit identical** to `MiniSom.train` (`algorithm='online'`) or `MiniSom.train_batch_offline` (`algorithm='batch'`) — and 30-190x faster. `num_iters` therefore has `minisom`'s meaning: single-sample updates for `'online'`, full passes over the data for `'batch'`. The batch trainer is deterministic for any `n_jobs`.
 
 **Constructor Parameters**
 
@@ -1072,15 +1072,23 @@ A Batch Self-Organizing Map accelerated by C++/OpenMP/Eigen, for unsupervised cl
 | `x` | `int` | **Required** | Number of neurons along the grid's first dimension. |
 | `y` | `int` | **Required** | Number of neurons along the grid's second dimension. |
 | `input_len` | `int` | **Required** | Number of input features per sample. |
-| `sigma` | `float` | `1.0` | Neighborhood radius for the batch update. |
-| `random_seed` | `int` | `42` | Seed for weight initialization. |
+| `sigma` | `float` | `1.0` | Initial spread of the neighborhood function. |
+| `learning_rate` | `float` | `0.5` | Initial learning rate. |
+| `decay_function` | `str` | `'asymptotic_decay'` | Learning-rate decay: `'asymptotic_decay'`, `'inverse_decay_to_zero'` or `'linear_decay_to_zero'`. |
+| `neighborhood_function` | `str` | `'gaussian'` | `'gaussian'`, `'mexican_hat'`, `'bubble'` or `'triangle'`. |
+| `topology` | `str` | `'rectangular'` | `'rectangular'` or `'hexagonal'`. |
+| `random_seed` | `int` | `42` | Seed of the `numpy.random.RandomState` used for initialization and sample shuffling (same draws as `minisom`). |
+| `sigma_decay_function` | `str` | `'asymptotic_decay'` | Sigma decay: `'asymptotic_decay'`, `'inverse_decay_to_one'` or `'linear_decay_to_one'`. |
 
 **Methods**
 
 | Method | Description |
 | :--- | :--- |
-| `train(data, num_iters, n_jobs=-1)` | Trains the SOM on `data`, shape `(Samples, Features)`. |
-| `predict(data, n_jobs=-1)` | Returns the Best Matching Unit (BMU) index for each sample in `data`. |
+| `random_weights_init(data)` / `pca_weights_init(data)` | Initializes the weights from random samples / the first two principal components. |
+| `train(data, num_iters, n_jobs=-1, algorithm='online', random_order=False, use_epochs=False)` | Trains on `data`, shape `(Samples, Features)`, continuing from the current weights. `algorithm='online'` reproduces `MiniSom.train` (`num_iters` single-sample updates, or epochs with `use_epochs=True`); `algorithm='batch'` reproduces `MiniSom.train_batch_offline` (`num_iters` passes over the whole dataset, parallelized with `n_jobs`). |
+| `predict(data, n_jobs=-1)` | Returns the Best Matching Unit (BMU) flat index `i * y + j` for each sample in `data`. |
+| `winner(x)` / `quantization(data)` / `quantization_error(data)` | BMU coordinates of one sample / BMU codebook vector of each sample / mean sample-to-BMU distance. |
+| `get_weights()` | Codebook of shape `(x, y, input_len)`. |
 | `filter_noisy_samples(data, labels, n_jobs=-1)` | Returns a boolean mask flagging samples whose label disagrees with their neuron's majority label — useful for cleaning noisy training sets before supervised classification. |
 
 **Usage Example**
@@ -1091,9 +1099,10 @@ from cdts.ai import SOM
 # Flatten cube to (Pixels, Features)
 X_train = cube_16d.values.reshape(-1, cube_16d.shape[2] * cube_16d.shape[3])
 
-# Train a 10x10 SOM grid
-som = SOM(x=10, y=10, input_len=X_train.shape[1])
-som.train(X_train, num_iters=100, n_jobs=-1)
+# Train a 10x10 SOM grid (Batch SOM, 20 passes over the data, OpenMP-parallel)
+som = SOM(x=10, y=10, input_len=X_train.shape[1], sigma=1.5)
+som.random_weights_init(X_train)
+som.train(X_train, num_iters=20, algorithm="batch", n_jobs=-1)
 
 # Predict Best Matching Units (BMUs) for new data
 bmus = som.predict(X_train, n_jobs=-1)

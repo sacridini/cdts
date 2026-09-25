@@ -135,8 +135,21 @@ PYBIND11_MODULE(_core, m) {
 
     // SOM submodule
     py::module_ som = m.def_submodule("som", "SOM C++ implementations");
-    som.def("train_som_batch", &cdts::som::train_som_batch, "Train a Batch SOM");
-    som.def("predict_bmus", &cdts::som::predict_bmus, "Find BMU for samples");
+    som.def("train_online", &cdts::som::train_online,
+            "Online SOM training (port of MiniSom.train); updates weights in place",
+            py::arg("weights").noconvert(), py::arg("data"), py::arg("order"),
+            py::arg("num_iteration"), py::arg("use_epochs"),
+            py::arg("learning_rate"), py::arg("sigma"),
+            py::arg("lr_decay"), py::arg("sigma_decay"), py::arg("neighborhood"),
+            py::arg("xx"), py::arg("yy"));
+    som.def("train_batch", &cdts::som::train_batch,
+            "Batch SOM training (port of MiniSom.train_batch_offline); updates weights in place",
+            py::arg("weights").noconvert(), py::arg("data"), py::arg("num_iteration"),
+            py::arg("learning_rate"), py::arg("sigma"),
+            py::arg("lr_decay"), py::arg("sigma_decay"), py::arg("neighborhood"),
+            py::arg("xx"), py::arg("yy"), py::arg("n_jobs") = -1);
+    som.def("predict_bmus", &cdts::som::predict_bmus, "Find BMU for samples",
+            py::arg("data"), py::arg("weights"), py::arg("n_jobs") = -1);
 
     // Phenology sub-module
     py::module_ ph = m.def_submodule("phenology", "Phenology extraction");

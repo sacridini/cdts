@@ -73,7 +73,7 @@ CDTS natively implements industry-standard algorithms for **Time-Series Analysis
 | [TWDTW](tutorials/twdtw.md) | Time-Series Analysis | Time-Weighted Dynamic Time Warping for pattern matching against reference curves. |
 | [Mann-Kendall](tutorials/mann_kendall.md) | Time-Series Analysis | Non-parametric trend test and Theil-Sen slope estimation for greening/browning trends. |
 | [Phenology Extraction](tutorials/phenology.md) | Time-Series Analysis | Simultaneous phenological metrics from optimized curve-fitting models. |
-| [SOM](tutorials/som.md) | Time-Series Analysis | Batch Self-Organizing Maps for unsupervised clustering of spectral-temporal arrays. |
+| [SOM](tutorials/som.md) | Time-Series Analysis | Online and Batch Self-Organizing Maps (bit-exact `minisom` port) for unsupervised clustering of spectral-temporal arrays. |
 | [U-TAE / LTAE](tutorials/utae.md) | Deep Learning | Attention-based architectures for spatio-temporal satellite image classification. |
 | [Siamese Networks](tutorials/siamese.md) | Deep Learning | Bi-temporal CNNs for pixel-wise change detection. |
 | [GeoFoundationViT](tutorials/geo_foundation_vit.md) | Deep Learning | Wrappers for Vision Transformer geospatial foundation models. |

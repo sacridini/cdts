@@ -33,7 +33,8 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-cov",
-    "pymannkendall"
+    "pymannkendall",
+    "minisom==2.3.6"
 ]
 
 [project.scripts]
