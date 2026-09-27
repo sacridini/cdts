@@ -15,8 +15,8 @@ To start contributing to the Zeit codebase, you will need to set up a local deve
 
 1. **Fork and Clone:** Fork the repository on GitHub and clone your fork locally.
    ```bash
-   git clone https://github.com/YOUR_USERNAME/zeit.git
-   cd zeit
+   git clone https://github.com/YOUR_USERNAME/zeit-cdts.git
+   cd zeit-cdts
    ```
 
 2. **Install in Editable Mode with Dev Dependencies:** Install the package so that changes to the Python code are immediately reflected without needing to reinstall. 

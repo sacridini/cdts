@@ -39,9 +39,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/sacridini/zeit"
-Documentation = "https://sacridini.github.io/zeit/"
-Issues = "https://github.com/sacridini/zeit/issues"
+Homepage = "https://github.com/sacridini/zeit-cdts"
+Documentation = "https://sacridini.github.io/zeit-cdts/"
+Issues = "https://github.com/sacridini/zeit-cdts/issues"
 
 [project.scripts]
 zeit = "zeit.cli:main"

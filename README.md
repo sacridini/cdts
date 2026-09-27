@@ -1,15 +1,15 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/sacridini/zeit/main/docs/assets/logo-wide-dark.png">
-    <img src="https://raw.githubusercontent.com/sacridini/zeit/main/docs/assets/logo-wide.png" alt="Zeit Logo" width="420">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/sacridini/zeit-cdts/main/docs/assets/logo-wide-dark.png">
+    <img src="https://raw.githubusercontent.com/sacridini/zeit-cdts/main/docs/assets/logo-wide.png" alt="Zeit Logo" width="420">
   </picture>
 </p>
 
 # Zeit: Change Detection and Time Series for Python
 
-[![Build Wheels](https://github.com/sacridini/zeit/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/sacridini/zeit/actions/workflows/build_wheels.yml)
-[![Tests](https://github.com/sacridini/zeit/actions/workflows/tests.yml/badge.svg)](https://github.com/sacridini/zeit/actions/workflows/tests.yml)
-[![Docs](https://github.com/sacridini/zeit/actions/workflows/docs.yml/badge.svg)](https://github.com/sacridini/zeit/actions/workflows/docs.yml)
+[![Build Wheels](https://github.com/sacridini/zeit-cdts/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/sacridini/zeit-cdts/actions/workflows/build_wheels.yml)
+[![Tests](https://github.com/sacridini/zeit-cdts/actions/workflows/tests.yml/badge.svg)](https://github.com/sacridini/zeit-cdts/actions/workflows/tests.yml)
+[![Docs](https://github.com/sacridini/zeit-cdts/actions/workflows/docs.yml/badge.svg)](https://github.com/sacridini/zeit-cdts/actions/workflows/docs.yml)
 [![PyPI version](https://badge.fury.io/py/zeit-cdts.svg)](https://badge.fury.io/py/zeit-cdts)
 
 **Zeit** is a high-performance Python package for Earth Observation (EO) data cube processing and time series analysis. It bridges the gap between modern cloud-native data formats (STAC, Xarray, Dask) and state-of-the-art pixel-based trajectory algorithms (TWDTW, CCDC, LandTrendr). 
@@ -188,7 +188,7 @@ classify_ccdc_stack(
 
 Extract 19 simultaneous phenological metrics (Gu, Zhang, Thresholds, Derivatives, LOS, POP) across massive datasets using optimized C++ curve-fitting models (Beck, Elmore, Gu, Zhang, Asymmetric Gaussian, Double Logistic) over Dask clusters.
 
-> The smoothing, curve-fitting, and metric-extraction methodology is based on the R package [`phenofit`](https://github.com/eco-hydro/phenofit) (Kong *et al.*, 2022, *Methods in Ecology and Evolution*, [doi:10.1111/2041-210X.13870](https://doi.org/10.1111/2041-210X.13870)), reimplemented in C++/Eigen/OpenMP. See the [Phenology tutorial](https://sacridini.github.io/zeit/tutorials/phenology/#7-references) for the full reference list and a real-world walkthrough.
+> The smoothing, curve-fitting, and metric-extraction methodology is based on the R package [`phenofit`](https://github.com/eco-hydro/phenofit) (Kong *et al.*, 2022, *Methods in Ecology and Evolution*, [doi:10.1111/2041-210X.13870](https://doi.org/10.1111/2041-210X.13870)), reimplemented in C++/Eigen/OpenMP. See the [Phenology tutorial](https://sacridini.github.io/zeit-cdts/tutorials/phenology/#7-references) for the full reference list and a real-world walkthrough.
 
 ```python
 import numpy as np
@@ -242,7 +242,7 @@ pheno_results = cube_16d.zeit.run_phenology(
 
 ## Trend Analysis (Mann-Kendall)
 
-Pixel-wise Mann-Kendall trend test + Theil-Sen slope, ported from [`pymannkendall`](https://github.com/mmhs013/pymannkendall) (Hussain & Mahmud, 2019) to a C++/OpenMP backend, with the same Dask distribution strategy as Phenology Extraction. Useful for "is there a statistically significant greening/browning trend at this pixel?" questions on multi-year composite stacks. See the [Mann-Kendall tutorial](https://sacridini.github.io/zeit/tutorials/mann_kendall/) for the full method comparison (autocorrelation-corrected variants, seasonal test) and a real-world walkthrough.
+Pixel-wise Mann-Kendall trend test + Theil-Sen slope, ported from [`pymannkendall`](https://github.com/mmhs013/pymannkendall) (Hussain & Mahmud, 2019) to a C++/OpenMP backend, with the same Dask distribution strategy as Phenology Extraction. Useful for "is there a statistically significant greening/browning trend at this pixel?" questions on multi-year composite stacks. See the [Mann-Kendall tutorial](https://sacridini.github.io/zeit-cdts/tutorials/mann_kendall/) for the full method comparison (autocorrelation-corrected variants, seasonal test) and a real-world walkthrough.
 
 ```python
 import numpy as np
@@ -261,7 +261,7 @@ declining = (result.sel(metric="trend") == -1) & significant
 
 ## Change Monitoring (BFAST Monitor)
 
-Pixel-wise near-real-time structural change monitoring, ported from the R package [`bfast`](https://github.com/bfast2/bfast) (Verbesselt *et al.*) to a C++/OpenMP backend, with the same Dask distribution strategy as Mann-Kendall. Unlike LandTrendr/CCDC (retrospective, whole-series segmentation), `bfastmonitor` fits a trend+harmonic model on a stable history period and asks "is a disturbance happening *right now*, in the most recent observations?" — verified bit-for-bit-scale accurate against R's `bfastmonitor()`. See the [BFAST Monitor tutorial](https://sacridini.github.io/zeit/tutorials/bfast_monitor/) for the full method background and scope (only `type="OLS-MOSUM"` + `history="all"` are ported so far).
+Pixel-wise near-real-time structural change monitoring, ported from the R package [`bfast`](https://github.com/bfast2/bfast) (Verbesselt *et al.*) to a C++/OpenMP backend, with the same Dask distribution strategy as Mann-Kendall. Unlike LandTrendr/CCDC (retrospective, whole-series segmentation), `bfastmonitor` fits a trend+harmonic model on a stable history period and asks "is a disturbance happening *right now*, in the most recent observations?" — verified bit-for-bit-scale accurate against R's `bfastmonitor()`. See the [BFAST Monitor tutorial](https://sacridini.github.io/zeit-cdts/tutorials/bfast_monitor/) for the full method background and scope (only `type="OLS-MOSUM"` + `history="all"` are ported so far).
 
 ```python
 # annual_ndvi: (time, y, x) DataArray, 16-day composites (frequency=23/year) from 2010
@@ -278,7 +278,7 @@ break_time = result.sel(metric="breakpoint")  # fractional-year time of the firs
 
 ## Change Detection (BFAST Lite)
 
-Pixel-wise, single-pass multiple-breakpoint detection, ported from the R package `bfast`'s `bfastlite()` and its `strucchangeRcpp` dependency's `breakpoints()` (the Bai & Perron optimal multiple-breakpoint dynamic program) to a C++/OpenMP backend. Unlike `bfastmonitor` above (single break, near-real-time), this retrospectively segments the *whole* series into the optimal number of pieces (via the LWZ model-selection criterion) — no STL decomposition needed. Verified exactly against R's `bfastlite()` across 6 scenarios (~3.1x faster single-threaded than R; `n_jobs=-1` adds a further ~5.5x on top of that by reserving one CPU core and parallelizing across the rest — a smaller gap than `bfastmonitor`'s, since this workload is genuinely CPU-bound dynamic programming on both sides, not dominated by R's per-call overhead). See the [BFAST Lite tutorial](https://sacridini.github.io/zeit/tutorials/bfast_lite/) for the full method background, scope, and validation details (including two real numerical bugs caught and fixed along the way).
+Pixel-wise, single-pass multiple-breakpoint detection, ported from the R package `bfast`'s `bfastlite()` and its `strucchangeRcpp` dependency's `breakpoints()` (the Bai & Perron optimal multiple-breakpoint dynamic program) to a C++/OpenMP backend. Unlike `bfastmonitor` above (single break, near-real-time), this retrospectively segments the *whole* series into the optimal number of pieces (via the LWZ model-selection criterion) — no STL decomposition needed. Verified exactly against R's `bfastlite()` across 6 scenarios (~3.1x faster single-threaded than R; `n_jobs=-1` adds a further ~5.5x on top of that by reserving one CPU core and parallelizing across the rest — a smaller gap than `bfastmonitor`'s, since this workload is genuinely CPU-bound dynamic programming on both sides, not dominated by R's per-call overhead). See the [BFAST Lite tutorial](https://sacridini.github.io/zeit-cdts/tutorials/bfast_lite/) for the full method background, scope, and validation details (including two real numerical bugs caught and fixed along the way).
 
 ```python
 # annual_ndvi: (time, y, x) DataArray, 16-day composites (frequency=23/year) from 2010
@@ -408,7 +408,7 @@ Every core algorithm is also available as a `zeit` subcommand, so you can run ch
 zeit landtrendr input_stack.tif output_dir/ --start-year 2000 --max-segments 6 --jobs -1
 ```
 
-See the [CLI reference](https://sacridini.github.io/zeit/cli/) for the full list of subcommands and options.
+See the [CLI reference](https://sacridini.github.io/zeit-cdts/cli/) for the full list of subcommands and options.
 
 ---
 
@@ -423,4 +423,4 @@ Zeit safely blends Python-based distributed workflows (Dask) with highly paralle
 
 ## License
 
-Zeit is free software, licensed under the [GNU General Public License v2.0 or later](https://github.com/sacridini/zeit/blob/main/LICENSE) (`GPL-2.0-or-later`). Several algorithms are ports of existing open-source implementations (bfast, strucchangeRcpp, GLMnet, pymannkendall, GERSL/CCDC, ...); their origins, licenses and copyright notices are listed in [THIRD_PARTY_NOTICES.md](https://github.com/sacridini/zeit/blob/main/THIRD_PARTY_NOTICES.md). Because the CCDC lasso solver derives from GPL-2.0-only code, the compiled extension as a whole is distributed under GPL version 2.
+Zeit is free software, licensed under the [GNU General Public License v2.0 or later](https://github.com/sacridini/zeit-cdts/blob/main/LICENSE) (`GPL-2.0-or-later`). Several algorithms are ports of existing open-source implementations (bfast, strucchangeRcpp, GLMnet, pymannkendall, GERSL/CCDC, ...); their origins, licenses and copyright notices are listed in [THIRD_PARTY_NOTICES.md](https://github.com/sacridini/zeit-cdts/blob/main/THIRD_PARTY_NOTICES.md). Because the CCDC lasso solver derives from GPL-2.0-only code, the compiled extension as a whole is distributed under GPL version 2.

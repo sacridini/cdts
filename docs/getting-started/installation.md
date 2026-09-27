@@ -49,8 +49,8 @@ If you need to modify the C++ backend, use the latest unreleased features, or bu
 
 1. Clone the repository from GitHub:
    ```bash
-   git clone https://github.com/sacridini/zeit.git
-   cd zeit
+   git clone https://github.com/sacridini/zeit-cdts.git
+   cd zeit-cdts
    ```
 
 2. Install the package in editable mode:

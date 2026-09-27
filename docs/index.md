@@ -18,7 +18,7 @@ hide:
 
 [Get started](getting-started/quickstart.md){ .md-button .md-button--primary }
 [See what it can do](#what-you-can-do-with-zeit){ .md-button }
-[:fontawesome-brands-github: GitHub](https://github.com/sacridini/zeit){ .md-button }
+[:fontawesome-brands-github: GitHub](https://github.com/sacridini/zeit-cdts){ .md-button }
 
 <div class="zeit-hero__install" markdown>
 

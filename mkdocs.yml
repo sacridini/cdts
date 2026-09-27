@@ -1,8 +1,8 @@
 site_name: Zeit
 site_description: Change detection and time-series analysis for satellite imagery, in Python. Fast C++ ports of LandTrendr, CCDC, BFAST and more, from a single pixel to a Dask cluster.
-site_url: https://sacridini.github.io/zeit/
-repo_url: https://github.com/sacridini/zeit
-repo_name: sacridini/zeit
+site_url: https://sacridini.github.io/zeit-cdts/
+repo_url: https://github.com/sacridini/zeit-cdts
+repo_name: sacridini/zeit-cdts
 edit_uri: edit/main/docs/
 copyright: Zeit is free software released under the GPL-2.0-or-later license.
 
@@ -112,7 +112,7 @@ extra:
   generator: false
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/sacridini/zeit
+      link: https://github.com/sacridini/zeit-cdts
       name: Zeit on GitHub
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/zeit-cdts/
