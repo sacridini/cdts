@@ -27,6 +27,7 @@ Single-core execution evaluates algorithmic efficiency without the confounding f
 | **LandTrendr** | Original IDL (GDL) | 30-year synthetic series | **0.026 ms / call** | 4.33 ms / call | **168.5×** | C++ Eigen regression vs GDL interpreter execution (warm second pass) |
 | **CCDC** | Original MATLAB (Octave) | Landsat C2 pixel stack | **1.69 ms / px** | 141.51 ms / px | **83.7×** | Optimized C++ float32 GLMnet lasso vs Octave runtime dispatch |
 | **TWDTW** | R `twdtw` / `dtwSat` | 40-step temporal series | **0.029 ms / call** | 1.29 ms / call | **43.9×** | Pre-allocated dynamic programming tables vs R data.frame boxing |
+| **SOM (Training)** | Python `minisom` | 1,500 samples, 5×5 grid (500 online iters) | **0.42 ms / fit** | 15.58 ms / fit | **37.2×** | Bit-exact C++ port of `MiniSom.train`; per-sample Python/NumPy dispatch replaced by a native loop (batch SOM: 44×–126×). Measured on a Ryzen 7 7730U laptop |
 | **Mann-Kendall** | Python `pymannkendall` | 30-obs series (3 tests) | **0.021 ms / call** | 0.77 ms / call | **36.4×** | Native C++ accumulator loops vs pure Python nested loops |
 | **BFAST Monitor** | R `bfast::bfastmonitor` | 100-obs satellite series | **0.093 ms / call** | 1.47 ms / call | **15.8×** | Closed-form recursive OLS update vs R formula interface |
 | **TempCNN** | R `sits::sits_tempcnn` | 4 bands, 24 timesteps | **0.212 ms / pass** | 2.34 ms / pass | **11.1×** | Direct LibTorch C++ bindings vs R `torch` Lantern bridge |
@@ -35,10 +36,6 @@ Single-core execution evaluates algorithmic efficiency without the confounding f
 | **BFAST Lite** | R `bfast::bfastlite` | Structural break series | **8.74 ms / call** | 22.22 ms / call | **2.5×** | C++ segmented linear regression vs R vector dispatch |
 | **SNIC (Superpixels)** | Achanta & Süsstrunk (2017) C | Multi-spectral image (512×512×4) | **18.4 ms / pass** | 42.3 ms / pass | **2.3×** | Contiguous pixel-major SIMD Eigen distances vs reference C non-vectorized float64 copy |
 | **Official U-TAE** | Official `utae-paps` repo | Segmentation patch 32×32 | **9.26 ms / pass** | 9.96 ms / pass | **1.08×** | Both run on PyTorch CPU backend (parity validation) |
-| **SOM (Training)** | Python `minisom` | 1,500 samples (500 iters) | 0.049 ms / sample | **0.005 ms / sample** | **0.10×** | Batch SOM computes full matrix gradient; `minisom` updates 1 sample online |
-
-!!! info "The SOM Speed Profile"
-    CDTS implements **Batch SOM** (vectorized over the whole dataset per epoch) while `minisom` implements **Online SOM** (stochastic updates per individual sample). While Batch SOM does more work during training on a single core, it parallelizes cleanly across threads and achieves **54× faster prediction** (**0.00011 ms** vs **0.00446 ms** per sample).
 
 ---
 
@@ -76,7 +73,7 @@ The table below lines up **absolute wall-clock times** to show who finishes firs
 | **BFAST Lite** | 2,000 series | R `parallel` PSOCK cluster (19w) | 17,029 ms | **2,019 ms** | **8.43×** | 42,463 ms | 4,551 ms | 9.33× | **CDTS 2.25× faster** (2.0s vs 4.5s) |
 | **BFAST (Classic)**| 400 series | R `parallel` PSOCK cluster (19w) | 5,208 ms | **909 ms** | **5.73×** | 25,119 ms | 3,335 ms | 7.53× | **CDTS 3.67× faster** (0.9s vs 3.3s) |
 | **TWDTW** | 3,000 series × 1 pat | R `parallel` PSOCK cluster (19w) | 91.67 ms | **13.35 ms** | **6.87×** | 1,406 ms | 188.67 ms | 7.45× | **CDTS 14.1× faster** (13ms vs 188ms) |
-| **SOM (Batch)** | 20,000 samples | — (`minisom` has no parallel mode)| 1,302 ms | **241 ms** | **5.41×** | — | — | — | **CDTS scales cleanly to 241 ms** |
+| **SOM (Batch)** | 20,000 samples, 10×10, 200 iters | — (`minisom` has no parallel mode)| 3,077 ms | **664 ms** | **4.64×** | — | — | — | **CDTS finishes in 0.66 s** (re-measured with 15 threads on a 16-thread Ryzen 7 7730U laptop after the bit-exact `minisom` port; `minisom` `train_batch_offline` ≈ 126 s, extrapolated from 10 iterations) |
 | **TempCNN** | Batch = 512 | R `torch` intra-op threads | 15.68 ms | **3.94 ms** | **3.98×** | 15.06 ms | 7.78 ms | 1.94× | **CDTS 1.97× faster** (3.9ms vs 7.8ms) |
 | **Official U-TAE** | Batch = 32 | PyTorch CPU intra-op threads | 317.66 ms | **126.00 ms** | **2.52×** | 324.40 ms | 124.67 ms | 2.60× | **Tied** (both PyTorch backend) |
 | **LightTAE** | Batch = 512 | R `torch` intra-op threads | 32.77 ms | **14.61 ms** | **2.24×** | 42.08 ms | 26.98 ms | 1.56× | **CDTS 1.85× faster** (14.6ms vs 27.0ms) |
@@ -116,3 +113,31 @@ xychart-beta
     3. **Zero Queue Latency:** Under standard GEE quotas, large batch export tasks regularly wait hours in the queue (5.08 hours in this benchmark). CDTS begins processing immediately and finishes in under two minutes.
 
 
+
+---
+
+## Earth Engine Download Throughput (`download_gee_image`)
+
+`download_gee_image(method='direct'/'auto')` was rewritten on ideas from [geedim](https://github.com/leftfield-geospatial/geedim) (fixed pixel grid, byte-sized tiles, windowed writes), with four changes of its own: tiles are split in space before bands, tiles are sized on demand from the concurrency Earth Engine actually allows (guided scheduling), concurrency adapts to HTTP 429 responses, and requests go through `computePixels` in a single round trip. We compared it with the previous implementation (0.25° tiles, 4 threads, `getDownloadURL` + `rasterio.merge`) and with geedim 2.0.0.
+
+- **Region:** WRS-2 path/row 217/076 (Rio de Janeiro). `sub`: 0.5° × 0.5° (1856 × 1857 px at 30 m); `small`: 0.2° × 0.2°.
+- **Images:** 2020 annual medoid composite (6 bands, float32, 79 MB raw); NDVI of that composite (1 band, 13 MB raw); dense stack of Jan–Mar 2020 via `toBands()` (42 bands, 89 MB raw).
+- **Protocol:** 3 rounds with method order rotated each round. Every run uses a distinct expression (end date shifted by seconds, same scenes) so Earth Engine's result cache cannot favor later runs. Timings are wall-clock medians.
+- **Account:** noncommercial project in **Restricted Mode**, which allows only about **2 concurrent requests** (a standard tier allows about 40). Per-request latency varied up to 4× for identical requests.
+
+| Image | Previous `cdts` | geedim 2.0 (`max_requests=2`) | geedim 2.0 (default, 32 requests) | **New `cdts`** |
+|:---|:---:|:---:|:---:|:---:|
+| Medoid composite (79 MB) | 68.7 s (57.7–73.8) | 265.9 s, **1/3 failed** | failed (HTTP 429) | **77.1 s** (70.6–94.8) |
+| NDVI (13 MB) | 57.0 s (38.3–91.0) | 37.8 s | 47.9 s | **26.9 s** (21.1–30.7) |
+| Dense stack (42 bands) | **failed 3/3** | 74.9 s | failed (HTTP 429) | **34.4 s** (33.9–37.0) |
+
+All successful outputs are **pixel-identical** across the three implementations (same grid, same values, same `-inf` nodata).
+
+!!! note "Reading these numbers"
+    With only ~2 concurrent requests allowed, total time is bounded by Earth Engine's per-request compute speed (~0.7 MB/s for the medoid). No client can beat that. The new downloader's main speed lever, running up to `sub_tile_workers` requests at once (16 by default) with tiles small enough to keep them all busy, has almost no room to work here. The medoid result is a statistical tie with the previous implementation, whose four ~20 MB requests happen to suit a 2-request cap. Expect larger gains on a standard-tier account; they were not measurable with this project.
+
+!!! success "What changed regardless of quota"
+    1. **Dense stacks work.** Bands are split only when needed, so a `toBands()` stack stays under the 32 MB / 1024-band per-request limits. The previous implementation could not download it at all.
+    2. **Composites aren't recomputed per band.** geedim splits bands first, so a 6-band medoid is computed several times over the same area, which explains its 3.4× longer run. `cdts` splits space first.
+    3. **Adaptive concurrency.** Throttled requests reduce concurrency instead of failing, so no run of the new downloader failed. geedim at its default concurrency failed in 2 of 3 cases.
+    4. **No mosaic step.** Tiles go straight into their window of the output file, so peak memory is one tile instead of the whole image.

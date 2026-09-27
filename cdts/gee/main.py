@@ -6,6 +6,7 @@ from .auth import initialize_gee
 from .harmonization import get_harmonized_collection
 from .composites import create_annual_medoid
 from .downloader import download_gee_image
+from .roi import resolve_roi
 from .drive_sync import submit_drive_export, wait_and_download_task
 
 def _compute_indices(img: "ee.Image", bands: list) -> "ee.Image":
@@ -35,7 +36,7 @@ def _compute_indices(img: "ee.Image", bands: list) -> "ee.Image":
 
 
 def download_gee_timeseries_drive(
-    roi: Union[tuple, list, "ee.Geometry"],
+    roi: Union[str, tuple, list, "ee.Geometry"],
     start_date: str,
     end_date: str,
     out_dir: str,
@@ -56,7 +57,8 @@ def download_gee_timeseries_drive(
     method='direct' slow for a full multi-decade time series.
 
     Args:
-        roi: Region of interest (bbox tuple or ee.Geometry).
+        roi: Region of interest: a Landsat WRS-2 tile id ('217/076'), a
+            (min_lon, min_lat, max_lon, max_lat) bbox, or an ee.Geometry.
         start_date, end_date (str): YYYY-MM-DD.
         out_dir (str): Local directory to save the downloaded GeoTIFFs.
         tile_label (str): Identifier (e.g. "214_064") used to prefix filenames
@@ -77,7 +79,7 @@ def download_gee_timeseries_drive(
     """
     initialize_gee(project=project)
 
-    geom = ee.Geometry.Rectangle(roi) if isinstance(roi, (tuple, list)) else roi
+    geom = resolve_roi(roi)
     os.makedirs(out_dir, exist_ok=True)
 
     # Medoid selection runs on the raw harmonized spectral bands (matching
@@ -125,11 +127,11 @@ def download_gee_timeseries_drive(
 
 
 def download_gee_timeseries(
-    roi: Union[tuple, list, "ee.Geometry"], 
+    roi: Union[str, tuple, list, "ee.Geometry"],
     start_date: str, 
     end_date: str, 
     out_dir: str, 
-    method: str = 'direct',
+    method: str = 'auto',
     composite_type: str = 'annual',
     bands: Optional[list] = None,
     project: Optional[str] = None
@@ -138,25 +140,24 @@ def download_gee_timeseries(
     Downloads time series data from Google Earth Engine.
     
     Args:
-        roi (tuple, list, or ee.Geometry): Region of interest (min_lon, min_lat, max_lon, max_lat) or ee.Geometry.
+        roi (str, tuple, list, or ee.Geometry): Region of interest: a Landsat
+            WRS-2 tile id such as '217/076' (downloads that tile's footprint
+            bounding box), a (min_lon, min_lat, max_lon, max_lat) bbox, or an
+            ee.Geometry.
         start_date (str): Start date (YYYY-MM-DD).
         end_date (str): End date (YYYY-MM-DD).
         out_dir (str): Output directory to save the files.
-        method (str): Download method ('direct' for local tiling, 'drive' for GDrive export).
+        method (str): Download method passed to download_gee_image: 'auto' (default;
+            tiled direct download, falling back to Drive export for very large or
+            compute-heavy images), 'direct' or 'drive'.
         composite_type (str): Type of composition ('annual' for LandTrendr Medoid, etc.).
         project (str, optional): Google Cloud Project ID for authentication.
     """
     initialize_gee(project=project)
     
-    # Handle ROI parsing
-    if isinstance(roi, (tuple, list)):
-        if len(roi) == 4:
-            geom = ee.Geometry.Rectangle(roi)
-        else:
-            raise ValueError("ROI tuple/list must contain 4 elements (min_lon, min_lat, max_lon, max_lat)")
-    else:
-        geom = roi
-        
+    geom = resolve_roi(roi)
+
+
     os.makedirs(out_dir, exist_ok=True)
     
     print("Preparing harmonized collection...")

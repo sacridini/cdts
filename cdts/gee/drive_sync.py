@@ -1,7 +1,7 @@
 """
 Batch Google Drive export + auto-download for GEE tasks.
 
-Unlike downloader.py's method='direct' (synchronous getDownloadURL calls,
+Unlike downloader.py's method='direct' (interactive computePixels calls,
 one HTTP round-trip with server-side compute per sub-tile), this submits
 ee.batch.Export.image.toDrive tasks that run asynchronously in GEE's own
 task queue, then polls task status and pulls the finished file back from

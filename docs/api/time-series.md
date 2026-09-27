@@ -299,10 +299,15 @@ The seed grids of the R `snic` package, as `(n, 2)` `(row, col)` positions. Also
 
 <!-- sig: cdts.ai.SOM -->
 ```python
-class cdts.ai.SOM(x, y, input_len, sigma=1.0, random_seed=42)
+class cdts.ai.SOM(
+    x, y, input_len, sigma=1.0, learning_rate=0.5,
+    decay_function="asymptotic_decay",
+    neighborhood_function="gaussian", topology="rectangular",
+    random_seed=42, sigma_decay_function="asymptotic_decay",
+)
 ```
 
-Batch self-organizing map in C++ (OpenMP, Eigen). Tutorial: [Clustering](../tutorials/som.md).
+Self-organizing map in C++ (online and batch, OpenMP). An operation-by-operation port of Python [`minisom`](https://github.com/JustGlowing/minisom) 2.3: with the same `random_seed` and arguments the trained codebook is bit-for-bit identical to `MiniSom.train` (`algorithm="online"`) or `MiniSom.train_batch_offline` (`algorithm="batch"`), 30–190 times faster. Tutorial: [Clustering](../tutorials/som.md).
 
 <div class="params" markdown>
 
@@ -310,21 +315,31 @@ Batch self-organizing map in C++ (OpenMP, Eigen). Tutorial: [Clustering](../tuto
 | :--- | :--- | :--- | :--- |
 | `x`, `y` | `int` | required | Grid size. |
 | `input_len` | `int` | required | Features per sample. |
-| `sigma` | `float` | `1.0` | Initial neighbourhood radius. |
-| `random_seed` | `int` | `42` | Seed for the initial prototypes. |
+| `sigma` | `float` | `1.0` | Initial spread of the neighbourhood function. |
+| `learning_rate` | `float` | `0.5` | Initial learning rate. |
+| `decay_function` | `str` | `"asymptotic_decay"` | `"asymptotic_decay"`, `"inverse_decay_to_zero"` or `"linear_decay_to_zero"`. |
+| `neighborhood_function` | `str` | `"gaussian"` | `"gaussian"`, `"mexican_hat"`, `"bubble"` or `"triangle"`. |
+| `topology` | `str` | `"rectangular"` | `"rectangular"` or `"hexagonal"`. |
+| `random_seed` | `int` | `42` | Seed of the `numpy.random.RandomState` used for initialisation and sample order (the same draws as `minisom`). |
+| `sigma_decay_function` | `str` | `"asymptotic_decay"` | `"asymptotic_decay"`, `"inverse_decay_to_one"` or `"linear_decay_to_one"`. |
 
 </div>
 
 | Method | Description |
 | :--- | :--- |
-| `train(data, num_iters, n_jobs=-1)` | Trains on `(samples, features)`. Prototypes end up in `som.weights`, shape `(x, y, input_len)`. |
-| `predict(data, n_jobs=-1)` | Index of the best-matching neuron for each sample, `0 … x*y-1`. |
+| `random_weights_init(data)` / `pca_weights_init(data)` | Initialise the weights from random samples / from the first two principal components. |
+| `train(data, num_iters, n_jobs=-1, algorithm="online", random_order=False, use_epochs=False)` | Train on `(samples, features)`, continuing from the current weights. `"online"`: `num_iters` single-sample updates (epochs with `use_epochs=True`). `"batch"`: `num_iters` passes over the data, parallel with `n_jobs`, same result for any `n_jobs`. |
+| `predict(data, n_jobs=-1)` | Flat index `i * y + j` of each sample's best-matching unit. |
+| `winner(x)` | Grid coordinates `(i, j)` of one sample's best-matching unit. |
+| `quantization(data, n_jobs=-1)` / `quantization_error(data, n_jobs=-1)` | Best-matching codebook vector of each sample / mean distance to it. |
+| `get_weights()` | Codebook, shape `(x, y, input_len)`. |
 | `filter_noisy_samples(data, labels, n_jobs=-1)` | Boolean mask of samples to **keep**: `False` where a sample's label disagrees with the majority label of its neuron. |
 
 ```python
 from cdts.ai import SOM
 
-som = SOM(x=2, y=2, input_len=X.shape[1])
-som.train(X, num_iters=40)
+som = SOM(x=10, y=10, input_len=X.shape[1], sigma=1.5)
+som.random_weights_init(X)
+som.train(X, num_iters=20, algorithm="batch")    # 20 passes, OpenMP-parallel
 clusters = som.predict(X)
 ```

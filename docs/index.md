@@ -93,7 +93,7 @@ Every image below was produced by CDTS itself. Click one to open its tutorial.
 
 <a class="tile" href="tutorials/som/">
   <img src="assets/figures/thumbs/som.webp" alt="" loading="lazy">
-  <span class="tile-body"><span class="tile-kicker">Clustering</span><span class="tile-title">Discover patterns without labels</span><span class="tile-text">Self-organizing maps cluster millions of trajectories into a few prototypes.</span></span>
+  <span class="tile-body"><span class="tile-kicker">Clustering</span><span class="tile-title">Discover patterns without labels</span><span class="tile-text">Self-organizing maps (a bit-exact, much faster port of <code>minisom</code>) cluster millions of trajectories into a few prototypes.</span></span>
 </a>
 
 <a class="tile" href="tutorials/tempcnn/">

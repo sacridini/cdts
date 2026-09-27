@@ -405,12 +405,13 @@ def fig_som(d):
     rng = np.random.default_rng(RNG_SEED)
     idx = np.flatnonzero(vmask.ravel())
     train = X[rng.choice(idx, 30000, replace=False)]
-    som = SOM(x=2, y=2, input_len=len(y), sigma=0.6, random_seed=RNG_SEED)
-    som.train(train, num_iters=40)
+    som = SOM(x=2, y=2, input_len=len(y), sigma=0.8, learning_rate=0.5, random_seed=RNG_SEED)
+    som.random_weights_init(train)
+    som.train(train, num_iters=20, algorithm="batch")
     bmu = som.predict(X).astype(float)
     bmu[~vmask.ravel()] = np.nan
     bmu = bmu.reshape(n, n)
-    protos = som.weights.reshape(-1, len(y))
+    protos = som.get_weights().reshape(-1, len(y))
     order = np.argsort(-protos.mean(axis=1))  # most forest-like first
     colors = [AQUA, BLUE, ORANGE, VIOLET]
     remap = np.full(4, 0)
@@ -421,7 +422,7 @@ def fig_som(d):
     gs = fig.add_gridspec(1, 2, width_ratios=[1, 1.35], wspace=0.12)
     ax = fig.add_subplot(gs[0, 0])
     ax.imshow(cls, cmap=ListedColormap(colors), vmin=0, vmax=3, interpolation="nearest")
-    map_axes(ax, "Pixels grouped by trajectory (2×2 SOM)")
+    map_axes(ax, "Pixels grouped by trajectory (2×2 batch SOM)")
     ax = fig.add_subplot(gs[0, 1])
     for k, j in enumerate(order):
         share = np.nanmean(cls == k) * 100

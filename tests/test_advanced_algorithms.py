@@ -19,7 +19,7 @@ def test_som_filter():
     labels[55] = 2 # Should be 1
     
     som = SOM(x=5, y=5, input_len=1, random_seed=42)
-    som.train(data, num_iters=100)
+    som.train(data, num_iters=100, algorithm="batch")
     
     clean_mask = som.filter_noisy_samples(data, labels)
     

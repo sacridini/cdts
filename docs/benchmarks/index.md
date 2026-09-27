@@ -37,7 +37,7 @@ To verify that CDTS can serve as a drop-in, scientifically reliable replacement 
   <div class="bm-kpi-card">
     <div class="bm-kpi-label">Algorithm Parity</div>
     <div class="bm-kpi-value">100%</div>
-    <div class="bm-kpi-sub">Exact model/vertex/label match on LandTrendr, CCDC, SNIC, TWDTW</div>
+    <div class="bm-kpi-sub">Exact model/vertex/label/codebook match on LandTrendr, CCDC, SNIC, SOM, TWDTW</div>
   </div>
 
   <div class="bm-kpi-card">
@@ -64,6 +64,7 @@ The table below summarizes the scope of our validation suite. Each comparison re
 | **LandTrendr** | Kennedy *et al.* (2010) `LandTrendr-2012` | Original IDL (via GDL) | 330 synthetic series + 54.7M px tile | **100%** identical vertex years (330/330) | **168×** | <span class="bm-pill bm-pill--compared">compared</span> |
 | **CCDC** | Zhu & Woodcock (2014) GERSL `CCDC` | Original MATLAB (GNU Octave) | 200 synthetic + 150 real Landsat px | **100%** full model match (dates, categories, coeffs) | **84×–105×** | <span class="bm-pill bm-pill--compared">compared</span> |
 | **SNIC (Superpixels)** | Achanta & Süsstrunk (2017) CVPR | C reference (`snic.c`) | Reference test fixtures (f32/f64) | **100%** identical segment labels (bitwise) | **1.8×–3.5×** | <span class="bm-pill bm-pill--compared">compared</span> |
+| **SOM** | Vettigli `minisom` (online & batch Kohonen SOM) | Python (`minisom`) | 1,500 + 20,000 samples, 6 scenarios | **max weight diff = 0.0** (exact codebook match) | **37×–126× tr / 33×–104× pred** | <span class="bm-pill bm-pill--compared">compared</span> |
 | **Phenology (Beck)** | R `phenofit` (Zheng *et al.* 2021) | R (`nloptr` curve fitting) | Real EVI raster (638 px × 25 yrs) | **MAE 3.7d** on Start-of-Season (99.1% within 15d) | **244×** | <span class="bm-pill bm-pill--compared">compared</span> |
 | **TWDTW** | Maus *et al.* (2016) `dtwSat` / `twdtw` | R (`twdtw` C core) | 45 multi-class temporal series | **100%** classification agreement (corr = 0.938) | **43.9×** | <span class="bm-pill bm-pill--compared">compared</span> |
 | **Mann-Kendall** | `pymannkendall` (3 variants) | Python (pure Python) | 270 scenarios (90 series × 3 variants) | **100%** trend agreement (mean diff p-val = 0.0) | **33×–41×** | <span class="bm-pill bm-pill--compared">compared</span> |
@@ -73,7 +74,6 @@ The table below summarizes the scope of our validation suite. Each comparison re
 | **BFAST (Classic)** | Verbesselt *et al.* (2010) `bfast` | R (`bfast::bfast`) | 40 scenarios (trend/season breaks) | **87.5%** break count match (100% pos. match) | **4.3×** | <span class="bm-pill bm-pill--compared">compared</span> |
 | **BFAST Lite** | Jan Hackman *et al.* `bfast` | R (`bfast::bfastlite`) | 40 scenarios (single/multi breaks) | **100%** break count match (80% exact index) | **2.5×** | <span class="bm-pill bm-pill--compared">compared</span> |
 | **Official U-TAE** | Garnot & Landrieu (2021) `utae-paps` | Python (official PyTorch repo) | Regular and padded sequence paths | **max abs diff = 0.0** (exact numerical match) | **1.08×** | <span class="bm-pill bm-pill--compared">compared</span> |
-| **SOM** | Kohonen Batch vs Online (`minisom`) | Python (`minisom`) | 1,500 samples, 5 Gaussian clusters | **ARI = 0.465** vs truth (predict 54× faster) | **0.1× tr / 54× pred** | <span class="bm-pill bm-pill--compared">compared</span> |
 | **Siamese CNN** | Bi-temporal change detection | Conceptual analog (R `sits` DTW) | 80 bi-temporal synthetic patches | **100%** accuracy on respective change tasks | **0.85×** | <span class="bm-pill bm-pill--partial">partial</span> |
 | **Foundation ViT** | `ibm-nasa-geospatial/Prithvi-100M` | HuggingFace `transformers` | HuggingFace Hub remote backbone | Wrapper fallback consistent (**Conv3d** valid) | — | <span class="bm-pill bm-pill--notcomp">not_comparable</span> |
 
@@ -102,6 +102,7 @@ All performance benchmarks were measured on a modern workstation environment:
       <li><strong>Python Environment:</strong> Python 3.12.8, PyTorch 2.14.0, CDTS 0.18.0+</li>
       <li><strong>GDL / Octave:</strong> GDL 1.1.2 (native Windows), GNU Octave 11.3 (compiled Fortran GLMnet)</li>
     </ul>
+    <p class="bm-kpi-sub">SOM (re-validated in CDTS 0.21.0 after the bit-exact <code>minisom</code> port) was measured on an AMD Ryzen 7 7730U laptop (8 cores / 16 threads, Windows 11, Python 3.10, NumPy 1.26, <code>minisom</code> 2.3.6). Its speedups are ratios measured on that same machine.</p>
   </div>
 </div>
 
@@ -116,6 +117,7 @@ Empirical validation demonstrates that reproducing published remote sensing algo
 - **LandTrendr:** Replicating Kennedy *et al.* (2010) with 100% vertex year agreement (330/330 series) required reproducing subtle source behaviors: fitting on the despiked series, in-place `take_out_weakest2` mutation, whole-ladder Levenberg-Marquardt fallback, flat-line non-significance fallback, and single-precision F-test p-value tie-breaking.
 - **CCDC:** Matching Zhu & Woodcock (2014) across 350 pixels (599 models, 249 breaks) required a native float32 port of Fortran GLMnet lasso, MATLAB `datenum` coordinate alignment, and bisquare Tmask outlier detection.
 - **SNIC:** Achieving bit-for-bit label parity with Achanta & Süsstrunk (2017) required reproducing priority queue heap tie-breaking order, while resolving upstream heap underflow crashes on edge-case inputs.
+- **SOM:** Reproducing Python `minisom` codebooks bit-for-bit required matching its `RandomState` draw sequence, NumPy's pairwise summation inside the distance norm, `argmin` tie-breaking on square-rooted distances, and sample-order accumulation in the batch update. An earlier CDTS variant that only *resembled* the batch algorithm (different decay, no learning rate, epoch-based `num_iters`) agreed with `minisom` at just ARI = 0.39 and ran 6–10× slower on the same call; the exact port is identical and 37–198× faster.
 
 Across all families, CDTS delivers **100% bitwise and statistical parity** with the authoritative reference implementations.
 

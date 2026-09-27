@@ -338,7 +338,7 @@ final_classification = np.where(
 
 ## Unsupervised Clustering (SOM)
 
-Unsupervised classification and dimensionality reduction of time series using a fast Batch SOM algorithm implemented in C++.
+Unsupervised classification and dimensionality reduction of time series with a C++ port of Python `minisom` (online and Batch SOM) that reproduces its results bit-for-bit, 30-190x faster.
 
 ```python
 from cdts.ai import SOM
@@ -346,9 +346,10 @@ from cdts.ai import SOM
 # Flatten cube to (Pixels, Features)
 X_train = cube_16d.values.reshape(-1, cube_16d.shape[2] * cube_16d.shape[3])
 
-# Train a 10x10 SOM grid
-som = SOM(x=10, y=10, input_len=X_train.shape[1])
-som.train(X_train, num_iters=100, n_jobs=-1)
+# Train a 10x10 SOM grid (Batch SOM, 20 passes over the data, OpenMP-parallel)
+som = SOM(x=10, y=10, input_len=X_train.shape[1], sigma=1.5)
+som.random_weights_init(X_train)
+som.train(X_train, num_iters=20, algorithm="batch", n_jobs=-1)
 
 # Predict Best Matching Units (BMUs) for new data
 bmus = som.predict(X_train, n_jobs=-1)

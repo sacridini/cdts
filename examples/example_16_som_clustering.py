@@ -60,7 +60,7 @@ def main():
 
     print("\n[2/3] Training a 4x4 Batch SOM and predicting Best-Matching Units...")
     som = SOM(x=4, y=4, input_len=4, sigma=1.5, random_seed=42)
-    som.train(samples, num_iters=100, n_jobs=-1)
+    som.train(samples, num_iters=100, algorithm="batch", n_jobs=-1)
     bmus = som.predict(samples, n_jobs=-1)
     bmu_map = bmus.reshape(rows, cols)
     print(f"    {len(np.unique(bmus))} of {4 * 4} neurons were actually activated as a winner.")

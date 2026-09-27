@@ -90,21 +90,21 @@ cube = cdts.build_local_cube(
 <!-- sig: cdts.gee.download_gee_timeseries -->
 ```python
 cdts.gee.download_gee_timeseries(
-    roi, start_date, end_date, out_dir, method="direct",
+    roi, start_date, end_date, out_dir, method="auto",
     composite_type="annual", bands=None, project=None,
 )
 ```
 
-Builds harmonised Landsat 5/7/8/9 composites on Google Earth Engine and downloads them as GeoTIFFs, either directly (tiled, multi-threaded) or through a Google Drive export for large areas. Tutorial: [Google Earth Engine](../tutorials/gee-downloads.md).
+Builds harmonised Landsat 5/7/8/9 composites on Google Earth Engine and downloads one GeoTIFF per composite. By default (`method="auto"`) it uses a concurrent tiled direct download and falls back to a Google Drive export for very large images or ones that hit Earth Engine's interactive compute limits. Tutorial: [Google Earth Engine](../tutorials/gee-downloads.md).
 
 <div class="params" markdown>
 
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `roi` | `list` or `ee.Geometry` | required | `[min_lon, min_lat, max_lon, max_lat]` or an Earth Engine geometry. |
+| `roi` | `str`, `list`, file path, GeoDataFrame or `ee.Geometry` | required | A Landsat WRS-2 path/row (`"217/076"`), a Sentinel-2 tile (`"23KPQ"`), a bbox `[min_lon, min_lat, max_lon, max_lat]`, a vector or raster file, a GeoDataFrame / shapely geometry, or an `ee.Geometry`. Local inputs are read offline; their bounding box is downloaded. |
 | `start_date`, `end_date` | `str` | required | Date range, `YYYY-MM-DD`. |
 | `out_dir` | `str` | required | Output folder (for `"drive"`, used to name the exports). |
-| `method` | `str` | `"direct"` | `"direct"` to download now, `"drive"` to export to Google Drive. |
+| `method` | `str` | `"auto"` | `"auto"` (direct, Drive when needed), or force `"direct"` / `"drive"`. |
 | `composite_type` | `str` | `"annual"` | `"annual"` medoid composites (LandTrendr) or `"dense"` (every observation, CCDC). |
 | `bands` | `list` | `None` | Bands or indices to export (`"SR_B4"`, `"NDVI"`, `"NBR"`, `"EVI"`, `"NDWI"`, `"kNDVI"`). Default: the six reflective bands. |
 | `project` | `str` | `None` | Google Cloud project used to initialise Earth Engine. Recommended. |
@@ -115,12 +115,94 @@ Builds harmonised Landsat 5/7/8/9 composites on Google Earth Engine and download
 from cdts.gee import download_gee_timeseries
 
 download_gee_timeseries(
-    roi=[-47.95, -15.85, -47.85, -15.75],
-    start_date="1985-01-01", end_date="2024-12-31",
-    out_dir="./gee_data", method="direct",
-    composite_type="annual", bands=["NBR"], project="my-gcp-project",
+    roi="217/076",                      # WRS-2 path/row; or a bbox, .shp, .gpkg, .tif ...
+    start_date="1985-01-01", end_date="2025-12-31",
+    out_dir="./gee_data", composite_type="annual",
+    bands=["NBR"], project="my-gcp-project",
 )
 ```
+
+Masked pixels are written as `-inf` (float outputs). Convert them to `NaN` before running LandTrendr, see the [worked example](../tutorials/gee-downloads.md#worked-example-a-full-landsat-tile-19852025-ready-for-landtrendr).
+
+### `download_gee_image` { .api }
+
+<!-- sig: cdts.gee.downloader.download_gee_image -->
+```python
+cdts.gee.downloader.download_gee_image(
+    image, roi, out_filename, method="auto", scale=30, tile_size=None,
+    sub_tile_workers=16, crs="EPSG:4326", max_tile_mb=None,
+    max_direct_mb=4096, max_retries=5, base_backoff=5.0,
+)
+```
+
+Downloads one `ee.Image` to a local GeoTIFF by the fastest route that works. This is what `download_gee_timeseries` calls for each composite; use it directly for images you build yourself or to tune the download. The direct route fixes one pixel grid for the whole ROI and fetches it as tiles with concurrent `ee.data.computePixels` calls, writing each tile into its window of the output file (no temporary tiles, no mosaicking). Concurrency adapts to `HTTP 429` responses.
+
+<div class="params" markdown>
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `image` | `ee.Image` | required | The image to download. |
+| `roi` | `ee.Geometry` | required | Region whose bounding box is downloaded. Build it with `resolve_roi`. |
+| `out_filename` | `str` | required | Output GeoTIFF. Never left partially written. |
+| `method` | `str` | `"auto"` | `"auto"`, `"direct"` or `"drive"`. |
+| `scale` | `float` | `30` | Pixel size in metres (converted to degrees at the equator for a geographic CRS, as Earth Engine does). |
+| `tile_size` | `float` | `None` | Deprecated and ignored. |
+| `sub_tile_workers` | `int` | `16` | Upper bound on concurrent requests. Starts at 4 and adapts to the account's limit (about 40 on a standard tier, about 2 in Restricted Mode). |
+| `crs` | `str` | `"EPSG:4326"` | Output CRS, e.g. `"EPSG:32723"`. |
+| `max_tile_mb` | `float` | `None` | Cap on one tile request, in MB (at most 32, the default). |
+| `max_direct_mb` | `float` | `4096` | With `"auto"`, larger images (raw size) go to a Drive export. |
+| `max_retries`, `base_backoff` | | `5`, `5.0` | Retry policy for network or server errors. Throttled requests get short jittered retries instead. |
+
+</div>
+
+**Returns** the output path, or `None` if the download failed (nothing is written in that case).
+
+```python
+from cdts.gee.auth import initialize_gee
+from cdts.gee.roi import resolve_roi
+from cdts.gee.harmonization import get_harmonized_collection
+from cdts.gee.composites import create_annual_medoid
+from cdts.gee.downloader import download_gee_image
+
+initialize_gee(project="my-gcp-project")
+roi = resolve_roi("data/study_area.gpkg")       # or "217/076", "23KPQ", a bbox ...
+col = get_harmonized_collection(roi, "1985-01-01", "2025-12-31")
+
+for year in range(1985, 2026):
+    img = create_annual_medoid(col, year)
+    img = img.normalizedDifference(["SR_B5", "SR_B7"]).rename("NBR").toFloat()
+    download_gee_image(img, roi, f"nbr_{year}.tif", crs="EPSG:32723", sub_tile_workers=32)
+```
+
+### `resolve_roi` { .api }
+
+<!-- sig: cdts.gee.roi.resolve_roi -->
+```python
+cdts.gee.roi.resolve_roi(roi)
+```
+
+Turns any supported area description into the `ee.Geometry` the Earth Engine functions need, so your code never builds Earth Engine objects. Local inputs are reduced to their bounding box.
+
+<div class="params" markdown>
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `roi` | see below | required | Area description. |
+
+</div>
+
+| Input | Example | Result |
+| :--- | :--- | :--- |
+| WRS-2 path/row | `"217/076"`, `"217_076"`, `"217076"` | Tile footprint, looked up from a Landsat Collection 2 scene |
+| Sentinel-2 MGRS tile | `"23KPQ"`, `"T23KPQ"` | 109.8 km tile computed offline (within ~50 m of real footprints). Tiles crossing 180° raise `ValueError` |
+| Bounding box | `[-43.6, -23.1, -43.1, -22.6]` | That box (lon/lat) |
+| Vector file | `.shp`, `.gpkg`, `.geojson`, `.kml` | Extent of all features, reprojected to lon/lat |
+| Raster file | `reference.tif` | Raster extent, reprojected to lon/lat |
+| GeoDataFrame / GeoSeries | `geopandas.read_file(...)` | Extent, reprojected (no CRS: lon/lat assumed, with a warning) |
+| shapely geometry | `box(...)` | Its bounds (assumed lon/lat) |
+| `ee.Geometry` | | Passed through |
+
+Sentinel-1 has no fixed tiling grid, so describe Sentinel-1 areas with any of the other inputs. Two offline helpers live in the same module: `cdts.gee.roi.roi_bounds(roi)` returns the lon/lat bounding box of a local input or a Sentinel-2 tile, and `cdts.gee.roi.s2_tile_utm_bounds("23KPQ")` returns a tile's exact UTM box, e.g. `("EPSG:32723", (600000, 7390200, 709800, 7500000))`.
 
 ## Compositing
 

@@ -38,7 +38,7 @@
     <rect class="card-bg" x="0" y="0" width="220" height="350" rx="8" />
     <path class="card-hdr" d="M0,8 A8,8 0 0,1 8,0 L212,0 A8,8 0 0,1 220,8 L220,38 L0,38 Z" />
     <text class="hdr-text" x="110" y="24">1. Ground-Truth Injection</text>
-    <text class="scope-text" x="110" y="55">BFAST Suite • TWDTW • SOM</text>
+    <text class="scope-text" x="110" y="55">BFAST Suite • TWDTW</text>
 
     <!-- Step 1 -->
     <rect class="step-box" x="10" y="68" width="200" height="50" rx="6" />
@@ -73,7 +73,7 @@
     <rect class="card-bg" x="0" y="0" width="220" height="350" rx="8" />
     <path class="card-hdr" d="M0,8 A8,8 0 0,1 8,0 L212,0 A8,8 0 0,1 220,8 L220,38 L0,38 Z" />
     <text class="hdr-text" x="110" y="24">2. Source-Level Port Parity</text>
-    <text class="scope-text" x="110" y="55">LandTrendr • CCDC • SNIC</text>
+    <text class="scope-text" x="110" y="55">LandTrendr • CCDC • SNIC • SOM</text>
 
     <!-- Step 1 -->
     <rect class="step-box" x="10" y="68" width="200" height="50" rx="6" />

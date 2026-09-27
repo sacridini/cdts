@@ -67,6 +67,7 @@
 | [`build_time_series`](data.md#build_time_series) | Lazy cube from a STAC catalog |
 | [`build_local_cube`](data.md#build_local_cube) | Lazy cube from a folder of GeoTIFFs |
 | [`download_gee_timeseries`](data.md#download_gee_timeseries) | Harmonised Landsat composites from Earth Engine |
+| [`download_gee_image`](data.md#download_gee_image) / [`resolve_roi`](data.md#resolve_roi) | Download any `ee.Image`; turn tile ids, files or boxes into an area |
 | [`regularize_time_series`](data.md#regularize_time_series) | Median or medoid composites at a fixed step |
 | [`load_raster`](data.md#load_raster) / [`save_raster`](data.md#save_raster) | Read / write GeoTIFFs |
 | [`get_georef`](data.md#get_georef) | CRS and transform of a raster or cube |
@@ -91,7 +92,7 @@
 | [`run_phenology_dask`](time-series.md#run_phenology_dask) | 19 phenology metrics per season |
 | [`classify_twdtw`](time-series.md#classify_twdtw) / [`run_twdtw`](time-series.md#run_twdtw) / [`run_twdtw_batch`](time-series.md#run_twdtw_batch) | Time-weighted DTW |
 | [`run_snic`](time-series.md#run_snic) / [`snic_to_polygons`](time-series.md#snic_to_polygons) / [`snic_grid`](time-series.md#snic_grid) | Superpixel segmentation |
-| [`SOM`](time-series.md#som) | Self-organizing map clustering |
+| [`SOM`](time-series.md#som) | Self-organizing maps, online and batch (bit-exact `minisom` port) |
 | **Post-processing** | |
 | [`apply_mmu_filter`](post-processing.md#apply_mmu_filter) | Remove patches below a minimum size |
 | [`apply_majority_filter`](post-processing.md#apply_majority_filter) / [`apply_bayesian_filter`](post-processing.md#apply_bayesian_filter) | Smooth class maps |
