@@ -35,16 +35,44 @@ To run the tests with coverage reporting, execute:
 pytest --cov=cdts tests/
 ```
 
-## Building the Docs Locally
+## Building the docs locally
 
-Documentation lives under `docs/` and is built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/). To preview your changes before opening a pull request:
+Documentation lives in `docs/` and is built with [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/):
 
 ```bash
-pip install mkdocs-material
-mkdocs serve
+pip install -r docs/requirements.txt
+mkdocs serve        # live preview at http://127.0.0.1:8000
+mkdocs build        # link and anchor problems are reported as warnings
 ```
 
-This starts a local server (by default at `http://127.0.0.1:8000`) that live-reloads as you edit any `.md` file or `mkdocs.yml`. Before opening a PR, also run `mkdocs build --strict` once — it fails on broken internal links and navigation errors that a plain `mkdocs build` (what CI runs) only logs as warnings.
+### API signatures
+
+Every entry in `docs/api/*.md` starts with a marker such as `<!-- sig: cdts.raster.run_landtrendr_array -->`. The signature block under it is generated from the code, and the parameter table is checked against it:
+
+```bash
+python docs/scripts/sync_api.py           # regenerate signature blocks
+python docs/scripts/sync_api.py --check   # report undocumented or unknown parameters, wrong defaults
+```
+
+Run it whenever you add, rename or change a parameter.
+
+### Figures
+
+The figures in `docs/assets/figures/` are produced by running CDTS itself:
+
+```bash
+python docs/scripts/make_figures.py              # all figures
+python docs/scripts/make_figures.py ccdc_fit     # just one
+```
+
+Synthetic figures need only CDTS. The real-data figures (LandTrendr, Mann-Kendall, SNIC, SOM) need the Rondônia annual NDVI stack (Landsat NDVI composites for 1985–2024, exported from [LT-GEE](https://github.com/eMapR/LT-GEE) on Google Earth Engine); set `CDTS_DOCS_RONDONIA` to its path. Set `CDTS_DOCS_FONT_DIR` to a folder with the Inter font files to match the site's typeface.
+
+### Writing style
+
+- Start each tutorial with a one-sentence lead, the "at a glance" box and a real result figure.
+- Explain what the method is for before how it works, and how it works before the code.
+- Keep code examples runnable against the current API; prefer real outputs to invented ones.
+- Put validation details and implementation notes in a collapsible `??? info` block, and link to [Benchmarks](../benchmarks/index.md) for the full comparison.
 
 ## Pull Request Process
 

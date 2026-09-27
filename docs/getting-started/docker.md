@@ -1,6 +1,6 @@
 # Docker
 
-Because CDTS utilizes C++ compilation and GPU-accelerated PyTorch for its deep learning modules, deploying it to the cloud or sharing consistent environments across research teams is most efficiently done using Docker.
+<p class="lead">Ready-made container images with CDTS, GDAL, PyTorch and JupyterLab. Use them to share an identical environment across a team, or to run CDTS workers on a cluster.</p>
 
 ## Official Docker Images
 

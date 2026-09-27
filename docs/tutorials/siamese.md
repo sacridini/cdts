@@ -1,6 +1,11 @@
 # Siamese Change Detector
 
-## 1. Introduction
+<div class="glance" markdown>
+<div><span class="k">Answers</span><span class="v">Where did this area change between two dates?</span></div>
+<div><span class="k">Input</span><span class="v">Two co-registered images <code>(batch, bands, H, W)</code></span></div>
+<div><span class="k">Output</span><span class="v">A per-pixel change map</span></div>
+<div><span class="k">Reference</span><span class="v">Daudt et al. (2018) design; independent implementation</span></div>
+</div>
 
 The Siamese Change Detector is a **bi-temporal** architecture: given two co-registered images of the same area at two different dates, it outputs a per-pixel change probability map. It follows the general design of:
 
@@ -8,7 +13,7 @@ The Siamese Change Detector is a **bi-temporal** architecture: given two co-regi
 
 Unlike [LightTAE](ltae.md), [TempCNN](tempcnn.md), and [UTAE](utae.md) — which were ported layer-for-layer and rigorously cross-validated against reference implementations (`sits` or the official UTAE repo) — `cdts.ai.SiameseChangeDetector` is a **compact, independent implementation** of the general Siamese/twin-encoder change-detection pattern, not a line-for-line port of a specific published codebase. Treat it as a solid, ready-to-train baseline architecture for two-date change detection rather than a bit-exact reproduction of any one paper's exact numbers.
 
-## 2. How It Works
+## How It Works
 
 The core idea of a Siamese network is **weight sharing**: the same encoder is applied independently to both input images, so that the two resulting feature maps live in a comparable representation space. `SiameseChangeDetector`'s forward pass:
 
@@ -16,11 +21,11 @@ The core idea of a Siamese network is **weight sharing**: the same encoder is ap
 2. **Difference**: the absolute difference between the two encoded feature maps (`|feat_t0 - feat_t1|`) is computed — large values indicate the encoder detected substantially different content at that spatial location between the two dates.
 3. **Decoder**: the difference map is passed through a decoding `ConvBlock`, upsampled back to the input resolution (bilinear upsampling), and a final `1x1` convolution (`classifier`) produces per-pixel class logits (by default `num_classes=2`: "no change" vs. "change").
 
-## 3. When to Use It
+## When to Use It
 
 Use the Siamese Change Detector for classic **bi-temporal change detection**: you have exactly two dates (before/after an event — a wildfire, deforestation, a flood, construction) and want a change map between them. If you have a **longer time series** and want to classify or segment based on the whole trajectory rather than just two snapshots, use [LightTAE](ltae.md) (per-pixel) or [UTAE](utae.md) (whole-patch segmentation) instead.
 
-## 4. Preparing Your Data
+## Preparing Your Data
 
 The model expects two separate image tensors of identical shape, `(Batch, Channels, Height, Width)` — one per acquisition date — plus a binary (or multi-class) change label map of shape `(Batch, Height, Width)`.
 
@@ -37,7 +42,7 @@ y_train = torch.tensor(np.load("change_masks.npy"), dtype=torch.long)
 
 `x_t0` and `x_t1` must have the same spatial dimensions and be co-registered — the model assumes pixel `(i, j)` in both images corresponds to the same location on the ground.
 
-## 5. Instantiating the Model
+## Instantiating the Model
 
 ```python
 from cdts.ai import SiameseChangeDetector
@@ -51,7 +56,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 ```
 
-## 6. Loss Functions
+## Loss Functions
 
 Two natural options from `cdts.ai.losses`, depending on how you want to train:
 
@@ -66,7 +71,7 @@ criterion = FocalLoss(alpha=0.25, gamma=2.0)
 contrastive_criterion = ContrastiveSiameseLoss(margin=2.0)
 ```
 
-## 7. Training Loop
+## Training Loop
 
 ```python
 import torch.optim as optim
@@ -97,7 +102,7 @@ for epoch in range(num_epochs):
     print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss / len(train_loader):.4f}")
 ```
 
-## 8. Inference
+## Inference
 
 ```python
 model.eval()

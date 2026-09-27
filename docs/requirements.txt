@@ -1,0 +1,4 @@
+# Pinned so a future MkDocs 2.0 release cannot break the documentation build.
+mkdocs>=1.6,<2
+mkdocs-material>=9.7,<10
+pymdown-extensions>=10.0

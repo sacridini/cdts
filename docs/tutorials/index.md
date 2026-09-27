@@ -1,69 +1,113 @@
-# Tutorials
+# User Guide
 
-CDTS covers a lot of ground — from classic pixel-based change detection to deep learning and cloud data acquisition. Pick the group below that matches what you're trying to do; each tutorial is self-contained and covers theory, data prep, a full code walkthrough, and validation against reference implementations where one exists.
+<p class="lead">Step-by-step tutorials for every part of CDTS. Each one starts with what the method is for and a real output, explains how it works in plain language, then walks through the code and how to read the results.</p>
 
-<div class="grid cards" markdown>
+!!! tip "New here?"
+    Do the [Quickstart](../getting-started/quickstart.md) first, and skim [Core Concepts](../getting-started/concepts.md) for the conventions (array shapes, dates, scale factors) that every tutorial uses. Unsure which method fits your question? See [Choosing an Algorithm](../getting-started/choosing-an-algorithm.md).
 
--   :material-chart-timeline-variant:{ .lg .middle } **Trajectory & Change Detection**
+## Change detection
 
-    ---
+Find where and when the land surface changed.
 
-    Pixel-based statistical algorithms that model a time series' trajectory to flag disturbances, breakpoints, and land-cover change.
+<div class="gallery" markdown>
 
-    - [LandTrendr](landtrendr.md)
-    - [CCDC](ccdc.md)
-    - [Tmask](tmask.md)
-    - [BFAST](bfast.md)
-    - [BFAST Monitor](bfast_monitor.md)
-    - [BFAST Lite](bfast_lite.md)
+<a class="tile" href="landtrendr/">
+  <img src="../assets/figures/thumbs/landtrendr.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Annual data</span><span class="tile-title">LandTrendr</span><span class="tile-text">Disturbance and recovery history from one image per year. Maps of year, magnitude and duration.</span></span>
+</a>
 
--   :material-chart-bell-curve:{ .lg .middle } **Time-Series Analysis**
+<a class="tile" href="ccdc/">
+  <img src="../assets/figures/thumbs/ccdc.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Dense data</span><span class="tile-title">CCDC</span><span class="tile-text">Harmonic models of every clear observation. Dates changes and describes the land before and after.</span></span>
+</a>
 
-    ---
+<a class="tile" href="bfast/">
+  <img src="../assets/figures/thumbs/bfast.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Regular series</span><span class="tile-title">BFAST</span><span class="tile-text">Separate breaks in the trend from breaks in the seasonal cycle.</span></span>
+</a>
 
-    Tools for comparing, clustering, and extracting statistical patterns from time series — independent of any particular change-detection algorithm.
+<a class="tile" href="bfast_monitor/">
+  <img src="../assets/figures/thumbs/bfast_monitor.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Near real time</span><span class="tile-title">BFAST Monitor</span><span class="tile-text">Test new observations against a stable history. The basis of alert systems.</span></span>
+</a>
 
-    - [TWDTW (Time-Weighted DTW)](twdtw.md)
-    - [Phenology Extraction](phenology.md)
-    - [Mann-Kendall Trend Test](mann_kendall.md)
-    - [SNIC Segmentation](snic.md)
-    - [SOM (Self-Organizing Maps)](som.md)
-
--   :material-brain:{ .lg .middle } **AI & Deep Learning**
-
-    ---
-
-    Native PyTorch architectures for per-pixel classification, spatio-temporal segmentation, and bi-temporal change detection, plus foundation-model transfer learning.
-
-    - [Overview](ai.md)
-    - [LTAE & LightTAE](ltae.md)
-    - [UTAE](utae.md)
-    - [TempCNN](tempcnn.md)
-    - [Siamese Change Detector](siamese.md)
-    - [GeoFoundationViT](geo_foundation_vit.md)
-
--   :material-cloud-download:{ .lg .middle } **Data Acquisition & Integration**
-
-    ---
-
-    Streaming imagery straight from cloud catalogs into analysis-ready data cubes, without full downloads.
-
-    - [STAC & ARD Integration](stac-downloads.md)
-    - [Google Earth Engine (GEE)](gee-downloads.md)
-
--   :material-server:{ .lg .middle } **Infrastructure**
-
-    ---
-
-    Scaling any of the above from a single machine to a distributed cluster.
-
-    - [Parallel & Cloud Processing](parallel-cloud-processing.md)
+<a class="tile" href="bfast_lite/">
+  <img src="../assets/figures/thumbs/bfast_lite.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Regular series</span><span class="tile-title">BFAST Lite</span><span class="tile-text">The optimal number of breaks in a whole series, in a single fast pass.</span></span>
+</a>
 
 </div>
 
-## Not sure where to start?
+## Time-series analysis
 
-- Want to detect disturbances or land-cover change over time? Start with [LandTrendr](landtrendr.md) or [CCDC](ccdc.md).
-- Have labeled data and want to train a classifier? Start with [AI & Deep Learning](ai.md).
-- Need to pull satellite imagery into a data cube first? Start with [STAC & ARD Integration](stac-downloads.md) or [Google Earth Engine](gee-downloads.md).
-- Your area is too large to process on one machine? See [Parallel & Cloud Processing](parallel-cloud-processing.md).
+Trends, seasons, patterns and objects.
+
+<div class="gallery" markdown>
+
+<a class="tile" href="mann_kendall/">
+  <img src="../assets/figures/thumbs/mann_kendall.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Trends</span><span class="tile-title">Mann-Kendall</span><span class="tile-text">Significant greening and browning, with a robust slope per pixel.</span></span>
+</a>
+
+<a class="tile" href="phenology/">
+  <img src="../assets/figures/thumbs/phenology.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Seasons</span><span class="tile-title">Phenology</span><span class="tile-text">Start, peak and end of every growing season, and 16 more metrics.</span></span>
+</a>
+
+<a class="tile" href="twdtw/">
+  <img src="../assets/figures/thumbs/twdtw.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Classification</span><span class="tile-title">TWDTW</span><span class="tile-text">Match each pixel to reference patterns, tolerating shifts in timing.</span></span>
+</a>
+
+<a class="tile" href="som/">
+  <img src="../assets/figures/thumbs/som.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Clustering</span><span class="tile-title">SOM</span><span class="tile-text">Find the typical trajectories in a landscape without labels.</span></span>
+</a>
+
+<a class="tile" href="snic/">
+  <img src="../assets/figures/thumbs/snic.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Segmentation</span><span class="tile-title">SNIC</span><span class="tile-text">Group pixels with similar histories into fields and patches.</span></span>
+</a>
+
+</div>
+
+## Deep learning
+
+PyTorch models for classification and change detection, weight-compatible with their reference implementations.
+
+<div class="gallery" markdown>
+
+<a class="tile" href="tempcnn/">
+  <img src="../assets/figures/thumbs/tempcnn.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Pixel classification</span><span class="tile-title">TempCNN</span><span class="tile-text">A fast 1-D convolutional baseline for pixel time series.</span></span>
+</a>
+
+</div>
+
+| Model | Task | Tutorial |
+| :--- | :--- | :--- |
+| Overview | Available models, data loading, loss functions | [Deep Learning](ai.md) |
+| TempCNN | Pixel time-series classification (convolutional) | [TempCNN](tempcnn.md) |
+| LTAE / LightTAE | Pixel time-series classification (attention) | [LTAE & LightTAE](ltae.md) |
+| U-TAE | Segmentation of whole image patches over time | [UTAE](utae.md) |
+| Siamese | Change detection between two dates | [Siamese Change Detector](siamese.md) |
+| GeoFoundationViT | Fine-tuning pretrained foundation models | [GeoFoundationViT](geo_foundation_vit.md) |
+
+## Getting and preparing data
+
+<div class="gallery" markdown>
+
+<a class="tile" href="stac-downloads/">
+  <img src="../assets/figures/thumbs/smoothing.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Cloud catalogs</span><span class="tile-title">STAC Data Cubes</span><span class="tile-text">Lazy cubes from Earth Search, Planetary Computer or Brazil Data Cube; compositing and smoothing.</span></span>
+</a>
+
+<a class="tile" href="tmask/">
+  <img src="../assets/figures/thumbs/tmask.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Cloud masking</span><span class="tile-title">Tmask</span><span class="tile-text">Catch the clouds and shadows that single-image masks miss.</span></span>
+</a>
+
+</div>
+
+- **[Google Earth Engine](gee-downloads.md)**: harmonised Landsat composites prepared on Google's servers.
+- **[Parallel & Cloud Processing](parallel-cloud-processing.md)**: from one core to a cluster, with Dask and Zarr.

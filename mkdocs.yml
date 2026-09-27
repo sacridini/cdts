@@ -1,49 +1,85 @@
 site_name: CDTS
-site_description: Continuous monitoring of land cover and land use using dense time series
+site_description: Change detection and time-series analysis for satellite imagery, in Python. Fast C++ ports of LandTrendr, CCDC, BFAST and more, from a single pixel to a Dask cluster.
 site_url: https://sacridini.github.io/cdts/
 repo_url: https://github.com/sacridini/cdts
 repo_name: sacridini/cdts
+edit_uri: edit/main/docs/
+copyright: CDTS is free software released under the GPL-2.0-or-later license.
 
 theme:
   name: material
-  logo: assets/logo.png
-  favicon: assets/logo.png
+  logo: assets/logo-header.png
+  favicon: assets/favicon.png
+  font:
+    text: Inter
+    code: JetBrains Mono
   icon:
     repo: fontawesome/brands/github
+    admonition:
+      info: material/information-outline
   features:
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
-    - navigation.expand
+    - navigation.indexes
     - navigation.top
     - navigation.footer
-    - toc.integrate
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.path
+    - toc.follow
     - search.suggest
     - search.highlight
     - search.share
     - content.code.copy
+    - content.code.annotate
     - content.tabs.link
+    - content.tooltips
+    - content.action.edit
   palette:
-    # Palette toggle for light mode (Default)
-    - scheme: default
-      primary: teal
-      accent: deep orange
+    - media: "(prefers-color-scheme)"
       toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-
-    # Palette toggle for dark mode
-    - scheme: slate
-      primary: teal
-      accent: deep orange
-      toggle:
-        icon: material/brightness-4
+        icon: material/brightness-auto
         name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to system preference
 
 plugins:
   - search
 
+exclude_docs: |
+  scripts/
+  requirements.txt
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
 markdown_extensions:
+  - abbr
   - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
   - pymdownx.details
   - pymdownx.superfences:
       custom_fences:
@@ -56,23 +92,24 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
-  - attr_list
-  - md_in_html
-  - tables
 
 extra_javascript:
   - javascripts/mathjax.js
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
 extra_css:
+  - assets/stylesheets/cdts.css
   - assets/benchmarks.css
 
 extra:
+  generator: false
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/sacridini/cdts
@@ -83,40 +120,52 @@ extra:
 
 nav:
   - Home: index.md
-  - Getting Started:
+  - Get Started:
+      - getting-started/index.md
       - Installation: getting-started/installation.md
+      - Quickstart: getting-started/quickstart.md
+      - Core Concepts: getting-started/concepts.md
+      - Choosing an Algorithm: getting-started/choosing-an-algorithm.md
       - Docker: getting-started/docker.md
       - Contributing: getting-started/contributing.md
-  - Tutorials:
-      - Overview: tutorials/index.md
-      - Trajectory & Change Detection:
+  - User Guide:
+      - tutorials/index.md
+      - Getting Data:
+          - STAC Data Cubes: tutorials/stac-downloads.md
+          - Google Earth Engine: tutorials/gee-downloads.md
+          - Cloud Masking (Tmask): tutorials/tmask.md
+      - Change Detection:
           - LandTrendr: tutorials/landtrendr.md
           - CCDC: tutorials/ccdc.md
-          - Tmask: tutorials/tmask.md
           - BFAST: tutorials/bfast.md
           - BFAST Monitor: tutorials/bfast_monitor.md
           - BFAST Lite: tutorials/bfast_lite.md
       - Time-Series Analysis:
-          - TWDTW (Time-Weighted DTW): tutorials/twdtw.md
-          - Phenology Extraction: tutorials/phenology.md
-          - Mann-Kendall Trend Test: tutorials/mann_kendall.md
-          - SNIC Segmentation: tutorials/snic.md
-          - SOM (Self-Organizing Maps): tutorials/som.md
-      - AI & Deep Learning:
-          - Overview: tutorials/ai.md
+          - Trend Analysis (Mann-Kendall): tutorials/mann_kendall.md
+          - Phenology: tutorials/phenology.md
+          - Pattern Matching (TWDTW): tutorials/twdtw.md
+          - Clustering (SOM): tutorials/som.md
+          - Segmentation (SNIC): tutorials/snic.md
+      - Deep Learning:
+          - tutorials/ai.md
+          - TempCNN: tutorials/tempcnn.md
           - LTAE & LightTAE: tutorials/ltae.md
           - UTAE: tutorials/utae.md
-          - TempCNN: tutorials/tempcnn.md
           - Siamese Change Detector: tutorials/siamese.md
           - GeoFoundationViT: tutorials/geo_foundation_vit.md
-      - Data Acquisition & Integration:
-          - STAC & ARD Integration: tutorials/stac-downloads.md
-          - Google Earth Engine (GEE): tutorials/gee-downloads.md
-      - Infrastructure:
+      - Scaling Up:
           - Parallel & Cloud Processing: tutorials/parallel-cloud-processing.md
-  - Benchmarks & Validation:
-      - Overview & Methodology: benchmarks/index.md
+  - API Reference:
+      - api/index.md
+      - Data & I/O: api/data.md
+      - Pre-processing: api/preprocessing.md
+      - Change Detection: api/change-detection.md
+      - Time-Series Analysis: api/time-series.md
+      - Post-processing: api/post-processing.md
+      - Deep Learning: api/ai.md
+      - Xarray Accessor: api/xarray.md
+  - CLI: cli.md
+  - Benchmarks:
+      - benchmarks/index.md
       - Algorithm Fidelity: benchmarks/fidelity.md
       - Performance & Scaling: benchmarks/performance.md
-  - CLI Reference: cli.md
-  - API Reference: api.md

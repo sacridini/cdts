@@ -1,10 +1,13 @@
-# AI & Deep Learning in CDTS
+# Deep Learning
 
-While traditional algorithms like LandTrendr and CCDC rely on pixel-based statistical modeling, modern Remote Sensing increasingly leverages Deep Learning for spatial-temporal representation. The `cdts.ai` module provides native PyTorch implementations of state-of-the-art neural network architectures specifically designed for Earth Observation and Change Detection.
+<p class="lead">When you have labelled examples, neural networks usually give the most accurate land-cover and change maps. <code>cdts.ai</code> provides PyTorch implementations of the architectures most used for satellite image time series, ported layer for layer from their reference code so that trained weights are interchangeable.</p>
 
-This page is the entry point: it explains what's available, how to prepare data and loss functions shared across every model, and points you to a dedicated, complete tutorial for each architecture.
+<figure markdown>
+  ![TempCNN trained on four synthetic land-cover classes: samples, accuracy per epoch and confusion matrix](../assets/figures/tempcnn_training.png)
+  <figcaption><strong>A typical result.</strong> A TempCNN trained for 30 epochs on noisy, cloud-contaminated NDVI series of four classes. Forest and pasture are separated perfectly; the remaining errors are between single and double cropping, whose second season is weak in many samples. See the <a href="../tempcnn/">TempCNN tutorial</a>.</figcaption>
+</figure>
 
-## 1. Available Architectures
+## Available models
 
 | Model | Task | Input | Dedicated Tutorial | Cross-validated against |
 |---|---|---|---|---|
@@ -21,34 +24,29 @@ This page is the entry point: it explains what's available, how to prepare data 
 - Have exactly two dates and want a change map between them? Use the [Siamese Change Detector](siamese.md).
 - Have very little labeled data for your task? Consider [GeoFoundationViT](geo_foundation_vit.md) to transfer-learn from a large pretrained backbone.
 
-## 2. Preparing the Dataset
+## Loading patches from a cube
 
-To feed multi-temporal, multi-spectral satellite imagery into these models, `cdts.ai` provides the `STACCubeDataset` wrapper. This dataset class lazily loads spatial patches from a large `xarray`/Dask-backed data cube, only triggering computation for the exact patch requested — so you can train on cubes far larger than memory.
+`STACCubeDataset` cuts a lazy xarray cube into spatial patches for PyTorch. Only the patch requested is computed, so you can iterate over cubes far larger than memory:
 
 ```python
-import torch
 from torch.utils.data import DataLoader
 from cdts.ai import STACCubeDataset
 
-# X_dir contains the time-series patches of shape (Time, Bands, Height, Width)
-# y_dir contains the corresponding ground-truth masks
-dataset = STACCubeDataset(
-    X_dir="./data/train/images",
-    y_dir="./data/train/labels",
-    transform=None  # Add torchvision or albumentations transforms here
-)
+# cube: (time, band, y, x) DataArray, e.g. from cdts.build_time_series
+dataset = STACCubeDataset(cube, patch_size=64, stride=64)
 
-dataloader = DataLoader(
-    dataset,
-    batch_size=16,
-    shuffle=True,
-    num_workers=4
-)
+patch, dates = dataset[0]
+print(patch.shape)   # torch.Size([time, band, 64, 64]); NaN replaced by 0
+print(dates.shape)   # torch.Size([time]): day of year of each observation
+
+loader = DataLoader(dataset, batch_size=8, num_workers=2)
 ```
+
+The dataset yields images only. For supervised training, pair each patch with its label mask (for example by indexing a label raster with the same window), or extract labelled pixel samples into NumPy arrays as the per-model tutorials do.
 
 `STACCubeDataset` also exposes `.dates` — a tensor of day-of-year values derived from the cube's `time` coordinate — which several models (`UTAE` via `batch_positions`, `LightTAE`/`LTAE` via the fixed `day_offsets` passed at construction) need for their positional encodings. See each model's own tutorial for exactly how it expects dates to be shaped and passed in.
 
-## 3. Loss Functions
+## Loss functions for imbalanced classes
 
 Imbalanced classes are very common in change detection and land-cover classification (where the class of interest is often a small minority of pixels). `cdts.ai.losses` provides three specialized loss functions used throughout the per-model tutorials:
 
@@ -68,7 +66,7 @@ criterion = ContrastiveSiameseLoss(margin=2.0)
 
 `FocalLoss` and `TverskyLoss` apply to any model's classifier logits (`(B, C, H, W)` or `(B, C)` vs. integer labels). `ContrastiveSiameseLoss` is specific to twin-encoder architectures — see the [Siamese Change Detector tutorial](siamese.md).
 
-## 4. Next Steps
+## Next steps
 
 Each architecture has its own complete, standalone tutorial — covering how it works internally, when to use it, how to shape your data for it, model instantiation, a full training loop, inference, and validation methodology:
 
@@ -78,7 +76,8 @@ Each architecture has its own complete, standalone tutorial — covering how it 
 - [Siamese Change Detector](siamese.md)
 - [GeoFoundationViT](geo_foundation_vit.md)
 
-> **Pro Tip:** When running inference over massive geographical areas with any of these models, use `xarray` or `rasterio` windows to chunk the data into manageable sizes (e.g., `256x256`), run them through the model, and mosaic the results back together.
+!!! tip "Inference over large areas"
+    When running inference over massive geographical areas with any of these models, use `xarray` or `rasterio` windows to chunk the data into manageable sizes (e.g., `256x256`), run them through the model, and mosaic the results back together.
 
 ---
 

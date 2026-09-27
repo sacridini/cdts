@@ -1,6 +1,11 @@
 # LTAE & LightTAE
 
-## 1. Introduction
+<div class="glance" markdown>
+<div><span class="k">Answers</span><span class="v">Classify pixel time series with temporal attention.</span></div>
+<div><span class="k">Input</span><span class="v"><code>(batch, time, bands)</code> plus the day of each observation</span></div>
+<div><span class="k">Output</span><span class="v">Class logits per pixel</span></div>
+<div><span class="k">Reference</span><span class="v">Garnot & Landrieu (2020); weight-compatible with R <code>sits</code></span></div>
+</div>
 
 The Lightweight Temporal Attention Encoder (L-TAE) is a compact, fast attention mechanism designed specifically for classifying **per-pixel satellite image time series** — the kind of long, irregularly-sampled sequence of spectral observations you get from a single pixel's history in a data cube. It was introduced in:
 
@@ -11,9 +16,9 @@ The Lightweight Temporal Attention Encoder (L-TAE) is a compact, fast attention 
 - **`LTAE`**: the reusable temporal-fusion block itself — takes an encoded `(batch, seq_len, in_channels)` sequence and fuses it into a single `(batch, n_neurons[-1])` embedding via multi-head attention. Useful if you want to plug L-TAE fusion into your own custom architecture (e.g. as the temporal-fusion stage of a spatial-temporal model).
 - **`LightTAE`**: the full, ready-to-train pixel time-series classifier — a small per-pixel MLP spatial encoder, followed by `LTAE` temporal fusion, followed by an MLP decoder to class logits. This is the model you want for standard "classify this pixel's time series into a land-cover class" tasks.
 
-Both were **ported layer-for-layer from the R package [`sits`](https://github.com/e-sensing/sits)'s `sits_lighttae()`** (`.torch_light_temporal_attention_encoder` / `sits_lighttae()` in `sits`'s R/api_torch_psetae.R and R/sits_lighttae.R), so trained weights are directly portable between the two implementations via `state_dict()` — there is no name-translation table needed. This was validated in-session by exporting a trained `sits_lighttae()` model's weights, loading them into `cdts.ai.LightTAE` via `load_state_dict`, and confirming the outputs match `sits`'s own predictions within float32 tolerance on the same input.
+Both were **ported layer-for-layer from the R package [`sits`](https://github.com/e-sensing/sits)'s `sits_lighttae()`** (`.torch_light_temporal_attention_encoder` / `sits_lighttae()` in `sits`'s R/api_torch_psetae.R and R/sits_lighttae.R), so trained weights are directly portable between the two implementations via `state_dict()` — there is no name-translation table needed. This was checked by exporting a trained `sits_lighttae()` model's weights, loading them into `cdts.ai.LightTAE` via `load_state_dict`, and confirming the outputs match `sits`'s own predictions within float32 tolerance on the same input.
 
-## 2. How It Works
+## How It Works
 
 The "L" in L-TAE stands for *lightweight*, and the trick that makes it fast is a **learned "master query"**: unlike standard self-attention, where the query vector is computed from the input at every forward pass, L-TAE's query is a single learned parameter per attention head, shared across every input in the batch. This collapses what would normally be an `O(seq_len²)` self-attention computation down to `O(seq_len)` — each timestep only needs to attend *to* the master query, not to every other timestep.
 
@@ -25,7 +30,7 @@ The "L" in L-TAE stands for *lightweight*, and the trick that makes it fast is a
 
 Because the flatten/positional-encoding buffers are sized at construction time from `day_offsets`, **a given `LightTAE` (or `LTAE`) instance is tied to one fixed sequence length and temporal sampling pattern for its lifetime** — the same constraint `sits_lighttae()`'s `timeline` parameter imposes. If your pixels have varying numbers of valid observations, interpolate/gap-fill them onto a common `day_offsets` grid before feeding them in.
 
-## 3. When to Use It
+## When to Use It
 
 | | LightTAE | TempCNN |
 |---|---|---|
@@ -35,7 +40,7 @@ Because the flatten/positional-encoding buffers are sized at construction time f
 
 See the [TempCNN tutorial](tempcnn.md) for the simpler 1D-CNN alternative, and the [UTAE tutorial](utae.md) if you need spatially-aware *segmentation* (a class per pixel over a whole image patch, not just a single pixel's own time series).
 
-## 4. Preparing Your Data
+## Preparing Your Data
 
 `LightTAE` expects a 3D tensor of shape `(Batch, Time, Bands)` — one time series of spectral bands per pixel — plus a fixed `day_offsets` timeline (a Python list of day counts from the first observation) passed at construction time.
 
@@ -60,7 +65,7 @@ cube = xr.open_zarr("s3://my-bucket/sentinel2_cube.zarr")["reflectance"]
 day_offsets = ((cube.time - cube.time[0]) / np.timedelta64(1, "D")).values.tolist()
 ```
 
-## 5. Instantiating the Model
+## Instantiating the Model
 
 ```python
 from cdts.ai import LightTAE
@@ -100,7 +105,7 @@ temporal_fusion = LTAE(
 fused = temporal_fusion(x)
 ```
 
-## 6. Training Loop
+## Training Loop
 
 ```python
 import torch.optim as optim
@@ -130,7 +135,7 @@ for epoch in range(num_epochs):
     print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss / len(train_loader):.4f}")
 ```
 
-## 7. Inference
+## Inference
 
 ```python
 model.eval()
@@ -144,7 +149,7 @@ with torch.no_grad():
 
 For inference over an entire spatial extent, extract each pixel's time series (reshaped to `(N_pixels, n_times, n_bands)`), run them through the model in batches, then reshape the predictions back to `(H, W)`.
 
-## 8. Validation Against `sits`
+## Validation Against `sits`
 
 Both `LTAE` and `LightTAE` were validated end-to-end in-session against `sits_lighttae()`: a model trained in R was exported (`state_dict()`-compatible weight names, since the port is layer-for-layer), loaded into `cdts.ai.LightTAE` via `load_state_dict()`, and run on the same input data. Outputs matched `sits`'s predictions within float32 numerical tolerance, confirming a faithful architectural port rather than just a similar-looking reimplementation.
 

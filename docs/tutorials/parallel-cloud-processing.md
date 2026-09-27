@@ -1,126 +1,129 @@
-# Parallel & Distributed Cloud Processing
+# Parallel & Cloud Processing
 
-While CDTS uses a highly optimized C++ engine capable of utilizing all cores on a single machine, processing entire countries or continents across decades requires scaling out to multiple computers.
+<p class="lead">The same CDTS code runs on one laptop core, on every core of a workstation, or on a cluster of machines. This page explains the two levels of parallelism, how to set up a Dask cluster, and how to write results that many machines can produce at once.</p>
 
-CDTS achieves this seamlessly by integrating natively with **Xarray** and **Dask**. You do not need to rewrite your algorithms or learn C++ to scale your workflows. By using the built-in Xarray accessor (`.cdts`), the same code that runs on your laptop will run perfectly across a massive cloud computing cluster or a local network of office desktops.
+<div class="glance" markdown>
+<div><span class="k">Level 1</span><span class="v">C++ threads (OpenMP) inside one process: <code>n_jobs</code></span></div>
+<div><span class="k">Level 2</span><span class="v">Dask chunks across processes and machines: the <code>.cdts</code> accessor</span></div>
+<div><span class="k">Storage</span><span class="v">Zarr for parallel writes, GeoTIFF for final products</span></div>
+<div><span class="k">Rule</span><span class="v">Chunk in space, never in time</span></div>
+</div>
 
----
+## Two levels of parallelism
 
-## 1. The Power of the `.cdts` Xarray Accessor
+**Threads within one machine.** Every algorithm's per-pixel loop runs in C++ with OpenMP. `n_jobs=-1` (the default) uses all cores but one, and needs nothing else: `run_landtrendr_array`, `run_ccdc_array` and friends are already parallel.
 
-When you load a lazy, Dask-backed DataCube (using `build_time_series`, `stackstac`, or `xarray.open_zarr`), CDTS extends the Xarray API with its own methods.
-
-Instead of writing complex loops, you simply call `.cdts.run_ccdc()` or `.cdts.run_landtrendr()`. CDTS will automatically map the underlying C++ algorithm across thousands of spatial "chunks" (blocks of pixels) and send them to the Dask workers for parallel execution.
+**Chunks across processes or machines.** For data larger than memory, or more machines, wrap the data in a Dask-backed xarray cube and call the algorithm through the `.cdts` accessor. CDTS maps the C++ code over spatial chunks, and Dask schedules those chunks on its workers.
 
 ```python
 import xarray as xr
-import cdts # Registers the .cdts accessor
+import cdts   # registers the .cdts accessor
 
-# Load a lazy Dask-backed cube
-cube = xr.open_zarr("s3://my-bucket/Rondonia_Landsat_Stack.zarr")
+cube = xr.open_zarr("s3://my-bucket/annual_ndvi.zarr")["ndvi"]        # (time, y, x), lazy
+cube = cube.chunk({"time": -1, "y": 512, "x": 512})                   # whole history per chunk
 
-# Apply CCDC across the entire distributed cluster
-ccdc_results = cube.cdts.run_ccdc(dates=fractional_years_array)
+trend = cube.cdts.run_mann_kendall(method="hamed_rao", n_jobs=1)      # still lazy
+trend.cdts.to_zarr_optimized("s3://my-bucket/ndvi_trend.zarr")        # computes, in parallel
 ```
 
----
+!!! warning "Chunk in space, never in time"
+    Every algorithm needs a pixel's complete history, so the `time` axis must be a **single chunk** (`-1`). Chunk only `y` and `x`. Typical sizes are 256–1024 pixels, small enough that a chunk's full history fits in a worker's memory.
 
-## 2. Setting up a Distributed Cluster
+!!! tip "Avoid oversubscription"
+    If Dask already runs one task per core, give each task one thread (`n_jobs=1`). If instead you run **one worker process per machine**, let that worker use all its cores (`n_jobs=-1`, `--nthreads 1`). Mixing both gives cores × cores threads fighting over the CPU.
 
-A Dask cluster consists of one **Scheduler** (the boss) and one or more **Workers** (the employees). You can set this up on a single machine, across multiple cloud servers (AWS/GCP), or even across old desktops connected to the same office Wi-Fi!
+## Setting up a cluster
 
-### Option A: Local Office Network (LAN / Wi-Fi)
+A Dask cluster has one **scheduler**, which hands out work, and any number of **workers**, which do it.
 
-You can turn any group of computers sharing a network into a supercomputer:
-
-1. **On the Main Computer (Scheduler):**
-   Open the terminal and start the scheduler. It will output an IP address (e.g., `tcp://192.168.1.10:8786`).
-   ```bash
-   dask-scheduler
-   ```
-
-2. **On the Secondary Computers (Workers):**
-   Ensure CDTS is installed. Open the terminal and connect them to the main computer's IP:
-   ```bash
-   dask-worker tcp://192.168.1.10:8786
-   ```
-
-3. **In your Python Script (on the Main Computer):**
-   ```python
-   from dask.distributed import Client
-   
-   # Connect to the scheduler
-   client = Client("tcp://127.0.0.1:8786")
-   ```
-
-### Option B: Cloud Computing (AWS/GCP/Kubernetes)
-
-For enterprise-scale, you can rent virtual machines using tools like `dask-cloudprovider`, `dask-kubernetes`, or managed services like `Coiled`.
+### On one machine
 
 ```python
-from dask_kubernetes import KubeCluster
+from dask.distributed import Client, LocalCluster
+
+client = Client(LocalCluster(n_workers=4, threads_per_worker=1))
+print(client.dashboard_link)   # live view of tasks, memory and CPU
+```
+
+### Across machines on a local network
+
+On the machine that will coordinate:
+
+```bash
+dask scheduler                 # prints its address, e.g. tcp://192.168.1.10:8786
+```
+
+On every other machine (with CDTS installed in the same Python version):
+
+```bash
+dask worker tcp://192.168.1.10:8786 --nworkers 4 --nthreads 1 --memory-limit 8GB
+```
+
+Then connect from your script:
+
+```python
+from dask.distributed import Client
+client = Client("tcp://192.168.1.10:8786")
+```
+
+If a worker cannot connect or crashes, see [Troubleshooting](#troubleshooting-a-multi-machine-cluster) below.
+
+### In the cloud
+
+Dask has launchers for most platforms: `dask-kubernetes` (Kubernetes), `dask-cloudprovider` (AWS, GCP, Azure), `dask-jobqueue` (SLURM, PBS on HPC systems), or managed services such as Coiled.
+
+```python
+from dask_kubernetes.operator import KubeCluster
 from dask.distributed import Client
 
-cluster = KubeCluster.from_yaml('worker-spec.yml')
-cluster.scale(50) # Spin up 50 servers in the cloud!
+cluster = KubeCluster(name="cdts", image="ghcr.io/dask/dask:latest", n_workers=20)
 client = Client(cluster)
 ```
 
----
+Workers need CDTS installed: use the [CDTS Docker image](../getting-started/docker.md) or add `pip install cdts` to the worker image.
 
-## 3. Zarr Format for Cloud Processing
+## Writing results: Zarr
 
-In a distributed environment where multiple workers process data concurrently, writing outputs to a single GeoTIFF file can result in file corruption or I/O bottlenecks. 
+When many workers write at once, a single GeoTIFF becomes a bottleneck (or gets corrupted). **Zarr** stores an array as a folder of independently compressed chunks, so every worker writes its own piece, locally or straight to S3 / Google Cloud Storage.
 
-Zarr is a format designed for cloud storage that represents multi-dimensional arrays as a directory of compressed chunk files. Because each chunk is a separate file, multiple distributed workers can write their respective chunks in parallel without encountering race conditions.
-
-To assist with exporting data to this format, CDTS provides the `.cdts.to_zarr_optimized()` method. This helper function allows for custom spatial chunking (defaulting to 512x512) and consolidates the dataset metadata into a single file to improve read performance from object storage (like AWS S3 or Google Cloud Storage).
-
-### Complete Practical Workflow
-
-Here is an end-to-end example of connecting to a distributed cluster, loading a Zarr cube, running LandTrendr in parallel, and saving the output directly back to a cloud storage bucket as Zarr.
+`.cdts.to_zarr_optimized()` rechunks the result (512 × 512 by default), writes it and consolidates the metadata so it reads fast from object storage:
 
 ```python
-import dask.distributed
-import xarray as xr
-import cdts
-
-def run_distributed_analysis():
-    # 1. Connect to our distributed Dask cluster
-    client = dask.distributed.Client("tcp://192.168.1.10:8786")
-    print(f"Cluster connected! View Dashboard at: {client.dashboard_link}")
-    
-    # 2. Load the input data from Cloud Storage (Zarr format)
-    # The 'chunks' argument ensures data is streamed in small pieces
-    cube = xr.open_zarr('gs://my-bucket/Landsat_Timeseries.zarr')
-    
-    years = [2020, 2021, 2022, 2023, 2024]
-    
-    # 3. Disperse the C++ algorithm across the cluster
-    print("Mapping LandTrendr across the cluster...")
-    lt_results = cube.cdts.run_landtrendr(years=years, n_jobs=-1)
-    
-    # 4. Execute and stream the output to Cloud Storage in parallel
-    # Workers write chunks directly to the Zarr bucket with consolidated metadata
-    print("Executing distributed processing and saving...")
-    lt_results.cdts.to_zarr_optimized('gs://my-bucket/LandTrendr_Results.zarr')
-    
-    print("Analysis complete!")
-
-if __name__ == "__main__":
-    run_distributed_analysis()
+result.cdts.to_zarr_optimized("gs://my-bucket/result.zarr")
 ```
 
-> [!TIP]
-> Always check the Dask Dashboard (usually available at `http://localhost:8787`). It provides a beautiful real-time visualization of all your servers, CPUs, memory usage, and task streams as the C++ engine crushes the pixels!
+!!! tip "Don't `.compute()` a large result"
+    `.compute()` pulls the whole array into the memory of your client. Write it with `to_zarr_optimized` (or `save_raster` for results that fit in memory) and let the workers stream it to storage.
 
----
+## A complete example
 
-## 4. Troubleshooting a Multi-Machine LAN Cluster
+LandTrendr over a large annual NDVI cube stored as Zarr, on a cluster:
+
+```python
+import numpy as np
+import xarray as xr
+from dask.distributed import Client
+import cdts
+
+client = Client("tcp://192.168.1.10:8786")
+
+ndvi = xr.open_zarr("gs://my-bucket/annual_ndvi.zarr")["ndvi"]      # (time, y, x), 1985-2024
+ndvi = ndvi.chunk({"time": -1, "y": 512, "x": 512})
+years = np.arange(1985, 1985 + ndvi.sizes["time"])
+
+# The accessor uses the default orientation (+1): flip NDVI so that a loss
+# becomes a rise, as in the LandTrendr tutorial.
+vertices = (-ndvi).cdts.run_landtrendr(years=years, max_segments=6, n_jobs=1)
+vertices.cdts.to_zarr_optimized("gs://my-bucket/landtrendr_vertices.zarr")
+```
+
+Event maps are then extracted from the saved vertices, block by block, with `cdts.extract_events(..., event_type="gain")` on the flipped values. The dashboard (`client.dashboard_link`, port 8787 by default) shows progress, memory and CPU for every worker.
+
+## Troubleshooting a multi-machine cluster
 
 Connecting a mixed-OS cluster (e.g. a Windows desktop as scheduler + a macOS laptop as a worker) over a home/office network hits a handful of predictable snags. Here's what to check, roughly in the order you'll hit them.
 
-### 4.1. Windows Firewall blocks the remote worker
+### Windows Firewall blocks the remote worker
 
 Windows often marks a home/office network as **Public**, which blocks unsolicited inbound connections by default — the scheduler will start fine locally, but a worker on another machine will simply never be able to reach it.
 
@@ -133,7 +136,7 @@ New-NetFirewallRule -DisplayName "Dask Scheduler (LAN)" -Direction Inbound -Prot
 
 Replace `192.168.1.0/24` with your actual subnet. `8786` is the scheduler port, `8787` the dashboard.
 
-### 4.2. Keep Python, dask and distributed versions aligned on every machine
+### Keep Python, dask and distributed versions aligned on every machine
 
 The scheduler/worker wire protocol assumes matching (or very close) `dask`/`distributed` versions; a mismatch triggers a `VersionMismatchWarning` and can cause hard-to-diagnose failures under load. Before connecting a new worker, check:
 
@@ -143,7 +146,7 @@ python -c "import sys, dask, distributed; print(sys.version, dask.__version__, d
 
 ...and make sure it's close to what the scheduler machine reports. `cdts`'s published PyPI wheels currently cover Python 3.9–3.12 (Windows, Linux, macOS arm64) — there is no prebuilt 3.13 wheel yet, so standardize on a **Python 3.12** environment (venv or conda) on every machine to avoid an accidental from-source build.
 
-### 4.3. macOS: a worker crash-loops silently the moment a task touches `cdts`
+### macOS: a worker crash-loops silently the moment a task touches `cdts`
 
 **Symptom:** `dask worker` starts and registers with the scheduler fine. But as soon as a real task imports `cdts` (e.g. the first `.cdts.run_landtrendr()` call), the worker process vanishes and Dask's Nanny silently respawns it with a new port — forever. No Python traceback reaches the scheduler or client; calling `client.run(...)` against that worker just raises `CommClosedError: ... Stream is closed`.
 
@@ -157,7 +160,7 @@ KMP_DUPLICATE_LIB_OK=TRUE OMP_NUM_THREADS=1 dask worker tcp://<scheduler-ip>:878
 
 If a worker is still crash-looping and you need to see the actual OS-level error, look at the raw terminal where `dask worker` runs directly — `Segmentation fault`, `Illegal instruction`, or the `OMP: Error #15` line only ever prints there, never through the Dask protocol.
 
-### 4.4. `dask worker` can't find `cdts` even though you just installed it
+### `dask worker` can't find `cdts` even though you just installed it
 
 If `pip install cdts` (or `pip install -e .`) reported success but a worker still throws `ModuleNotFoundError: No module named 'cdts'`, the `dask` command on your `PATH` is almost certainly resolving to a *different* Python installation (a different conda env, a system Python, a pyenv shim) than the one you installed `cdts` into.
 
@@ -168,7 +171,7 @@ conda activate cdts-worker   # or: source your-venv/bin/activate
 python -m dask worker tcp://<scheduler-ip>:8786 --nworkers <n> --nthreads 1
 ```
 
-### 4.5. Sanity-check every worker before submitting real work
+### Sanity-check every worker before submitting real work
 
 From the client/head node, verify `cdts` actually imports on every connected worker *before* kicking off a real job — it's much faster to catch a broken worker this way than to debug a stuck/slow distributed run:
 
@@ -188,9 +191,9 @@ def check():
 print(client.run(check, on_error="return"))
 ```
 
-A clean `"ok"` (or a normal, readable Python exception) per worker means you're good to go. A `CommClosedError` / `Stream is closed` here is the macOS crash-loop symptom from 4.3 — fix that first.
+A clean `"ok"` (or a normal, readable Python exception) per worker means you're good to go. A `CommClosedError` / `Stream is closed` here is the macOS crash-loop symptom described above ("macOS: a worker crash-loops") — fix that first.
 
-### 4.6. Too many local read threads can be *slower* than reading sequentially
+### Too many local read threads can be *slower* than reading sequentially
 
 If your input files only exist on the machine that's also acting as the client (the common case when the other machines don't share a network drive), you have to read them locally before handing chunks to the cluster. It's tempting to parallelize that read with a large thread pool, but past a certain point you're not adding throughput — you're adding disk-queue contention.
 
@@ -205,7 +208,7 @@ Measured reading 41 full-resolution GeoTIFFs (~218MB each, ~8.9GB total) from a 
 
 A modest thread pool (3-4) beat both sequential and 16 threads by a wide margin. Benchmark this on your own disk before picking a number — the right count depends on whether it's NVMe, SATA SSD, spinning disk, or a network share, but "more threads" is not a safe default assumption.
 
-### 4.7. Gathering a big distributed result can OOM a single worker, even though the cluster computed it fine
+### Gathering a big distributed result can OOM a single worker, even though the cluster computed it fine
 
 If you call `.compute()` (or `client.gather()`) directly on a large persisted Dask array, Dask may run a "finalize" (concatenation) task on a single worker to assemble the pieces before handing them to the client — and that worker's own `--memory-limit` might be far smaller than the assembled result, even though every individual chunk fit in memory just fine:
 

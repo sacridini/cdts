@@ -1,16 +1,26 @@
-# SNIC Superpixel Segmentation
+# Segmentation (SNIC)
 
-## 1. Introduction
+<p class="lead">Group neighbouring pixels with similar histories into compact regions called superpixels, then work with regions instead of pixels. Classifying one mean time series per field removes salt-and-pepper noise and cuts the number of samples by orders of magnitude.</p>
 
-**SNIC** (Simple Non-Iterative Clustering; Achanta & Süsstrunk, CVPR 2017) partitions an image into compact, connected regions of similar pixels — *superpixels*, or *segments*. In Earth Observation these segments are used as objects: instead of classifying every pixel, you classify one mean time series per segment, which removes salt-and-pepper noise and cuts the number of samples by orders of magnitude. This is the object-based workflow of `sits_segment(seg_fn = sits_snic())` in R's [sits](https://github.com/e-sensing/sits).
+<div class="glance" markdown>
+<div><span class="k">Answers</span><span class="v">Which pixels belong together as one object (field, patch, stand)?</span></div>
+<div><span class="k">Input</span><span class="v">An image or a whole cube: <code>(y, x)</code>, <code>(feature, y, x)</code> or <code>(time, band, y, x)</code></span></div>
+<div><span class="k">Output</span><span class="v">A label map, each segment's mean trajectory, centroids and sizes</span></div>
+<div><span class="k">Reference</span><span class="v">Achanta & Süsstrunk (2017); the workflow of R <code>sits</code></span></div>
+</div>
 
-`cdts.run_snic` works on a single image *and* on a whole time series cube: every `(time, band)` pair becomes one feature, so two pixels are close when their **trajectories** are close, not just their values on one date. Two fields with the same mean NDVI but opposite seasons fall in different segments.
+<figure markdown>
+  ![SNIC superpixels computed on 40 years of NDVI over Rondônia](../assets/figures/snic_segments.webp)
+  <figcaption><strong>Result on real data.</strong> A 320 × 320 pixel area of Rondônia segmented on its full 40-year NDVI history (40 features per pixel). Left: one of the 40 layers. Middle: segment boundaries. Right: each segment filled with its mean. Segments follow field edges and the river because they group pixels with similar <em>trajectories</em>, not just similar values on one date. <em>Data: annual Landsat NDVI composites exported from <a href="https://github.com/eMapR/LT-GEE">LT-GEE</a> on Google Earth Engine.</em></figcaption>
+</figure>
 
-cdts implements the algorithm of the paper in C++. Given the same seeds, it **produces the same labels as the authors' reference implementation** ([github.com/achanta/SNIC](https://github.com/achanta/SNIC)), pixel for pixel. `tests/test_snic.py` checks this against outputs of the original C code.
+## Why segment a time series?
 
----
+`cdts.run_snic` works on a single image *and* on a whole time-series cube: every `(time, band)` pair becomes one feature, so two pixels are close when their **trajectories** are close. Two fields with the same average NDVI but opposite seasons fall into different segments. This is the object-based workflow of `sits_segment(seg_fn = sits_snic())` in R's [sits](https://github.com/e-sensing/sits).
 
-## 2. Background: How SNIC Works
+Given the same seeds, CDTS produces **the same labels as the authors' reference implementation** ([github.com/achanta/SNIC](https://github.com/achanta/SNIC)), pixel for pixel.
+
+## How SNIC works
 
 1. Seeds are placed on a grid. Each seed starts a cluster.
 2. A single priority queue holds candidate `(pixel, cluster, distance)` entries; it starts with every seed at distance 0.
@@ -29,11 +39,9 @@ where $\mathbf{c}$ are the features (all bands at all dates), $\mathbf{p}$ the r
 !!! tip "Choosing `compactness`"
     The feature term is in data units, so $M$ must follow the scale of your data. Small $M$ follows the data closely (irregular segments); large $M$ approaches a regular grid. `0.5` is the sits default for reflectance-scaled cubes; the reference implementation's `10` suits 0-255 CIELAB images. If bands have very different ranges, standardise them first — every feature counts equally in the distance.
 
----
+## Step by step
 
-## 3. Using SNIC in CDTS
-
-### 3.1 On a NumPy cube
+### 1. Segment a NumPy cube
 
 ```python
 import numpy as np
@@ -55,7 +63,7 @@ Seeds come from one of two places:
 | `spacing=` (+ `grid`, `padding`) | the grids of the R `snic` package used by `sits_snic()` (`snic_grid`): `"rectangular"` (default), `"diamond"`, `"hexagonal"`, `"random"`; default `spacing=10`, `padding=spacing/2` |
 | `seeds=` | your own `(n, 2)` `(row, col)` pixel positions (takes precedence) |
 
-### 3.2 Via the xarray accessor
+### 2. Or use the xarray accessor
 
 ```python
 import cdts.xarray_api  # registers .cdts
@@ -65,7 +73,7 @@ ds["labels"]          # (y, x)
 ds["means"]           # (segment, time, band) with the cube's coordinates
 ```
 
-### 3.3 Polygons, as `sits_segment()` returns
+### 3. Export polygons
 
 ```python
 from cdts.io import get_georef
@@ -76,9 +84,7 @@ gdf = snic_to_polygons(res, transform=geo["transform"], crs=geo["crs"], include_
 
 The segment means can go straight to any classifier (TempCNN, LTAE, TWDTW, random forest…) as one sample per segment.
 
----
-
-## 4. Large Images: Tiles and Parallelism
+## Large images: tiles and parallelism
 
 SNIC is inherently sequential — each step depends on the previous pop — so a single image is segmented on one core. The C++ core is still 1.5–4× faster than the reference C code on one thread (more so with more features) (pixel-major feature layout for contiguous, vectorised Eigen distance computations; float32 input used without a float64 copy), and OpenMP parallelises the data reordering.
 
@@ -90,22 +96,19 @@ res = run_snic(cube, spacing=10, compactness=0.5, tile_size=512, n_jobs=-1)
 
 Memory: the core keeps one pixel-major copy of each tile being processed (`rows × cols × features` values of the input dtype) plus the priority queue.
 
----
+??? info "Fidelity to the reference implementation"
+    From the same seeds, the labels match those of `snic.c` (Achanta, EPFL). That includes how ties are broken: when two clusters reach a pixel at exactly the same cost, the heap's order decides the winner the same way. The test suite gives cdts the seeds the original placed and compares labels on RGB-like, noisy, piecewise-constant (many ties) and time-series inputs, in float32 and float64. The original's code is not included in cdts.
 
-## 5. Fidelity to the Reference Implementation
+    Differences from the original:
 
-From the same seeds, the labels match those of `snic.c` (Achanta, EPFL). That includes how ties are broken: when two clusters reach a pixel at exactly the same cost, the heap's order decides the winner the same way. The test suite gives cdts the seeds the original placed and compares labels on RGB-like, noisy, piecewise-constant (many ties) and time-series inputs, in float32 and float64. The original's code is not included in cdts.
+    - **Seed grid**: seeds come from the sits grids (`spacing`) or your own list, not from the original's `FindSeeds`. To compare with the original, pass its seeds explicitly, as the test suite does.
+    - **NaN handling** (as in the R `snic` package used by sits): pixels with a NaN in any feature are left unlabelled (`-1`), and $N$ counts valid pixels only. A seed on a NaN pixel gives an empty segment. Gap-fill the cube first (`regularize_time_series`, `apply_whittaker_filter`) if you want every pixel labelled.
+    - **Heap bug fix**: the reference `pop()` never removes the heap's last node. With a single seed it reads an uninitialised pixel index and crashes; on tiny images it can return a label that does not exist. Here the heap drains normally.
+    - **No RGB→CIELAB conversion**: the reference's optional `doRGBtoLAB` is specific to 8-bit RGB photos; convert beforehand if you need it.
 
-Differences from the original:
+    ---
 
-- **Seed grid**: seeds come from the sits grids (`spacing`) or your own list, not from the original's `FindSeeds`. To compare with the original, pass its seeds explicitly, as the test suite does.
-- **NaN handling** (as in the R `snic` package used by sits): pixels with a NaN in any feature are left unlabelled (`-1`), and $N$ counts valid pixels only. A seed on a NaN pixel gives an empty segment. Gap-fill the cube first (`regularize_time_series`, `apply_whittaker_filter`) if you want every pixel labelled.
-- **Heap bug fix**: the reference `pop()` never removes the heap's last node. With a single seed it reads an uninitialised pixel index and crashes; on tiny images it can return a label that does not exist. Here the heap drains normally.
-- **No RGB→CIELAB conversion**: the reference's optional `doRGBtoLAB` is specific to 8-bit RGB photos; convert beforehand if you need it.
-
----
-
-## 6. References
+## References
 
 - Achanta, R., & Süsstrunk, S. (2017). *Superpixels and Polygons Using Simple Non-Iterative Clustering*. CVPR 2017, 4651–4660.
 - Simoes, R., et al. *snic: Superpixel Segmentation with the Simple Non-Iterative Clustering Algorithm* (R package), used by `sits_snic()`.

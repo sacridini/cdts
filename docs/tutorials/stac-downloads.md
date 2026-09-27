@@ -1,14 +1,19 @@
-# STAC & Analysis Ready Data (ARD) Integration
+# STAC Data Cubes
 
-CDTS provides powerful, `sits`-like capabilities for accessing Analysis Ready Data (ARD) from the cloud or local storage. Built on top of `xarray`, `Dask`, and `stackstac`, our data cube engine supports lazy evaluation, automatic semantic cloud masking, multi-dimensional regularization, and direct tile querying.
+<p class="lead">Build an analysis-ready data cube straight from a cloud catalog. You give an area, dates and bands, and get back a lazy xarray cube: nothing is downloaded until you compute, and then only the pixels you need are read.</p>
 
-## Building a Data Cube from STAC
+<div class="glance" markdown>
+<div><span class="k">Does</span><span class="v">Search a STAC catalog, mask clouds, and stack the images into a cube</span></div>
+<div><span class="k">Sources</span><span class="v">Earth Search (AWS), Planetary Computer, Brazil Data Cube, any STAC API</span></div>
+<div><span class="k">Output</span><span class="v">A Dask-backed <code>xarray.DataArray</code> shaped <code>(time, band, y, x)</code></span></div>
+<div><span class="k">Next</span><span class="v">Composite, smooth, and feed any algorithm</span></div>
+</div>
 
-You can build a lazy time series cube from known STAC catalogs (e.g., Earth Search, Planetary Computer, Brazil Data Cube) using `cdts.build_time_series`.
+[STAC](https://stacspec.org) (SpatioTemporal Asset Catalog) is the standard way cloud providers publish satellite imagery. CDTS searches a catalog, keeps the images that match your query, and assembles them with `stackstac` into one aligned cube.
 
-### 1. Spatial Queries (BBox or MGRS Tiles)
+## 1. Query a catalog
 
-You can query data using a standard Bounding Box, a vector shapefile, or explicitly using **MGRS/WRS-2 Tiles**.
+Select the area with a bounding box, a vector file (`vector_path`), or tile IDs: MGRS for Sentinel-2, WRS-2 path/row for Landsat.
 
 ```python
 import cdts
@@ -44,7 +49,7 @@ cube_tiles_l8 = cdts.build_time_series(
 )
 ```
 
-### 2. Semantic Cloud Masking
+## 2. Mask clouds
 
 CDTS can automatically identify the satellite platform (Sentinel-2, Landsat) and apply semantic cloud masking natively before returning the cube. Just pass `apply_cloud_mask=True`. 
 This will automatically download the respective Quality Assurance (QA) band (like `scl` for Sentinel) and mask out clouds, shadows, and cirrus.
@@ -61,7 +66,7 @@ cube_clean = cdts.build_time_series(
 )
 ```
 
-### 3. Other Sensors (MODIS & Sentinel-1 SAR)
+## 3. Other sensors (MODIS and Sentinel-1)
 
 `build_time_series` is not hardcoded to Sentinel-2/Landsat — it talks to any STAC API, so switching `source`/`collection`/`bands` is enough to pull other sensors from a catalog that hosts them. Microsoft Planetary Computer is the most complete public option for MODIS and Sentinel-1.
 
@@ -111,7 +116,7 @@ Radar backscatter is dense (Sentinel-1 revisits every 6-12 days regardless of cl
 
 Neither `earth_search` nor `brazil_data_cube` currently expose MODIS or Sentinel-1 collections, so `planetary_computer` is the practical default for both. `source` also accepts any custom STAC API URL (e.g. a national or provider-specific SAR catalog) if you need one outside the three built-in aliases.
 
-## Temporal Regularization (Medoid & Median)
+## 4. Composite to a regular time step
 
 Raw STAC data usually comes in irregular time steps (e.g., passing every 5, 8, or 12 days). For advanced Machine Learning and TWDTW, you must regularize the cube to fixed temporal steps.
 
@@ -127,25 +132,7 @@ cube_16d = regularize_time_series(cube_clean, freq="16D", method="medoid")
 print(cube_16d.time)
 ```
 
-## Ingesting Local ARD Cubes
-
-If you have already downloaded ARD TIFF files to your machine, you can ingest them into a lazy CDTS cube by providing a Regular Expression to parse the filenames.
-
-```python
-from cdts import build_local_cube
-
-# Assume you have files like: "SENTINEL_20220101_B02.tif"
-# The regex must capture (?P<date>...) and (?P<band>...)
-cube_local = build_local_cube(
-    data_dir="/path/to/my/tiffs",
-    regex_pattern=r".*_(?P<date>\d{8})_(?P<band>B\d{2})\.tif",
-    date_format="%Y%m%d"
-)
-
-# You get a full xarray DataArray ready for TWDTW, SOM, or CCDC!
-```
-
-## Calculating Spectral Indices (e.g., NDVI)
+## 5. Compute spectral indices
 
 If you wish to obtain only a specific spectral index like NDVI, there are two possible scenarios depending on the STAC catalog:
 
@@ -173,3 +160,49 @@ cube_raw = cdts.build_time_series(
 # Compute NDVI lazily
 cube_ndvi = (cube_raw.sel(band="nir") - cube_raw.sel(band="red")) / (cube_raw.sel(band="nir") + cube_raw.sel(band="red"))
 ```
+
+## 6. Smooth noisy series
+
+Even after masking and compositing, some cloud-affected values remain. Two smoothers work along the time axis of a `(time, rows, cols)` array:
+
+<figure markdown>
+  ![A noisy NDVI series with cloud drops, smoothed with Savitzky-Golay and with a QA-weighted Whittaker smoother](../assets/figures/smoothing.png)
+  <figcaption>Savitzky-Golay follows the cloud drops because it treats every point equally. The Whittaker smoother, given weights of 0 for the cloudy observations, ignores them and recovers the seasonal curve.</figcaption>
+</figure>
+
+```python
+from cdts.smooth import apply_savgol_filter, apply_whittaker_filter
+
+smooth_sg = apply_savgol_filter(ndvi, window_length=7, polyorder=2)
+
+weights = clear.astype(float)             # 1 = clear, 0 = cloudy, or QA weights from cdts.qc
+smooth_wh = apply_whittaker_filter(ndvi, lmbd=10, weights=weights)
+```
+
+`lmbd` sets the smoothness of the Whittaker filter: larger values give a stiffer curve. For per-observation weights from a QA band, see `cdts.qc` (`qc_sentinel2_scl`, `qc_modis_summary`, `qc_modis_state`).
+
+## Local GeoTIFFs instead of a catalog
+
+Already have the files on disk? `build_local_cube` builds the same kind of lazy cube from a folder, parsing dates and bands from the file names.
+
+```python
+from cdts import build_local_cube
+
+# Assume you have files like: "SENTINEL_20220101_B02.tif"
+# The regex must capture (?P<date>...) and (?P<band>...)
+cube_local = build_local_cube(
+    data_dir="/path/to/my/tiffs",
+    regex_pattern=r".*_(?P<date>\d{8})_(?P<band>B\d{2})\.tif",
+    date_format="%Y%m%d"
+)
+
+# You get a full xarray DataArray ready for TWDTW, SOM, or CCDC!
+```
+
+## Next steps
+
+The cube is ready for any analysis. Common next steps:
+
+- one value per year for [LandTrendr](landtrendr.md) or [Mann-Kendall](mann_kendall.md): `cube.groupby("time.year").max()`;
+- regular 16-day composites for [BFAST](bfast_monitor.md), [phenology](phenology.md) and [TWDTW](twdtw.md);
+- every clear image, multi-band, for [CCDC](ccdc.md).

@@ -1,20 +1,29 @@
-# Downloading Time Series via Google Earth Engine (GEE)
+# Google Earth Engine
 
-The `cdts` package now offers native support for extracting and downloading time series data using **Google Earth Engine (GEE)**. This allows you to skip downloading individual, uncalibrated images and instead let Google process complex data (such as Landsat sensor harmonization, cloud masking, and annual compositing) directly on their servers before downloading.
+<p class="lead">Let Google's servers do the heavy preparation (Landsat sensor harmonisation, cloud masking and compositing) and download a ready-to-use time series as GeoTIFFs. This is the quickest way to get the annual stacks LandTrendr needs.</p>
+
+<div class="glance" markdown>
+<div><span class="k">Does</span><span class="v">Harmonise Landsat 5/7/8/9, mask clouds, composite, download</span></div>
+<div><span class="k">Composites</span><span class="v"><code>annual</code> medoid (LandTrendr) or <code>dense</code> (CCDC)</span></div>
+<div><span class="k">Output</span><span class="v">GeoTIFFs on disk, or in your Google Drive for large areas</span></div>
+<div><span class="k">Needs</span><span class="v">An Earth Engine account and a Google Cloud project</span></div>
+</div>
 
 ## Authentication
 
 Earth Engine requires the user to authenticate their machine with Google Cloud Project (GCP) credentials that have API access enabled. Every time you attempt a download, the `download_gee_timeseries` function handles this initialization. If your credentials expire or do not exist, a browser window will open prompting you to log in.
 
-> **Note:** Make sure the selected Google account has access to GEE. It is recommended to provide your GCP project name using the `project='your-project'` parameter.
+!!! note
+    Make sure the Google account has access to Earth Engine, and pass your Google Cloud project with `project="your-project"`.
 
-## Example 1: Direct Download (Multithread Tiled)
+## Small areas: direct download
 
 If you have a small to medium-sized area (e.g., a municipality or a specific polygon) and want the `.tif` file immediately on your machine, use the `method='direct'` option.
 
 The `cdts` package will automatically slice your region into smaller grids (tiles), open dozens of concurrent threads to Google's servers, download the pieces, and seamlessly mosaic them together (using `rasterio.merge`).
 
-> **Warning on API Limits:** Google's REST API has a strict 50 MB payload limit per request. While the tiling system mitigates this for standard annual composites, attempting to download a `'dense'` time series (which flattens dozens of images and hundreds of bands into a single stack) for a large region using `method='direct'` will likely trigger a *Payload Too Large* error. For dense time series or state-level areas, always use `method='drive'`.
+!!! warning "Request size limits"
+    Google's REST API has a strict 50 MB payload limit per request. While the tiling system mitigates this for standard annual composites, attempting to download a `'dense'` time series (which flattens dozens of images and hundreds of bands into a single stack) for a large region using `method='direct'` will likely trigger a *Payload Too Large* error. For dense time series or state-level areas, always use `method='drive'`.
 
 ```python
 from cdts.gee import download_gee_timeseries
@@ -33,7 +42,7 @@ download_gee_timeseries(
 )
 ```
 
-## Example 2: Exporting to Google Drive (Large Areas)
+## Large areas: export to Google Drive
 
 For state-level or national-scale analyses, downloading data directly over the internet in real-time might fail due to API payload limits or simply take too long.
 
@@ -59,7 +68,7 @@ download_gee_timeseries(
 # [landsat_medoid_1985] Task sent to Google Drive (Task ID: ABCD123456).
 ```
 
-## What happens under the hood?
+## What happens on the server
 
 When using `composite_type='annual'` (the current `cdts` default for LandTrendr integration):
 
@@ -67,8 +76,6 @@ When using `composite_type='annual'` (the current `cdts` default for LandTrendr 
 2. **Harmonization:** Values from Landsat 8 and 9 (OLI) are mathematically converted to their ETM+ equivalents using coefficients from Roy et al. (2016) (see [References](#references)). This ensures a perfect time series, free from sensor biases.
 3. **Cloud Masking:** The `QA_PIXEL` quality assurance band is used to filter out dense clouds and shadows across all images.
 4. **Medoid Compositing:** Instead of a simple median, we apply the Medoid geometric strategy to find the actual real-world pixel that best represents the season (a standard approach in *eMapR/LandTrendr* workflows).
-
----
 
 ## References
 

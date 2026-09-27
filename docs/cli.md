@@ -1,6 +1,6 @@
-# Command Line Interface (CLI)
+# Command Line Interface
 
-The `cdts` package includes a powerful Command Line Interface (CLI) that allows you to run our core change detection algorithms directly from your terminal. This is especially useful for processing large GeoTIFF stacks in automated bash scripts, cron jobs, or High-Performance Computing (HPC) environments without writing any Python code.
+<p class="lead">Run the core algorithms on GeoTIFF stacks straight from the terminal, with no Python code. Useful for shell scripts, cron jobs and HPC schedulers. Each command reads and writes files block by block, so inputs can be larger than memory.</p>
 
 ## Basic Usage
 

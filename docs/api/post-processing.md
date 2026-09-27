@@ -1,0 +1,186 @@
+# Post-processing
+
+<p class="lead">Clean up maps, classify CCDC results, derive masks, and review results against reference points.</p>
+
+## Spatial filters
+
+### `apply_mmu_filter` { .api }
+
+<!-- sig: cdts.spatial.apply_mmu_filter -->
+```python
+cdts.spatial.apply_mmu_filter(input_path, output_path, mmu_pixels=11)
+```
+
+Minimum mapping unit filter for a single-band GeoTIFF on disk: connected patches of non-nodata pixels smaller than `mmu_pixels` are set to nodata. Removes the salt-and-pepper noise of per-pixel change maps. Also exported as `cdts.apply_mmu_filter`; CLI: `cdts mmu-filter`.
+
+<div class="params" markdown>
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `input_path` | `str` | required | Single-band GeoTIFF, e.g. a year-of-loss map. Background must be the file's nodata value (or `0`). |
+| `output_path` | `str` | required | Filtered output. |
+| `mmu_pixels` | `int` | `11` | Smallest patch to keep, in pixels (11 Landsat pixels ≈ 1 ha). |
+
+</div>
+
+```python
+cdts.apply_mmu_filter("results/loss_year.tif", "results/loss_year_mmu.tif", mmu_pixels=11)
+```
+
+### `apply_majority_filter` { .api }
+
+<!-- sig: cdts.spatial.apply_majority_filter -->
+```python
+cdts.spatial.apply_majority_filter(image, size=3)
+```
+
+Replaces each pixel of a class map with the most common class in its neighbourhood. Also exported as `cdts.apply_majority_filter`.
+
+<div class="params" markdown>
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `image` | `np.ndarray` | required | 2-D class map. |
+| `size` | `int` | `3` | Window size (3 = 3 × 3). |
+
+</div>
+
+### `apply_bayesian_filter` { .api }
+
+<!-- sig: cdts.spatial.apply_bayesian_filter -->
+```python
+cdts.spatial.apply_bayesian_filter(probs, window_size=3)
+```
+
+Smooths per-class probabilities spatially, then takes the most likely class. Unlike the majority filter, confident pixels resist being overruled by their neighbours. Import from `cdts.spatial`.
+
+<div class="params" markdown>
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `probs` | `np.ndarray` | required | `(classes, rows, cols)` probabilities or scores. |
+| `window_size` | `int` | `3` | Averaging window. |
+
+</div>
+
+**Returns** a `(rows, cols)` class-index map.
+
+## CCDC classification
+
+### `train_ccdc_classifier` { .api }
+
+<!-- sig: cdts.classify.train_ccdc_classifier -->
+```python
+cdts.classify.train_ccdc_classifier(
+    X_train, y_train, n_estimators=100, random_state=42,
+)
+```
+
+Trains a scikit-learn random forest on CCDC features. Also exported as `cdts.train_ccdc_classifier`.
+
+<div class="params" markdown>
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `X_train` | `np.ndarray` | required | `(samples, features)`. Must have the same layout as the bands of the coefficient GeoTIFF you will classify, e.g. that file sampled at your training points. |
+| `y_train` | `np.ndarray` | required | Class labels, `1…255` (`0` is used for no data in the output). |
+| `n_estimators` | `int` | `100` | Number of trees. |
+| `random_state` | `int` | `42` | Random seed. |
+
+</div>
+
+**Returns** a fitted `RandomForestClassifier`.
+
+### `classify_ccdc_stack` { .api }
+
+<!-- sig: cdts.classify.classify_ccdc_stack -->
+```python
+cdts.classify.classify_ccdc_stack(
+    clf, coef_stack_path, output_path, chunk_size=512,
+)
+```
+
+Applies a classifier to every pixel of a CCDC coefficient GeoTIFF (for example from `run_ccdc_image`), block by block, and writes a `uint8` class map. Pixels whose first two bands are both zero are left as `0`. Also exported as `cdts.classify_ccdc_stack`.
+
+<div class="params" markdown>
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `clf` | classifier | required | Any fitted scikit-learn classifier. |
+| `coef_stack_path` | `str` | required | CCDC coefficient GeoTIFF. |
+| `output_path` | `str` | required | Output class map. |
+| `chunk_size` | `int` | `512` | Block size in pixels. |
+
+</div>
+
+```python
+from cdts.classify import train_ccdc_classifier, classify_ccdc_stack
+
+clf = train_ccdc_classifier(X_train, y_train)
+classify_ccdc_stack(clf, "results/ccdc_break_coefs.tif", "results/land_cover.tif")
+```
+
+## Masks
+
+### `extract_water_mask` { .api }
+
+<!-- sig: cdts.masks.extract_water_mask -->
+```python
+cdts.masks.extract_water_mask(
+    ccdc_coefs_stack, green_band_idx, swir_band_idx,
+)
+```
+
+Persistent water mask from the first CCDC model of each pixel: water is brighter in Green than in SWIR and dark in SWIR. Also exported as `cdts.extract_water_mask`.
+
+<div class="params" markdown>
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `ccdc_coefs_stack` | `np.ndarray` | required | `(segments, parameters, rows, cols)` from `run_ccdc_array`. |
+| `green_band_idx` | `int` | required | 0-based index of the Green band. |
+| `swir_band_idx` | `int` | required | 0-based index of the SWIR band. |
+
+</div>
+
+**Returns** a `uint8` `(rows, cols)` mask, `1` = water.
+
+!!! bug "Known issue"
+    The current implementation locates each band's intercept assuming 7 parameters per band, while CCDC outputs 9 (RMSE plus 8 coefficients). For any band other than the first, the wrong coefficient is read. Until this is fixed, compute the mask from the intercepts directly: the intercept of band `b` is at parameter index `4 + 9 * b`.
+
+## Validation
+
+### `generate_landtrendr_accuracy_dashboard` { .api }
+
+<!-- sig: cdts.validation.generate_landtrendr_accuracy_dashboard -->
+```python
+cdts.validation.generate_landtrendr_accuracy_dashboard(
+    cube, points, lt_results=None,
+    output_html="lt_accuracy_dashboard.html", window_size=25,
+    year_dim="time",
+)
+```
+
+Builds a self-contained HTML page for reviewing LandTrendr results at reference points. For each point it shows the index trajectory, the fitted segments, and true-colour image chips for every year, and lets you record the observed year of change. It computes agreement (including Kappa) live and exports the labels as CSV. Also exported as `cdts.generate_landtrendr_accuracy_dashboard`.
+
+<div class="params" markdown>
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `cube` | `xr.DataArray` | required | The input cube, with time, band, y and x dimensions (true-colour bands are detected automatically). |
+| `points` | `str`, GeoDataFrame or list | required | Vector file path, GeoDataFrame, or list of `(lon, lat)` tuples. An `id` column is used if present. |
+| `lt_results` | `xr.DataArray` or `xr.Dataset` | `None` | LandTrendr / `extract_events` output, to show predicted years and fits. |
+| `output_html` | `str` | `"lt_accuracy_dashboard.html"` | Output page. |
+| `window_size` | `int` | `25` | Chip size in pixels (odd). |
+| `year_dim` | `str` | `"time"` | Name of the time dimension of `cube`. |
+
+</div>
+
+```python
+cdts.generate_landtrendr_accuracy_dashboard(
+    cube=annual_cube,
+    points="data/validation_points.shp",
+    lt_results=events_ds,
+    output_html="validation.html",
+)
+```

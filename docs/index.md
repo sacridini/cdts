@@ -1,129 +1,273 @@
-<div align="center" markdown>
-
-<img src="assets/logo.png" alt="CDTS Logo" width="440">
-
-**Change Detection and Time-Series for Python**
-
-[![Build and Publish Wheels](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/build_wheels.yml)
-[![Tests](https://github.com/sacridini/cdts/actions/workflows/tests.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/tests.yml)
-[![Docs](https://github.com/sacridini/cdts/actions/workflows/docs.yml/badge.svg)](https://github.com/sacridini/cdts/actions/workflows/docs.yml)
-[![PyPI version](https://badge.fury.io/py/cdts.svg)](https://badge.fury.io/py/cdts)
-
-An ultra-fast, cloud-native Python library for **Remote Sensing Time-Series Analysis and Change Detection**.
-
-[Get Started](getting-started/installation.md){ .md-button .md-button--primary }
-[Browse Tutorials](tutorials/index.md){ .md-button }
-[Benchmarks & Fidelity](benchmarks/index.md){ .md-button }
-[View on GitHub :material-github:](https://github.com/sacridini/cdts){ .md-button }
-
-</div>
-
+---
+title: CDTS — Change detection and time series for satellite imagery
+hide:
+  - navigation
+  - toc
+  - path
 ---
 
-Designed to overcome heavy dependencies on platforms like Google Earth Engine, CDTS handles the entire geospatial pipeline locally or on cloud clusters. It scales seamlessly from directly streaming satellite imagery via STAC APIs, to lazily scaling memory with Dask and Xarray, down to executing heavy statistical regression in native C++.
+<div class="cdts-hero" markdown>
 
-## Quick Install
+<div markdown>
+
+<img class="cdts-hero__logo" src="assets/logo-wide.png" alt="CDTS">
+
+<h1>Find <span>when</span> and <span>where</span> the landscape changed.</h1>
+
+<p class="lead">CDTS is a Python library for analysing satellite image time series. It detects deforestation, fires, regrowth, crop cycles and long-term trends using fast, validated ports of the reference algorithms (LandTrendr, CCDC, BFAST and more). The same code runs on one pixel on your laptop or on a whole country on a Dask cluster.</p>
+
+[Get started](getting-started/quickstart.md){ .md-button .md-button--primary }
+[See what it can do](#what-you-can-do-with-cdts){ .md-button }
+[:fontawesome-brands-github: GitHub](https://github.com/sacridini/cdts){ .md-button }
+
+<div class="cdts-hero__install" markdown>
 
 ```bash
 pip install cdts
 ```
 
-Pre-compiled wheels are provided for Windows, macOS, and Linux — no C++ compiler required. See the [installation guide](getting-started/installation.md) for GPU, macOS OpenMP, and from-source options.
-
-## Key Capabilities
-
-<div class="grid cards" markdown>
-
--   :material-cloud-download:{ .lg .middle } **Cloud-Native Data Fetching**
-
-    ---
-
-    Query AWS, Microsoft Planetary Computer, or other STAC-compliant servers for imagery, streaming only the exact pixels needed without full downloads.
-
--   :material-speedometer:{ .lg .middle } **High-Performance Computing**
-
-    ---
-
-    Core statistical fitting (OLS, Robust IRLS, Exact F-Statistics, Chi-Square CDFs) is fully written in C++ via `pybind11` and `Eigen3` for maximum single-core speed.
-
--   :material-server-network:{ .lg .middle } **Horizontal Scaling**
-
-    ---
-
-    Leverage `xarray` and `dask` to lazily chunk data, distributing work across CPU threads or remote Dask workers to process large areas without memory exhaustion.
-
--   :material-brain:{ .lg .middle } **Deep Learning & Foundation Models**
-
-    ---
-
-    Built on PyTorch, `cdts.ai` provides modern architectures for earth observation — U-TAE, TempCNN, Bi-Temporal Siamese CNNs — plus wrappers for Geospatial Foundation Models (ViT).
+</div>
 
 </div>
 
-## Algorithms
+<figure class="cdts-hero__figure" markdown>
+  ![Map of the year of forest loss in Rondônia, Brazil, detected by LandTrendr](assets/figures/hero_loss_year.webp)
+  <figcaption>40 years of Landsat NDVI (1985–2024) over Rondônia, Brazil. Each colored pixel shows the year of its largest vegetation loss, found by <a href="tutorials/landtrendr/">LandTrendr</a>. The run covered 2.8 million pixels and took about 5 seconds on a desktop CPU. <em>Data: annual Landsat NDVI composites exported from <a href="https://github.com/eMapR/LT-GEE">LT-GEE</a> on Google Earth Engine.</em></figcaption>
+</figure>
 
-CDTS natively implements industry-standard algorithms for **Time-Series Analysis**, **Change Detection**, and **Deep Learning**:
+</div>
 
-| Algorithm | Category | What it does |
-|---|---|---|
-| [LandTrendr](tutorials/landtrendr.md) | Change Detection | Landsat-based detection of trends in disturbance and recovery. |
-| [CCDC](tutorials/ccdc.md) | Change Detection | Continuous Change Detection and Classification via robust harmonic modeling. |
-| [BFAST family](tutorials/bfast.md) | Change Detection | Iterative trend + season break detection, near-real-time monitoring ([Monitor](tutorials/bfast_monitor.md)), and single-pass multi-breakpoint detection ([Lite](tutorials/bfast_lite.md)). |
-| [Tmask](tutorials/tmask.md) | Change Detection | Time-series cloud masking to dynamically find clouds and shadows missed by native QA bands. |
-| [TWDTW](tutorials/twdtw.md) | Time-Series Analysis | Time-Weighted Dynamic Time Warping for pattern matching against reference curves. |
-| [Mann-Kendall](tutorials/mann_kendall.md) | Time-Series Analysis | Non-parametric trend test and Theil-Sen slope estimation for greening/browning trends. |
-| [Phenology Extraction](tutorials/phenology.md) | Time-Series Analysis | Simultaneous phenological metrics from optimized curve-fitting models. |
-| [SOM](tutorials/som.md) | Time-Series Analysis | Batch Self-Organizing Maps for unsupervised clustering of spectral-temporal arrays. |
-| [U-TAE / LTAE](tutorials/utae.md) | Deep Learning | Attention-based architectures for spatio-temporal satellite image classification. |
-| [Siamese Networks](tutorials/siamese.md) | Deep Learning | Bi-temporal CNNs for pixel-wise change detection. |
-| [GeoFoundationViT](tutorials/geo_foundation_vit.md) | Deep Learning | Wrappers for Vision Transformer geospatial foundation models. |
+## What is CDTS?
 
-## Supported Cloud Data Services
+Every satellite pixel has a history. Stack images of the same place over time and each pixel becomes a **time series**: a line that stays flat while a forest stands, drops when it is cleared, and climbs back as it regrows. Most land-change questions come down to reading those lines. Did something change? When? How much? Was it sudden or gradual?
 
-CDTS relies on the SpatioTemporal Asset Catalog (STAC) standard and can pull time-series data from virtually any modern satellite provider, including AWS Earth Search, Microsoft Planetary Computer, Brazil Data Cube, and Copernicus Data Space — plus [Google Earth Engine](tutorials/gee-downloads.md) integration.
+<figure markdown>
+  ![Three NDVI snapshots of the same area in 1990, 2000 and 2020, and the NDVI time series of one pixel that was cleared in 2003](assets/figures/concept_pixel_time_series.webp)
+  <figcaption>The circled pixel was forest until 2002, then was cleared. Seen as a time series, the event is obvious. CDTS finds events like this in every pixel of an image. <em>Data: annual Landsat NDVI composites exported from <a href="https://github.com/eMapR/LT-GEE">LT-GEE</a> on Google Earth Engine.</em></figcaption>
+</figure>
 
-## Next Steps
+CDTS gives you the standard scientific methods for reading these time series, plus the plumbing around them. It can pull imagery from cloud catalogs, mask clouds, fill gaps, run the analysis in parallel, and write maps back out as GeoTIFF or Zarr.
 
-<div class="grid cards" markdown>
+<span class="kicker">Gallery</span>
 
--   :material-download:{ .lg .middle } **Install CDTS**
+## What you can do with CDTS
+
+Every image below was produced by CDTS itself. Click one to open its tutorial.
+
+<div class="gallery" markdown>
+
+<a class="tile" href="tutorials/landtrendr/">
+  <img src="assets/figures/thumbs/landtrendr.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Change detection</span><span class="tile-title">Map forest loss and regrowth</span><span class="tile-text">LandTrendr turns yearly images into maps of when, how much and how fast change happened.</span></span>
+</a>
+
+<a class="tile" href="tutorials/ccdc/">
+  <img src="assets/figures/thumbs/ccdc.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Change detection</span><span class="tile-title">Detect change in dense time series</span><span class="tile-text">CCDC models each pixel's seasonal cycle and flags the moment it breaks.</span></span>
+</a>
+
+<a class="tile" href="tutorials/bfast_monitor/">
+  <img src="assets/figures/thumbs/bfast_monitor.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Monitoring</span><span class="tile-title">Raise near-real-time alerts</span><span class="tile-text">BFAST Monitor tests each new image against a stable history.</span></span>
+</a>
+
+<a class="tile" href="tutorials/mann_kendall/">
+  <img src="assets/figures/thumbs/mann_kendall.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Trends</span><span class="tile-title">Map greening and browning</span><span class="tile-text">Mann-Kendall and Theil-Sen give a robust, significance-tested trend per pixel.</span></span>
+</a>
+
+<a class="tile" href="tutorials/phenology/">
+  <img src="assets/figures/thumbs/phenology.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Phenology</span><span class="tile-title">Extract crop and vegetation calendars</span><span class="tile-text">Start, peak and end of season, plus 16 more metrics, for every year.</span></span>
+</a>
+
+<a class="tile" href="tutorials/twdtw/">
+  <img src="assets/figures/thumbs/twdtw.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Classification</span><span class="tile-title">Classify by temporal signature</span><span class="tile-text">TWDTW matches each pixel to reference patterns, even when seasons shift.</span></span>
+</a>
+
+<a class="tile" href="tutorials/snic/">
+  <img src="assets/figures/thumbs/snic.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Segmentation</span><span class="tile-title">Group pixels into objects</span><span class="tile-text">SNIC superpixels group pixels whose whole trajectories are similar.</span></span>
+</a>
+
+<a class="tile" href="tutorials/som/">
+  <img src="assets/figures/thumbs/som.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Clustering</span><span class="tile-title">Discover patterns without labels</span><span class="tile-text">Self-organizing maps cluster millions of trajectories into a few prototypes.</span></span>
+</a>
+
+<a class="tile" href="tutorials/tempcnn/">
+  <img src="assets/figures/thumbs/tempcnn.webp" alt="" loading="lazy">
+  <span class="tile-body"><span class="tile-kicker">Deep learning</span><span class="tile-title">Train land-cover classifiers</span><span class="tile-text">PyTorch models (TempCNN, LightTAE, U-TAE) that are weight-compatible with R <code>sits</code>.</span></span>
+</a>
+
+</div>
+
+<span class="kicker">Workflow</span>
+
+## How a CDTS analysis fits together
+
+<div class="steps" markdown>
+
+<div markdown>
+**Get the data**
+
+Stream a cube from a STAC catalog, Earth Engine or local GeoTIFFs.
+
+`build_time_series` · `download_gee_timeseries`
+</div>
+
+<div markdown>
+**Clean it**
+
+Mask clouds, composite to a regular time step, smooth noise.
+
+`apply_tmask_stack` · `regularize_time_series`
+</div>
+
+<div markdown>
+**Analyse every pixel**
+
+Run change detection, trends, phenology or a classifier.
+
+`run_landtrendr_array` · `.cdts.run_ccdc`
+</div>
+
+<div markdown>
+**Map the result**
+
+Turn per-pixel output into maps and write GeoTIFF or Zarr.
+
+`extract_events` · `save_raster`
+</div>
+
+</div>
+
+The same analysis in three styles. Pick the one that fits your data:
+
+=== "NumPy array"
+
+    ```python
+    import numpy as np
+    import cdts
+
+    years = np.arange(1985, 2025)
+    stack, profile = cdts.io.load_raster("ndvi_1985_2024.tif")   # (time, rows, cols)
+
+    vertices = cdts.run_landtrendr_array(years, stack, modifier=-1.0)  # -1: look for drops
+    loss = cdts.extract_events(vertices, event_type="loss", min_magnitude=2000)
+
+    cdts.save_raster(loss["yod"], "year_of_loss.tif",
+                     crs=profile["crs"], transform=profile["transform"], nodata=0)
+    ```
+
+=== "Xarray / Dask cube"
+
+    ```python
+    import cdts  # registers the .cdts accessor on xarray objects
+
+    cube = cdts.build_time_series(
+        source="earth_search", collection="sentinel-2-l2a",
+        bbox=[-63.2, -10.2, -63.0, -10.0],
+        start_date="2019-01-01", end_date="2024-12-31",
+        bands=["red", "nir"], apply_cloud_mask=True,
+    )
+    ndvi = (cube.sel(band="nir") - cube.sel(band="red")) / (cube.sel(band="nir") + cube.sel(band="red"))
+    ndvi_16d = cdts.regularize_time_series(ndvi, freq="16D", method="median")
+
+    trend = ndvi_16d.cdts.run_mann_kendall(method="seasonal", period=23)
+    trend.cdts.to_zarr_optimized("ndvi_trend.zarr")   # computed chunk by chunk, in parallel
+    ```
+
+=== "Command line"
+
+    ```bash
+    # No Python needed: every core algorithm is also a CLI subcommand.
+    cdts landtrendr ndvi_1985_2024.tif results/ --start-year 1985 --event-type loss --min-mag 2000
+    cdts mmu-filter results/lt_event_yod.tif results/lt_event_yod_clean.tif --mmu-pixels 11
+    ```
+
+<span class="kicker">Why CDTS</span>
+
+## Built for trustworthy results at scale
+
+<div class="stats" markdown>
+<div><span class="n">100%</span><span class="l">vertex-for-vertex agreement with the original LandTrendr IDL code, and model-for-model with CCDC MATLAB</span></div>
+<div><span class="n">168×</span><span class="l">faster than the reference LandTrendr on one core, with more from OpenMP threads</span></div>
+<div><span class="n">20×</span><span class="l">higher throughput than Google Earth Engine on a full Landsat tile, with no queue</span></div>
+<div><span class="n">0</span><span class="l">compilers needed. Pre-built wheels for Windows, macOS and Linux</span></div>
+</div>
+
+<div class="grid cards two" markdown>
+
+-   :material-scale-balance:{ .lg .middle } **Faithful to the originals**
 
     ---
 
-    Get up and running with pip, Docker, or a from-source build.
+    Each algorithm is ported from its reference implementation (IDL, MATLAB, R) and tested against it. You get the published method, not an approximation.
 
-    [:octicons-arrow-right-24: Installation](getting-started/installation.md)
+    [:octicons-arrow-right-24: Fidelity reports](benchmarks/fidelity.md)
 
--   :material-school:{ .lg .middle } **Follow a Tutorial**
-
-    ---
-
-    Full walkthroughs with theory, code, and validation against reference implementations.
-
-    [:octicons-arrow-right-24: Tutorials](tutorials/index.md)
-
--   :material-chart-box:{ .lg .middle } **Benchmarks & Validation**
+-   :material-lightning-bolt:{ .lg .middle } **Fast by default**
 
     ---
 
-    Explore empirical fidelity tests against original IDL, MATLAB, and R tools, plus multi-core CPU scaling.
+    The per-pixel work runs in C++ (Eigen + OpenMP), outside the Python GIL. A laptop can process scenes that used to need a cloud platform.
 
-    [:octicons-arrow-right-24: Benchmarks Suite](benchmarks/index.md)
+    [:octicons-arrow-right-24: Performance](benchmarks/performance.md)
 
--   :material-console:{ .lg .middle } **Use the CLI**
-
-    ---
-
-    Run every core algorithm as a `cdts` subcommand from bash scripts, cron jobs, or HPC environments.
-
-    [:octicons-arrow-right-24: CLI Reference](cli.md)
-
--   :material-api:{ .lg .middle } **Browse the API**
+-   :material-server-network:{ .lg .middle } **Scales without rewrites**
 
     ---
 
-    Full reference for every public class and function in the `cdts` package.
+    The `.cdts` xarray accessor maps every algorithm over Dask chunks, so the same script runs on one machine or a cluster.
 
-    [:octicons-arrow-right-24: API Reference](api.md)
+    [:octicons-arrow-right-24: Scaling up](tutorials/parallel-cloud-processing.md)
+
+-   :material-puzzle-outline:{ .lg .middle } **One toolbox, end to end**
+
+    ---
+
+    Data access, cloud masking, smoothing, change detection, trends, phenology, segmentation and deep learning all use the same array conventions.
+
+    [:octicons-arrow-right-24: API reference](api/index.md)
+
+</div>
+
+## Where to go next
+
+<div class="grid cards two" markdown>
+
+-   :material-rocket-launch-outline:{ .lg .middle } **New to CDTS?**
+
+    ---
+
+    Install it and produce your first change map in five minutes, then learn the few concepts every tutorial builds on.
+
+    [:octicons-arrow-right-24: Quickstart](getting-started/quickstart.md) · [Core concepts](getting-started/concepts.md)
+
+-   :material-map-search-outline:{ .lg .middle } **Not sure which method to use?**
+
+    ---
+
+    A short guide that maps common questions ("when was this cleared?", "is it getting greener?") to the right algorithm.
+
+    [:octicons-arrow-right-24: Choosing an algorithm](getting-started/choosing-an-algorithm.md)
+
+-   :material-book-open-variant:{ .lg .middle } **Ready to go deeper?**
+
+    ---
+
+    Step-by-step tutorials for every algorithm, each with real outputs, parameter guidance and references.
+
+    [:octicons-arrow-right-24: User guide](tutorials/index.md)
+
+-   :material-api:{ .lg .middle } **Looking something up?**
+
+    ---
+
+    Every public function, with signatures, parameters and a runnable example.
+
+    [:octicons-arrow-right-24: API reference](api/index.md) · [CLI](cli.md)
 
 </div>

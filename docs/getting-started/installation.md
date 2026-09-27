@@ -1,6 +1,6 @@
 # Installation
 
-CDTS is designed to be easy to install and run across different environments. 
+<p class="lead">One command installs CDTS with pre-compiled wheels for Windows, macOS and Linux. Build from source only if you want to change the C++ core or enable multi-threading on macOS.</p>
 
 ## Standard Installation
 

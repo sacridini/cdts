@@ -1,6 +1,11 @@
 # GeoFoundationViT
 
-## 1. Introduction
+<div class="glance" markdown>
+<div><span class="k">Answers</span><span class="v">Reuse a large pretrained model when you have few labels.</span></div>
+<div><span class="k">Input</span><span class="v">Backbone-dependent (Prithvi: 6 bands × time × H × W)</span></div>
+<div><span class="k">Output</span><span class="v">A segmentation map from a fine-tuned head</span></div>
+<div><span class="k">Reference</span><span class="v">Prithvi-100M (Jakubik et al., 2023) via HuggingFace</span></div>
+</div>
 
 `GeoFoundationViT` is a thin wrapper that lets you plug large, pretrained **geospatial foundation models** (Vision Transformers trained on massive satellite imagery corpora) into a `cdts` workflow, and fine-tune a lightweight classification/segmentation head on top for your own downstream task. Rather than training a model from scratch, you're doing **transfer learning** from a model that has already learned general-purpose visual representations of satellite imagery.
 
@@ -10,9 +15,10 @@ By default it loads NASA/IBM's **Prithvi-100M** via HuggingFace `transformers`:
 
 but any compatible HuggingFace geospatial ViT (e.g. SatMAE-style models) can be loaded by passing a different `model_id`.
 
-> **Unlike** [LightTAE](ltae.md), [TempCNN](tempcnn.md), and [UTAE](utae.md) — which are `cdts`-native architectures ported and validated against reference implementations — `GeoFoundationViT` is a **wrapper around an external pretrained model**. Its behavior and output quality depend entirely on the backbone you load; there is no `cdts`-side numerical validation to speak of here, since correctness is inherited from the upstream model.
+!!! note "A wrapper, not a port"
+    **Unlike** [LightTAE](ltae.md), [TempCNN](tempcnn.md), and [UTAE](utae.md) — which are `cdts`-native architectures ported and validated against reference implementations — `GeoFoundationViT` is a **wrapper around an external pretrained model**. Its behavior and output quality depend entirely on the backbone you load; there is no `cdts`-side numerical validation to speak of here, since correctness is inherited from the upstream model.
 
-## 2. How It Works
+## How It Works
 
 ```
 input (B, Bands, Time, H, W) -> ViT backbone -> classifier (1x1 Conv2d) -> per-pixel class logits
@@ -22,11 +28,11 @@ input (B, Bands, Time, H, W) -> ViT backbone -> classifier (1x1 Conv2d) -> per-p
 2. **Graceful fallback**: if the download fails (no network access, model unavailable, missing `transformers` extras, etc.), the wrapper does **not** raise — it silently falls back to a randomly-initialized `Conv3d` projection (`self.fallback_conv`) standing in for the backbone. This keeps the class usable offline/in CI, but means predictions will be meaningless until you either restore network access or explicitly train the fallback conv from scratch. **Check `model.has_hf` after construction** to know which path you're on.
 3. **Reshape + classify**: the backbone's patch-token output (`last_hidden_state`, shape `(B, Seq, Dim)`) is reshaped back into a 2D feature map (assuming a square patch grid, `H = W = sqrt(Seq)`), upsampled by 16x (matching the typical ViT patch size) to recover roughly the original spatial resolution, and passed through a final `1x1 Conv2d` classifier head to produce per-pixel class logits.
 
-## 3. When to Use It
+## When to Use It
 
 Use `GeoFoundationViT` when you have **limited labeled data** for your specific task but want to benefit from representations learned on a much larger, general-purpose satellite imagery corpus — a classic transfer-learning scenario. If you have ample labeled training data and want an architecture purpose-built and validated for time-series classification/segmentation, prefer [LightTAE](ltae.md), [TempCNN](tempcnn.md), or [UTAE](utae.md) instead.
 
-## 4. Preparing Your Data
+## Preparing Your Data
 
 The exact expected input shape depends on the specific backbone you load (check that model's HuggingFace card for its required resolution, band count/ordering, and normalization statistics — Prithvi-100M, for instance, expects specific band selections and a fixed patch size). As a general pattern:
 
@@ -40,7 +46,7 @@ x = torch.rand(2, 6, 1, 224, 224)
 
 Always check the backbone's model card for required preprocessing (band order, normalization/statistics, expected patch size) before training — mismatched preprocessing is the most common cause of poor fine-tuning results with foundation models.
 
-## 5. Instantiating the Model
+## Instantiating the Model
 
 ```python
 from cdts.ai import GeoFoundationViT
@@ -57,7 +63,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 ```
 
-## 6. Fine-Tuning
+## Fine-Tuning
 
 Because the backbone carries pretrained weights worth preserving, it's common to **freeze it initially** and only train the lightweight classifier head, then optionally unfreeze the backbone for a lower-learning-rate fine-tuning pass once the head has converged:
 
@@ -111,7 +117,7 @@ for epoch in range(5):
     print(f"[Full fine-tune] Epoch [{epoch + 1}/5], Loss: {epoch_loss / len(train_loader):.4f}")
 ```
 
-## 7. Inference
+## Inference
 
 ```python
 model.eval()
@@ -123,7 +129,7 @@ with torch.no_grad():
     print(f"Prediction shape: {predicted_classes.shape}")
 ```
 
-## 8. Caveats
+## Caveats
 
 - **Network access required for the pretrained path**: the first construction of `GeoFoundationViT` needs to reach the HuggingFace Hub (or a local cache) to download the backbone weights. In offline/air-gapped environments, pre-download the model or explicitly train the fallback path.
 - **`trust_remote_code=True`**: loading Prithvi-style models runs custom model code shipped alongside the weights on the Hub. Only point `model_id` at sources you trust.

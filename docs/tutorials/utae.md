@@ -1,6 +1,11 @@
 # UTAE (U-Net with Temporal Attention Encoder)
 
-## 1. Introduction
+<div class="glance" markdown>
+<div><span class="k">Answers</span><span class="v">Produce a class map for a whole image patch from its full history.</span></div>
+<div><span class="k">Input</span><span class="v"><code>(batch, time, bands, H, W)</code> plus dates</span></div>
+<div><span class="k">Output</span><span class="v">A class map per patch, and attention maps</span></div>
+<div><span class="k">Reference</span><span class="v">Garnot & Landrieu (2021); bit-exact with the official code</span></div>
+</div>
 
 UTAE combines a U-Net with a temporal attention mechanism to perform **spatio-temporal segmentation** of satellite image time series — producing a full class map over a whole image patch (e.g. `256x256`) using its *entire* observation history, not just a per-pixel classification. It was introduced in:
 
@@ -8,7 +13,7 @@ UTAE combines a U-Net with a temporal attention mechanism to perform **spatio-te
 
 `cdts.ai.UTAE` was **ported layer-for-layer from the official reference implementation** ([VSainteuf/utae-paps](https://github.com/VSainteuf/utae-paps), MIT License). This is the most rigorously validated model in `cdts.ai`: building both implementations with identical weights (loaded via `load_state_dict()`, with `state_dict()` key names matching directly, no translation table) and feeding them the same input reproduces the reference implementation's output **bit-for-bit exactly** (`max abs diff = 0.0`), including the padded-sequence (irregular temporal sampling) code path.
 
-## 2. How It Works
+## How It Works
 
 UTAE is a multi-scale U-Net where every stage is applied independently to each timestep (weights shared across time — see `_TemporallySharedBlock`), and temporal fusion happens once, at the bottleneck, via an image-aware L-TAE variant (`_LTAE2d`). The architecture has four parts:
 
@@ -19,11 +24,11 @@ UTAE is a multi-scale U-Net where every stage is applied independently to each t
 
 UTAE supports **irregular temporal sampling**: pass a `pad_value` (default `0`) and pad shorter sequences in a batch up to a common length with that value — the model automatically builds a `pad_mask` and skips (or masks out) padded frames in both the shared-weight per-timestep convolutions and the attention mechanism, so you don't need every sample in a batch to have the exact same number of valid observations.
 
-## 3. When to Use It
+## When to Use It
 
 Use UTAE when you need a **class map over a spatial patch** informed by its full time series — e.g. crop-type mapping, burned-area segmentation, or any task where spatial context (not just a single pixel's own spectral history) matters. If you only need a classification of individual pixels' own time series (no spatial context needed), [LightTAE](ltae.md) or [TempCNN](tempcnn.md) are lighter-weight and faster to train.
 
-## 4. Preparing Your Data
+## Preparing Your Data
 
 UTAE expects a **5D tensor** of shape `(Batch, Time, Bands, Height, Width)`, plus a `(Batch, Time)` tensor of acquisition dates (used for the positional encoding — raw day-of-year or day-offset values, not calendar dates).
 
@@ -41,7 +46,7 @@ dates_train = torch.tensor(np.load("acquisition_dates.npy"), dtype=torch.float32
 
 For irregular sequence lengths within a batch, pad the shorter sequences (along the `Time` axis) with the same `pad_value` you'll pass to `UTAE` (default `0`) — the model detects fully-padded frames automatically via `(input == pad_value).all(...)`.
 
-## 5. Instantiating the Model
+## Instantiating the Model
 
 ```python
 from cdts.ai import UTAE
@@ -66,7 +71,7 @@ model = model.to(device)
 
 `out_conv`'s last entry sets the number of output classes; `encoder_widths`/`decoder_widths` must have matching lengths and equal final entries (assertions enforce this at construction time).
 
-## 6. Training Loop
+## Training Loop
 
 Segmentation targets are dense per-pixel class maps, so `FocalLoss` or `TverskyLoss` (both operating on `(B, C, H, W)` logits vs. `(B, H, W)` labels) are natural fits for imbalanced classes such as rare disturbance/change events.
 
@@ -98,7 +103,7 @@ for epoch in range(num_epochs):
     print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss / len(train_loader):.4f}")
 ```
 
-## 7. Inference
+## Inference
 
 ```python
 model.eval()
@@ -124,7 +129,7 @@ logits, attn = model(new_data, batch_positions=new_dates, return_att=True)
 
 > **Pro Tip:** for inference over massive geographical areas, use `xarray`/`rasterio` windows to chunk the data into `256x256` (or similar) patches, run them through the model, and mosaic the results back together.
 
-## 8. Validation Against the Official Reference
+## Validation Against the Official Reference
 
 `UTAE` (and its internal `LTAE2d`, `_TemporalAggregator`, etc.) is a line-for-line port of [VSainteuf/utae-paps](https://github.com/VSainteuf/utae-paps). Validation methodology: the official repo was cloned locally, both implementations were instantiated with the same hyperparameters and the same random weights (copied via `load_state_dict()` — the `state_dict()` key names match with no translation needed), and run forward on identical random input. The outputs were bit-for-bit identical (`max abs diff = 0.0`), across both the regular (unpadded) code path and the padded-sequence (`pad_value`/`pad_mask`) code path used for irregular temporal sampling. This cross-check is not part of the pytest suite, since it requires the reference repo cloned locally rather than a pip dependency — see the source docstring in `cdts/ai/utae.py` for details.
 

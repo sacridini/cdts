@@ -1,73 +1,63 @@
-# Phenology Extraction
+# Phenology
 
-The `cdts` package features an incredibly fast and highly optimized C++ backend for **Phenology Extraction**, designed specifically to handle large-scale Earth Observation datasets. This module allows you to monitor and extract cyclical patterns in vegetation dynamics—essential for agriculture, forestry, and climate change studies.
+<p class="lead">Extract the calendar of the growing season for every pixel and every year: when green-up starts, when it peaks, when it ends, and how long it lasts. Use it to map crop calendars, detect late planting or drought, find double cropping, or follow climate-driven shifts in vegetation.</p>
 
-The smoothing, curve-fitting, and multi-method metric-extraction methodology implemented here is based on the R package [`phenofit`](https://github.com/eco-hydro/phenofit) (Kong *et al.*, 2022 — see [References](#7-references)), reimplemented from scratch in C++ on top of **Eigen** for sparse linear algebra and **OpenMP** for native multi-threading. This allows the extraction of land surface phenology metrics from gigabytes — or terabytes, at global scale — of satellite time series with unparalleled speed, bypassing the Python Global Interpreter Lock (GIL).
+<div class="glance" markdown>
+<div><span class="k">Answers</span><span class="v">When does the season start, peak and end? Is this year different?</span></div>
+<div><span class="k">Input</span><span class="v">A dense vegetation-index series (8- or 16-day), optional QA weights</span></div>
+<div><span class="k">Output</span><span class="v">19 phenology metrics plus fit quality, per season and pixel</span></div>
+<div><span class="k">Reference</span><span class="v">Methodology of the R package <code>phenofit</code> (Kong et al., 2022)</span></div>
+</div>
 
----
+<figure markdown>
+  ![Three seasons of a synthetic NDVI series with the start, peak and end of each season marked](../assets/figures/phenology_metrics.png)
+  <figcaption><strong>What phenology extraction produces.</strong> Three years of an 8-day NDVI series with noise and cloud drops. For each season, CDTS finds the start (SOS, 50% of the amplitude), the peak and the end (EOS). The shifts between years, such as the later start in 2020, are exactly what anomaly analyses look for.</figcaption>
+</figure>
 
-## 1. What is Land Surface Phenology?
+## How it works
 
-Phenology is the study of periodic biological events in the animal and plant world as influenced by the environment, especially seasonal variations in temperature and precipitation. In remote sensing, **Land Surface Phenology (LSP)** refers to the seasonal pattern of variation in vegetated land surfaces observed from satellite imagery.
+Raw index series are noisy and gappy, so metrics are not read from the raw points. The pipeline runs four steps per pixel:
 
-By analyzing vegetation indices (such as EVI or NDVI) over time, we can extract key phenological metrics:
+<figure markdown>
+  ![Phenology pipeline: raw index, smoothing, curve fitting, metric extraction](../assets/phenology_flow_cropped.jpg)
+</figure>
 
-- **SOS (Start of Season)**: The start of the vegetative cycle (e.g., spring green-up or planting).
-- **POP (Peak of Season)**: The moment of maximum vegetative vigor (maximum canopy closure).
-- **EOS (End of Season)**: The end of the vegetative cycle (senescence or harvesting).
-- **LOS (Length of Season)**: The duration of the growing season, calculated as `EOS - SOS`.
+1. **Smooth** the series with a Whittaker smoother (or HANTS harmonics) to fill gaps and damp noise. `whittaker_lambda` sets the stiffness.
+2. **Split** it into seasons, one per trough-to-trough cycle. Double and triple cropping produce several seasons per year.
+3. **Fit** a smooth parametric curve to each season with Levenberg-Marquardt least squares. The curve is re-weighted iteratively so that low outliers (clouds) pull it less.
+4. **Extract** the transition dates from the fitted curve with several methods at once.
 
-These metrics are crucial for mapping crop types, predicting yields, detecting climate-induced shifts in ecosystems, and monitoring double-cropping agricultural systems.
+Available curves (`curve_type`, from `cdts._core.phenology.CurveType`):
 
----
+| Curve | Notes |
+| :--- | :--- |
+| `BECK` | Double logistic of Beck et al. (2006). A good general default. |
+| `ELMORE` | Double logistic with a summer green-down term (Elmore et al., 2012). |
+| `GU` | Gu et al. (2009), flexible asymmetric shape. |
+| `KLOS` | Klosterman et al. (2014). |
+| `ZHANG` | Piecewise logistic (Zhang et al., 2003). |
+| `AG` | Asymmetric Gaussian. |
+| `DL` | Plain double logistic. |
 
-## 2. The Extraction Workflow
+## The 19 metrics
 
-Extracting phenology from noisy, cloud-contaminated satellite time series requires a robust, multi-step mathematical pipeline.
+Every method below is computed from the same fitted curve, at no extra cost. All dates are days of the year.
 
-![Phenology Extraction Process](../assets/phenology_flow.jpg)
+| Family | Metrics | Definition |
+| :--- | :--- | :--- |
+| Threshold | `TRS2.sos`, `TRS2.eos` | Curve crosses 20% of the seasonal amplitude (rising, falling). |
+| | `TRS5.sos`, `TRS5.eos` | Crosses 50%. A robust default for start and end of season. |
+| | `TRS6.sos`, `TRS6.eos` | Crosses 60%. |
+| Derivative | `DER.sos`, `DER.eos` | Fastest green-up and fastest senescence (extremes of the first derivative). |
+| | `DER.pos` | Peak of the season (first derivative is zero). |
+| Gu | `UD`, `SD`, `DD`, `RD` | Upturn, stabilisation, downturn and recession dates, from the second derivative. |
+| Zhang | `Greenup`, `Maturity`, `Senescence`, `Dormancy` | Extremes of the rate of change of curvature. |
+| General | `LOS` | Length of season in days. |
+| | `POP` | Position of the peak. |
 
-### 2.1. Time Series Smoothing
+Two quality metrics, `R2` and `RMSE` of the fitted curve, follow the 19 phenology metrics, so the output has 21 entries along the `metric` axis.
 
-Raw satellite data is often noisy due to atmospheric interference, clouds, or sensor errors. The first step is to smooth the curve to extract the general seasonal trend.
-- **Whittaker Smoother**: We use a highly optimized Sparse Matrix implementation of the Whittaker smoother. It balances fidelity to the original data with the smoothness of the resulting curve, controlled by a `lambda` parameter.
-- **HANTS (Harmonic Analysis of Time Series)**: An alternative smoothing method that models the time series using sine and cosine waves (Fourier analysis), which is highly effective at removing cloud gaps.
-
-### 2.2. Curve Fitting (Levenberg-Marquardt)
-
-Once the general shape of the growing season is identified, we fit a mathematical model to it. This allows us to continuously evaluate the curve at any given day. The optimization is done using the **Levenberg-Marquardt** non-linear least squares algorithm.
-
-We provide several asymmetric Gaussian and double-logistic functions:
-- **`BECK` (Beck et al., 2006)**: Excellent for general forest and crop phenology.
-- **`ELMORE` (Elmore et al., 2012)**: Handles varying winter backgrounds effectively.
-- **`GU` (Gu et al., 2009)**: Uses an advanced recovery model.
-- **`KLOSTERMAN` (Klosterman et al., 2014)**: Uses analytical geometry to detect transition dates.
-- **`ZHANG` (Zhang et al., 2003)**: A piecewise logistic model.
-- **`AG`**: Standard Asymmetric Gaussian.
-- **`DL`**: Standard Double Logistic.
-
-### 2.3. Metric Extraction Methods
-
-Once the curve is fitted perfectly, how do we define the "Start", "Peak", and "End" of the season? The `cdts` C++ backend calculates and returns **19 distinct phenological variables simultaneously** for every season, covering all major state-of-the-art extraction methodologies at no extra computational cost:
-
-- **Threshold Methods (`TRS`)**:
-  - **`TRS2.sos` / `TRS2.eos`**: Start and End of Season defined when the curve reaches **20%** of its seasonal amplitude.
-  - **`TRS5.sos` / `TRS5.eos`**: Start and End of Season defined at **50%** amplitude.
-  - **`TRS6.sos` / `TRS6.eos`**: Start and End of Season defined at **60%** amplitude.
-- **Derivative Method (`DER`)**:
-  - **`DER.sos` / `DER.eos`**: Mathematically defined as the points where the rate of change of the curve (the 1st derivative) reaches its local maximum (spring green-up acceleration) and local minimum (senescence deceleration).
-  - **`DER.pos`**: The exact day of the peak, where the 1st derivative crosses zero.
-- **Gu Method (2nd Derivative)**:
-  - **`UD`** (Upward), **`SD`** (Senescence Downward), **`DD`** (Downward), **`RD`** (Recovery Downward): Key transition points defined by the local maxima and minima of the curve's 2nd derivative.
-- **Zhang Method (Curvature Rate)**:
-  - **`Greenup`**, **`Maturity`**, **`Senescence`**, **`Dormancy`**: Transition dates extracted using the physical curvature formula `K = f'' / (1 + (f')^2)^1.5`, searching for local valleys and peaks of the curvature rate.
-- **General**:
-  - **`LOS`** (Length of Season): Duration of the season in days.
-  - **`POP`** (Peak of Season): General peak location based on curve shape max values.
-
----
-
-## 3. Practical Example: Processing a Raster (End-to-End)
+## Processing a raster
 
 The `cdts` package natively integrates with `xarray` through a custom accessor (`.cdts.run_phenology`). This abstracts away all the complex array reshaping and memory management, allowing you to process large MODIS/Landsat time series elegantly.
 
@@ -105,8 +95,8 @@ metrics_da = ds.cdts.run_phenology(
 ).compute()
 
 # 4. Save to disk using rioxarray
-# metrics_da shape is (metric=19, year=25, y, x).
-# We can loop through the 19 variables and export them as 25-band TIF files
+# metrics_da shape is (metric=21, year=25, y, x): 19 metrics + R2 + RMSE.
+# Export each metric as a 25-band GeoTIFF, one band per year
 metrics_da.rio.write_crs(ds.rio.crs, inplace=True)
 
 for metric_name in metrics_da.metric.values:
@@ -119,9 +109,7 @@ for metric_name in metrics_da.metric.values:
     print(f"Saved {filename}")
 ```
 
----
-
-## 4. Real-World Walkthrough: Detecting Late-Planting Anomalies (Drought Signal) in Soybean Fields
+## Worked example: late planting in soybean fields
 
 This section walks through a complete, realistic problem end-to-end: **an analyst wants to know whether soybean fields in a Mato Grosso municipality (Brazil) show anomalously delayed green-up in a candidate drought year, compared to a multi-year baseline** — a common early-warning question for agricultural monitoring and drought impact assessment. Late green-up (a positive SOS anomaly, in days) is a classic remote signal of delayed planting caused by late onset of the rainy season.
 
@@ -190,7 +178,7 @@ pheno = ndvi_16d.cdts.run_phenology(
 
 ### Step 4 — Compute the SOS anomaly for the candidate drought year
 
-We use `DER.sos` (derivative-based Start of Season — see [Section 2.3](#23-metric-extraction-methods)) and compare the target year against the mean of the other years in the window:
+We use `DER.sos` (derivative-based Start of Season — see [the 19 metrics](#the-19-metrics)) and compare the target year against the mean of the other years in the window:
 
 ```python
 sos = pheno.sel(metric="DER.sos")   # dims: (year, y, x), values in day-of-year
@@ -230,11 +218,9 @@ sos_anomaly_days.rio.to_raster(f"sos_anomaly_{target_year}.tif")
 
 Because every step here (`build_time_series`, `regularize_time_series`, `run_phenology`) is Dask-backed, the exact same code scales from one MGRS tile to an entire state or country simply by widening `bbox`/`tiles` — only the chunk count (and wall-clock time) changes.
 
----
+## Advanced configuration
 
-## 5. Advanced Configuration & Double Cropping
-
-### Multiple Seasons (Double/Triple Cropping)
+### Double and triple cropping
 In regions with intense agricultural activity (like Mato Grosso, Brazil), a single pixel might feature two or even three distinct crop harvests within a single year (e.g., Soybeans followed by Corn).
 
 To capture these dynamics directly without `return_annual=True`, simply increase `max_seasons`:
@@ -248,12 +234,12 @@ metrics_tensor = ds.cdts.run_phenology(
 ```
 This returns arrays of shape `(19_metrics, 3_seasons, Y, X)`. You can then map `season=0` as the first harvest, `season=1` as the second (safrinha), and so on.
 
-### Adjusting Quality Control Parameters
+### Quality-control parameters
 - **`whittaker_lambda`**: Higher values create stiffer, smoother curves. Lower values allow the curve to bend sharply to follow the raw data closely. For 16-day composites, values between `1.0` and `5.0` are standard.
 - **`min_season_length`**: Useful for filtering out high-frequency noise spikes that mistakenly look like a very short 2-day growing season. Measured in the same calendar-day units as `dates`, not in observation count — it is compared against the actual elapsed time between a season's start and end, so it behaves consistently regardless of the sensor's revisit cadence.
 - **`min_amplitude`**: Prevents the optimizer from fitting curves on background noise (e.g., bare soil that fluctuates slightly with rain). If the peak of the smoothed curve minus the base is less than this value, the season is rejected.
 
-### Down-weighting Low-Quality Observations (QC/QA bands)
+### Down-weighting low-quality observations
 Cloud, cloud-shadow, and snow contamination can distort the smoothed curve even after masking obvious no-data pixels. `cdts.qc` decodes a sensor's native QA/QC band into per-observation reliability weights in `[0, 1]`, which then feed both the Whittaker/HANTS smoother and the iterative curve-fit reweighting (`wTSM`) — low-quality observations pull the fit less instead of being treated as equally trustworthy as clear ones:
 
 ```python
@@ -271,30 +257,15 @@ pheno_results = ds.cdts.run_phenology(
 )
 ```
 
-`qc_modis_state` (MOD09 500m 16-bit "State QA": cloud state, cloud shadow, aerosol quantity, snow/ice) and `qc_sentinel2_scl` (Sentinel-2 L2A Scene Classification Layer) follow the same `[0, 1]` convention for their respective sensors. All three are ports of phenofit's `qcFUN.R` (see [Section 7](#7-references)).
+`qc_modis_state` (MOD09 500m 16-bit "State QA": cloud state, cloud shadow, aerosol quantity, snow/ice) and `qc_sentinel2_scl` (Sentinel-2 L2A Scene Classification Layer) follow the same `[0, 1]` convention for their respective sensors. All three are ports of phenofit's `qcFUN.R` (see [References](#references)).
 
----
+## Performance
 
-## 6. Execution Performance
+The whole pipeline runs in C++ (Eigen and OpenMP) outside the Python GIL, with buffers allocated once per thread. On a real 25-year EVI raster it was 244 times faster than R `phenofit` on one core, with a mean start-of-season difference of 3.7 days. See [Benchmarks](../benchmarks/fidelity.md#4-phenology-extraction-vs-r-phenofit).
 
-The `cdts` phenology engine is engineered to maximize performance:
-1. **No GIL**: The `fit_phenology_batch` completely releases the Python Global Interpreter Lock.
-2. **OpenMP C++**: Pixel loops are chunked and scheduled dynamically across all logical CPU cores.
-3. **No Dynamic Allocation**: Temporary vectors inside the optimization loop are pre-allocated and map directly to memory via Eigen.
+On macOS, the pre-built wheels run single-threaded. See [Installation](../getting-started/installation.md#enabling-openmp-on-macos-apple-silicon-intel) to enable OpenMP.
 
-**Operating System Notes:**
-- **Windows / Linux**: OpenMP multi-threading works perfectly out of the box with `pip install cdts`.
-- **macOS (Apple Silicon / Intel)**: Apple's default Clang compiler disables OpenMP. To achieve maximum performance, install the library (`brew install libomp`) and export the compilation flags *before* installing the package:
-  ```bash
-  export CFLAGS="-I$(brew --prefix libomp)/include"
-  export CXXFLAGS="-I$(brew --prefix libomp)/include"
-  export LDFLAGS="-L$(brew --prefix libomp)/lib -lomp"
-  pip install cdts
-  ```
-
----
-
-## 7. References
+## References
 
 The methodology of this module — the smoothing methods, the iterative curve-fitting scheme, and the simultaneous multi-method metric extraction — is based on the R package **`phenofit`**:
 
