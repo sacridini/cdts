@@ -10,7 +10,7 @@ hide:
 
 <div markdown>
 
-<img class="zeit-hero__logo" src="assets/logo-wide.png" alt="Zeit">
+<img class="zeit-hero__logo" src="assets/logo/zeit-lockup-light.svg" alt="Zeit">
 
 <h1>Find <span>when</span> and <span>where</span> the landscape changed.</h1>
 

@@ -8,7 +8,7 @@ copyright: Zeit is free software released under the GPL-2.0-or-later license.
 
 theme:
   name: material
-  logo: assets/logo-header.png
+  logo: assets/logo/zeit-lockup-light.svg
   favicon: assets/favicon.png
   font:
     text: Inter
