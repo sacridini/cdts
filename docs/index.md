@@ -14,7 +14,7 @@ hide:
 
 <h1>Find <span>when</span> and <span>where</span> the landscape changed.</h1>
 
-<p class="lead">CDTS is a Python library for analysing satellite image time series. It detects deforestation, fires, regrowth, crop cycles and long-term trends using fast, validated ports of the reference algorithms (LandTrendr, CCDC, BFAST and more). The same code runs on one pixel on your laptop or on a whole country on a Dask cluster.</p>
+<p class="lead">CDTS is a Python library for analysing satellite image time series, built around one goal: running these analyses as fast as the hardware allows. Reference algorithms such as LandTrendr, CCDC and BFAST are re-engineered in parallel C++, not just wrapped, and validated against their original implementations. Use them to detect deforestation, fires, regrowth, crop cycles and long-term trends, from one pixel on a laptop to a whole country on a Dask cluster.</p>
 
 [Get started](getting-started/quickstart.md){ .md-button .md-button--primary }
 [See what it can do](#what-you-can-do-with-cdts){ .md-button }
