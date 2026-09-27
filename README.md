@@ -1,6 +1,6 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/sacridini/zeit-cdts/main/docs/assets/logo-wide-dark.png">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/sacridini/zeit-cdts/main/docs/assets/logo-wide-dark.png?v=2">
     <img src="https://raw.githubusercontent.com/sacridini/zeit-cdts/main/docs/assets/logo-wide.png" alt="Zeit Logo" width="420">
   </picture>
 </p>
