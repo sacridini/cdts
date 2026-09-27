@@ -11,7 +11,7 @@
 
 <figure markdown>
   ![NDVI in 1985 and 2024 over Rondônia, Brazil, and the LandTrendr map of the first year of vegetation loss](../assets/figures/landtrendr_maps.webp)
-  <figcaption><strong>Result of this tutorial.</strong> 40 years of annual Landsat NDVI over a 50 km area of Rondônia, Brazil. Left and middle: the landscape before and after. Right: the first year of the largest vegetation loss in each pixel, as found by LandTrendr. The whole area, 2.8 million pixels, was segmented in about 5 seconds. <em>Data: annual Landsat NDVI composites exported from <a href="https://github.com/eMapR/LT-GEE">LT-GEE</a> on Google Earth Engine.</em></figcaption>
+  <figcaption><strong>Result of this tutorial.</strong> 40 years of annual Landsat NDVI over a 50 km area of Rondônia, Brazil. Left and middle: the landscape before and after. Right: the first year of the largest abrupt vegetation loss in each pixel, as found by LandTrendr and filtered as in steps 3 and 4. Only one event is shown per pixel, and gray does not always mean intact forest. Clearings where NDVI fell slowly, or stayed high as pasture, often have no event that passes the filters: here only about a third of the pixels that went from forest to open land are colored. The whole area, 2.8 million pixels, was segmented in about 5 seconds. <em>Data: annual Landsat NDVI composites exported from <a href="https://github.com/eMapR/LT-GEE">LT-GEE</a> on Google Earth Engine.</em></figcaption>
 </figure>
 
 ## How LandTrendr works
@@ -67,7 +67,7 @@ vertices, rmse = zeit.run_landtrendr_array(
 ```
 
 !!! warning "Set `modifier` to match your index"
-    LandTrendr's rules are asymmetric: it treats sudden changes in one direction as disturbance and in the other as recovery. Use **`modifier=-1.0`** when disturbance makes your index **fall** (NDVI, NBR, EVI, wetness) and the default **`+1.0`** when it makes the index **rise** (SWIR bands, brightness). With the wrong orientation, about 15% of the pixels in our tests got different vertices.
+    LandTrendr's rules are asymmetric: it treats sudden changes in one direction as disturbance and in the other as recovery. Use **`modifier=-1.0`** when disturbance makes your index **fall** (NDVI, NBR, EVI, wetness) and the default **`+1.0`** when it makes the index **rise** (SWIR bands, brightness). With the wrong orientation, about three quarters of the pixels in this tutorial's Rondônia data get different vertex years.
 
 The result is a `(14, rows, cols)` array. With `max_segments=6` there are up to 7 vertices:
 
@@ -110,7 +110,9 @@ loss.keys()
 Keep confident events, then write GeoTIFFs:
 
 ```python
-confident = (loss["yod"] > 0) & (loss["dsnr"] >= 3)
+# yod == years[0] means the loss segment starts at the first year. On noisy
+# NDVI that is usually a slow decline over the whole record, not a dated event.
+confident = (loss["yod"] > years[0]) & (loss["dsnr"] >= 3)
 first_year = np.where(confident, loss["yod"] + 1, 0).astype("uint16")
 
 zeit.save_raster(first_year, "results/loss_year.tif",
@@ -126,7 +128,7 @@ Isolated single pixels are usually noise. A **minimum mapping unit** filter remo
 zeit.apply_mmu_filter("results/loss_year.tif", "results/loss_year_mmu.tif", mmu_pixels=11)
 ```
 
-The map at the top of this page uses exactly these steps: `dsnr >= 3` and an 11-pixel minimum mapping unit.
+The map at the top of this page uses exactly these steps: no event starting in the first year, `dsnr >= 3` and an 11-pixel minimum mapping unit.
 
 ### 5. Inspect individual pixels
 
@@ -183,7 +185,7 @@ The defaults follow the original LandTrendr and work well for 25–40 years of L
 | `spike_threshold` | `0.9` | Dampens one-year spikes before fitting. `1.0` disables it. Lower values remove spikes more aggressively. |
 | `recovery_threshold` | `0.25` | Rejects recoveries faster than 1/value years (0.25 = at least 4 years to recover fully). Stops a cloudy year from looking like disturbance and instant recovery. |
 | `pval_threshold` | `0.05` | A model must be at least this significant. Lower values give simpler fits. |
-| `best_model_proportion` | `1.25` | Prefers models with more vertices whose p-value is within this factor of the best one. |
+| `best_model_proportion` | `0.75` | Prefers models with more vertices whose p-value is at most `(2 - best_model_proportion)` times the best one, so `0.75` means within 1.25×. |
 | `min_observations_needed` | `6` | Pixels with fewer valid years are left unsegmented. |
 | `no_data_value` | `0.0` | Values treated as missing (NaN is always missing). |
 

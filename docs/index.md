@@ -32,7 +32,7 @@ pip install zeit-py
 
 <figure class="zeit-hero__figure" markdown>
   ![Map of the year of forest loss in Rondônia, Brazil, detected by LandTrendr](assets/figures/hero_loss_year.webp)
-  <figcaption>40 years of Landsat NDVI (1985–2024) over Rondônia, Brazil. Each colored pixel shows the year of its largest vegetation loss, found by <a href="tutorials/landtrendr/">LandTrendr</a>. The run covered 2.8 million pixels and took about 5 seconds on a desktop CPU. <em>Data: annual Landsat NDVI composites exported from <a href="https://github.com/eMapR/LT-GEE">LT-GEE</a> on Google Earth Engine.</em></figcaption>
+  <figcaption>40 years of Landsat NDVI (1985–2024) over Rondônia, Brazil. Each colored pixel shows the year of its largest abrupt vegetation loss found by <a href="tutorials/landtrendr/">LandTrendr</a>: a drop of at least 0.2 NDVI, clearly above the pixel's noise. The map shows one event per pixel, not every loss since 1985, and gray is not always intact forest: clearings where NDVI fell slowly or stayed high as pasture are often left out. The run covered 2.8 million pixels and took about 5 seconds on a desktop CPU. <em>Data: annual Landsat NDVI composites exported from <a href="https://github.com/eMapR/LT-GEE">LT-GEE</a> on Google Earth Engine.</em></figcaption>
 </figure>
 
 </div>

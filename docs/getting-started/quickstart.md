@@ -68,7 +68,7 @@ loss = zeit.extract_events(vertices, event_type="loss", min_magnitude=1500)
 
 years_found, n_pixels = np.unique(loss["yod"], return_counts=True)
 print({int(y): int(n) for y, n in zip(years_found, n_pixels)})
-# {0: 10099, 2001: 1, 2002: 2199, 2015: 2100, 2020: 1}
+# {0: 10095, 1990: 2, 1997: 1, 1998: 1, 2001: 1, 2002: 2199, 2015: 2100, 2022: 1}
 ```
 
 `loss` is a dictionary of 2-D maps, all shaped `(rows, cols)`:
@@ -81,7 +81,7 @@ print({int(y): int(n) for y, n in zip(years_found, n_pixels)})
 | `pre_val`, `post_val` | Index value before and after the event. |
 | `rate` | `magnitude / duration`. |
 
-So the output reads: about 2,200 pixels lost vegetation right after 2002, and about 2,100 right after 2015. Those are the two clearings (2003 and 2016). Only two pixels out of 14,400 were flagged by noise.
+So the output reads: about 2,200 pixels lost vegetation right after 2002, and about 2,100 right after 2015. Those are the two clearings (2003 and 2016). Only six pixels out of 14,400 were flagged by noise.
 
 !!! tip "`yod` is the year *before* the change"
     LandTrendr places a vertex on the last stable year and the next vertex on the first disturbed one. `yod` reports the first of the two, so the first year in which the loss is visible is `loss["yod"] + 1`. Keep this in mind when comparing with LT-GEE, whose change maps report the start vertex year plus one.
