@@ -3,7 +3,7 @@
 <p class="lead">In five minutes you will build a small image time series, run LandTrendr on every pixel, and get a map of when the vegetation was lost. Nothing is downloaded: the data is generated in the script, so you can see exactly what goes in and what comes out.</p>
 
 <div class="glance" markdown>
-<div><span class="k">You need</span><span class="v">Python 3.9+ and <code>pip install zeit-py</code></span></div>
+<div><span class="k">You need</span><span class="v">Python 3.9+ and <code>pip install zeit-cdts</code></span></div>
 <div><span class="k">Time</span><span class="v">About 5 minutes</span></div>
 <div><span class="k">You will learn</span><span class="v">The input shape, one algorithm call, and how to read its output</span></div>
 </div>
@@ -11,7 +11,7 @@
 ## 1. Install
 
 ```bash
-pip install zeit-py
+pip install zeit-cdts
 ```
 
 Wheels are published for Windows, macOS and Linux, so no C++ compiler is needed. See [Installation](installation.md) for GPU support, Docker, and building from source.

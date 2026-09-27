@@ -115,7 +115,7 @@ extra:
       link: https://github.com/sacridini/zeit
       name: Zeit on GitHub
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/zeit-py/
+      link: https://pypi.org/project/zeit-cdts/
       name: Zeit on PyPI
 
 nav:

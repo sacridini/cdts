@@ -23,7 +23,7 @@ hide:
 <div class="zeit-hero__install" markdown>
 
 ```bash
-pip install zeit-py
+pip install zeit-cdts
 ```
 
 </div>

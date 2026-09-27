@@ -7,7 +7,7 @@
 [![Build Wheels](https://github.com/sacridini/zeit/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/sacridini/zeit/actions/workflows/build_wheels.yml)
 [![Tests](https://github.com/sacridini/zeit/actions/workflows/tests.yml/badge.svg)](https://github.com/sacridini/zeit/actions/workflows/tests.yml)
 [![Docs](https://github.com/sacridini/zeit/actions/workflows/docs.yml/badge.svg)](https://github.com/sacridini/zeit/actions/workflows/docs.yml)
-[![PyPI version](https://badge.fury.io/py/zeit-py.svg)](https://badge.fury.io/py/zeit-py)
+[![PyPI version](https://badge.fury.io/py/zeit-cdts.svg)](https://badge.fury.io/py/zeit-cdts)
 
 **Zeit** is a high-performance Python package for Earth Observation (EO) data cube processing and time series analysis. It bridges the gap between modern cloud-native data formats (STAC, Xarray, Dask) and state-of-the-art pixel-based trajectory algorithms (TWDTW, CCDC, LandTrendr). 
 
@@ -37,7 +37,7 @@ Built with highly optimized C++ extensions (OpenMP and Eigen SIMD) bound to Pyth
 ## Installation
 
 ```bash
-pip install zeit-py
+pip install zeit-cdts
 ```
 *(Note: Wheels are provided for Windows, Linux, and macOS. macOS runs in single-threaded mode by default due to Apple Clang lacking OpenMP).*
 
@@ -49,7 +49,7 @@ brew install libomp
 export CFLAGS="-I$(brew --prefix libomp)/include"
 export CXXFLAGS="-I$(brew --prefix libomp)/include"
 export LDFLAGS="-L$(brew --prefix libomp)/lib -lomp"
-pip install --no-binary zeit-py zeit-py
+pip install --no-binary zeit-cdts zeit-cdts
 ```
 
 ---
