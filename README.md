@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="docs/assets/logo.png" alt="Zeit Logo" width="400">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/sacridini/zeit/main/docs/assets/logo-wide-dark.png">
+    <img src="https://raw.githubusercontent.com/sacridini/zeit/main/docs/assets/logo-wide.png" alt="Zeit Logo" width="420">
+  </picture>
 </p>
 
 # Zeit: Change Detection and Time Series for Python
@@ -420,4 +423,4 @@ Zeit safely blends Python-based distributed workflows (Dask) with highly paralle
 
 ## License
 
-Zeit is free software, licensed under the [GNU General Public License v2.0 or later](LICENSE) (`GPL-2.0-or-later`). Several algorithms are ports of existing open-source implementations (bfast, strucchangeRcpp, GLMnet, pymannkendall, GERSL/CCDC, ...); their origins, licenses and copyright notices are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Because the CCDC lasso solver derives from GPL-2.0-only code, the compiled extension as a whole is distributed under GPL version 2.
+Zeit is free software, licensed under the [GNU General Public License v2.0 or later](https://github.com/sacridini/zeit/blob/main/LICENSE) (`GPL-2.0-or-later`). Several algorithms are ports of existing open-source implementations (bfast, strucchangeRcpp, GLMnet, pymannkendall, GERSL/CCDC, ...); their origins, licenses and copyright notices are listed in [THIRD_PARTY_NOTICES.md](https://github.com/sacridini/zeit/blob/main/THIRD_PARTY_NOTICES.md). Because the CCDC lasso solver derives from GPL-2.0-only code, the compiled extension as a whole is distributed under GPL version 2.

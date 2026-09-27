@@ -4,8 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zeit-cdts"
-version = "0.23.0"
+version = "0.24.0"
 description = "Zeit: Change Detection and Time Series for Python - LandTrendr and CCDC tools"
+readme = "README.md"
 license = "GPL-2.0-or-later"
 license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 dependencies = [
@@ -36,6 +37,11 @@ dev = [
     "pymannkendall",
     "minisom==2.3.6"
 ]
+
+[project.urls]
+Homepage = "https://github.com/sacridini/zeit"
+Documentation = "https://sacridini.github.io/zeit/"
+Issues = "https://github.com/sacridini/zeit/issues"
 
 [project.scripts]
 zeit = "zeit.cli:main"

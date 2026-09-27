@@ -1,5 +1,5 @@
 import os
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
@@ -91,8 +91,8 @@ class BuildExt(build_ext):
 
 setup(
     name='zeit-cdts',
-    version='0.23.0',
-    packages=['zeit'],
+    version='0.24.0',
+    packages=find_packages(include=['zeit', 'zeit.*']),
     ext_modules=ext_modules,
     setup_requires=['pybind11>=2.10.0'],
     cmdclass={'build_ext': BuildExt},
