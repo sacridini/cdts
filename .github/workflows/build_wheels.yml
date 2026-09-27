@@ -61,7 +61,7 @@ jobs:
     
     environment:
       name: pypi
-      url: https://pypi.org/p/zeit
+      url: https://pypi.org/p/zeit-py
       
     permissions:
       id-token: write # Permite usar o PyPI "Trusted Publisher" (mais seguro que senha)

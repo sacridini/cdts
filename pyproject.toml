@@ -3,7 +3,7 @@ requires = ["setuptools>=77", "wheel", "pybind11>=2.10.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "zeit"
+name = "zeit-py"
 version = "0.23.0"
 description = "Zeit: Change Detection and Time Series for Python - LandTrendr and CCDC tools"
 license = "GPL-2.0-or-later"

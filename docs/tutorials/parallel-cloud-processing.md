@@ -80,7 +80,7 @@ cluster = KubeCluster(name="zeit", image="ghcr.io/dask/dask:latest", n_workers=2
 client = Client(cluster)
 ```
 
-Workers need Zeit installed: use the [Zeit Docker image](../getting-started/docker.md) or add `pip install zeit` to the worker image.
+Workers need Zeit installed: use the [Zeit Docker image](../getting-started/docker.md) or add `pip install zeit-py` to the worker image.
 
 ## Writing results: Zarr
 
@@ -162,7 +162,7 @@ If a worker is still crash-looping and you need to see the actual OS-level error
 
 ### `dask worker` can't find `zeit` even though you just installed it
 
-If `pip install zeit` (or `pip install -e .`) reported success but a worker still throws `ModuleNotFoundError: No module named 'zeit'`, the `dask` command on your `PATH` is almost certainly resolving to a *different* Python installation (a different conda env, a system Python, a pyenv shim) than the one you installed `zeit` into.
+If `pip install zeit-py` (or `pip install -e .`) reported success but a worker still throws `ModuleNotFoundError: No module named 'zeit'`, the `dask` command on your `PATH` is almost certainly resolving to a *different* Python installation (a different conda env, a system Python, a pyenv shim) than the one you installed `zeit` into.
 
 Force it explicitly — activate the right environment, then launch via `python -m dask` instead of the bare `dask` binary, so it always uses the currently active interpreter:
 

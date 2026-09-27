@@ -90,7 +90,7 @@ class BuildExt(build_ext):
         build_ext.build_extensions(self)
 
 setup(
-    name='zeit',
+    name='zeit-py',
     version='0.23.0',
     packages=['zeit'],
     ext_modules=ext_modules,
