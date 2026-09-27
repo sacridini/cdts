@@ -20,7 +20,7 @@
 #include <stdexcept>
 #include <Eigen/Dense>
 
-namespace cdts {
+namespace zeit {
 namespace bfast {
 
 namespace {
@@ -431,7 +431,7 @@ BFResult bfast_impl(
     // (see bfast.h's Scope note on why NaN gaps are interpolated here only).
     std::vector<double> y_interp(y_raw, y_raw + n_raw);
     linear_interpolate_nan(y_interp);
-    std::vector<double> St_full = cdts::stl::periodic_seasonal(y_interp, frequency);
+    std::vector<double> St_full = zeit::stl::periodic_seasonal(y_interp, frequency);
 
     Eigen::MatrixXd Xt(n, 2), Xh(n, Xharm_full.cols());
     Eigen::VectorXd Y(n);
@@ -594,4 +594,4 @@ pybind11::array_t<double> fit_bfast_batch(
 }
 
 } // namespace bfast
-} // namespace cdts
+} // namespace zeit

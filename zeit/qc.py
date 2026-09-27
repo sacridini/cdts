@@ -1,12 +1,12 @@
 """
 QC/QA-band decoders that turn a sensor's raw quality-assurance layer into
 per-observation reliability weights in [0, 1], suitable for the `weights`
-argument of `DataArray.cdts.run_phenology` (which threads them through the
+argument of `DataArray.zeit.run_phenology` (which threads them through the
 Whittaker/HANTS smoothers and the iterative curve-fit reweighting).
 
 This mirrors phenofit's `qcFUN.R` (qc_summary, qc_StateQA, qc_sentinel2),
 ported to numpy so the same "good/marginal/snow-or-cloud" weighting scheme
-used there is available in cdts instead of requiring every caller to hand-roll
+used there is available in zeit instead of requiring every caller to hand-roll
 their own NaN mask before smoothing.
 """
 

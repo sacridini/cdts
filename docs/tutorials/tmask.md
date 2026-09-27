@@ -30,10 +30,10 @@ An observation is flagged as cloud when its Green value is far **above** the sea
 ```python
 import numpy as np
 from datetime import date
-import cdts
+import zeit
 
-green, profile = cdts.io.load_raster("green_stack.tif")   # (time, rows, cols), reflectance x 10000
-swir, _ = cdts.io.load_raster("swir1_stack.tif")
+green, profile = zeit.io.load_raster("green_stack.tif")   # (time, rows, cols), reflectance x 10000
+swir, _ = zeit.io.load_raster("swir1_stack.tif")
 
 dates = np.array([date.fromisoformat(d).toordinal() for d in acquisition_dates])
 ```
@@ -41,7 +41,7 @@ dates = np.array([date.fromisoformat(d).toordinal() for d in acquisition_dates])
 ### 2. Run Tmask
 
 ```python
-from cdts.tmask import apply_tmask_stack
+from zeit.tmask import apply_tmask_stack
 
 clear = apply_tmask_stack(dates, green, swir, scale_factor=10000.0)
 print(clear.dtype, clear.shape)   # bool (time, rows, cols); True = clear
@@ -71,14 +71,14 @@ ndvi_clean = np.where(clear, ndvi, np.nan)
 **To save it**:
 
 ```python
-cdts.save_raster(clear.astype(np.uint8), "results/tmask_clear.tif",
+zeit.save_raster(clear.astype(np.uint8), "results/tmask_clear.tif",
                  crs=profile["crs"], transform=profile["transform"])
 ```
 
 ### For a single pixel
 
 ```python
-from cdts.tmask import run_tmask_pixel
+from zeit.tmask import run_tmask_pixel
 
 clear_px = run_tmask_pixel(dates, green[:, 100, 200], swir[:, 100, 200])
 ```

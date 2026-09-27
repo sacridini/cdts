@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
-from cdts import desawtooth, run_landtrendr
-from cdts.raster import run_landtrendr_array
+from zeit import desawtooth, run_landtrendr
+from zeit.raster import run_landtrendr_array
 
 def test_desawtooth_removes_spike():
     values = np.array([0.1, 0.12, 0.9, 0.15, 0.11, 0.13])
@@ -55,7 +55,7 @@ def test_run_landtrendr_array():
     assert np.all(output[:, 1, 1] == 0)
 
 def test_run_landtrendr_batch():
-    from cdts.landtrendr import run_landtrendr_batch
+    from zeit.landtrendr import run_landtrendr_batch
 
     # Same V as test_run_landtrendr_array, see its comment for why 15
     # observations, an explicit best_model_proportion, and a middle vertex at
@@ -148,7 +148,7 @@ def test_run_landtrendr_array_return_rmse():
     assert rmse_map[1, 1] == 0.0  # no-data pixel: fitting was skipped
 
 def test_extract_events_dsnr():
-    from cdts.metrics import extract_events
+    from zeit.metrics import extract_events
 
     years = np.array([2000, 2001, 2002, 2003, 2004, 2005, 2006])
     stack = np.zeros((7, 1, 1))
@@ -190,7 +190,7 @@ def test_run_landtrendr_batch_partial_no_data_is_skipped_not_fitted():
     # `goods`), so a pixel with a few no-data years gets exactly the same
     # result as the single-pixel API given NaN for those years -- the -9999
     # itself must never be fitted as if it were a real observation.
-    from cdts.landtrendr import run_landtrendr_batch
+    from zeit.landtrendr import run_landtrendr_batch
 
     years = np.arange(1990, 2020)
     rng = np.random.default_rng(0)

@@ -1,6 +1,6 @@
 # Benchmarks & Validation Suite
 
-Welcome to the **CDTS Fidelity & Performance Validation Suite**. This section provides a comprehensive empirical evaluation of the algorithms implemented in CDTS, assessing both **scientific fidelity** (how faithfully CDTS reproduces the original tools and published papers it ports) and **computational performance** (single-core speedup and multi-core CPU scaling via OpenMP).
+Welcome to the **Zeit Fidelity & Performance Validation Suite**. This section provides a comprehensive empirical evaluation of the algorithms implemented in Zeit, assessing both **scientific fidelity** (how faithfully Zeit reproduces the original tools and published papers it ports) and **computational performance** (single-core speedup and multi-core CPU scaling via OpenMP).
 
 ---
 
@@ -14,14 +14,14 @@ Earth Observation (EO) time-series analysis has historically suffered from fragm
 - **Deep learning models** for satellite time-series (TempCNN, LightTAE, U-TAE) were scattered between R `sits` and standalone PyTorch repositories.
 - Researchers have frequently relied on cloud platforms like **Google Earth Engine (GEE)**, trading off local control, customization, and queue times for scalability.
 
-**CDTS** was engineered to unify these algorithms into a modern, cloud-native architecture written in **high-performance C++** (via `Eigen3`, SIMD, and OpenMP) and **PyTorch** (`cdts.ai`), exposed through Python, Dask, and Xarray.
+**Zeit** was engineered to unify these algorithms into a modern, cloud-native architecture written in **high-performance C++** (via `Eigen3`, SIMD, and OpenMP) and **PyTorch** (`zeit.ai`), exposed through Python, Dask, and Xarray.
 
 ### The Validation Mandate
 
-To verify that CDTS can serve as a drop-in, scientifically reliable replacement for these reference implementations, we subjected CDTS to a rigorous battery of **13 benchmark comparisons** (plus one bonus architectural verification). Every algorithm was evaluated against the **authentic reference tool** across millions of observations, testing:
+To verify that Zeit can serve as a drop-in, scientifically reliable replacement for these reference implementations, we subjected Zeit to a rigorous battery of **13 benchmark comparisons** (plus one bonus architectural verification). Every algorithm was evaluated against the **authentic reference tool** across millions of observations, testing:
 
-1. **Numerical and Statistical Fidelity:** Do CDTS outputs match the reference tools down to floating-point tolerance, identical breakpoint positions, and matching model categories?
-2. **Execution Efficiency:** How much faster is CDTS on a single core, how effectively does OpenMP scale across 20 threads, and how does local desktop processing compare against distributed cloud platforms like Google Earth Engine?
+1. **Numerical and Statistical Fidelity:** Do Zeit outputs match the reference tools down to floating-point tolerance, identical breakpoint positions, and matching model categories?
+2. **Execution Efficiency:** How much faster is Zeit on a single core, how effectively does OpenMP scale across 20 threads, and how does local desktop processing compare against distributed cloud platforms like Google Earth Engine?
 
 ---
 
@@ -57,7 +57,7 @@ To verify that CDTS can serve as a drop-in, scientifically reliable replacement 
 
 ## Comparison Matrix at a Glance
 
-The table below summarizes the scope of our validation suite. Each comparison reflects reproducible benchmarks logged in the CDTS testing repository.
+The table below summarizes the scope of our validation suite. Each comparison reflects reproducible benchmarks logged in the Zeit testing repository.
 
 | Algorithm | Reference Implementation | Language / Engine | Test Scope | Primary Fidelity Metric | Single-Core Speedup | Status |
 |:---|:---|:---|:---|:---|:---:|:---:|
@@ -90,8 +90,8 @@ All performance benchmarks were measured on a modern workstation environment:
 
 <div class="bm-machine-box" style="grid-template-columns: 1fr;">
   <div class="bm-hw-spec">
-    <div class="bm-hw-tag" style="color: var(--bm-cdts);">
-      <span class="bm-hw-dot" style="background: var(--bm-cdts);"></span>
+    <div class="bm-hw-tag" style="color: var(--bm-zeit);">
+      <span class="bm-hw-dot" style="background: var(--bm-zeit);"></span>
       Benchmark Workstation (Intel Core i5)
     </div>
     <ul>
@@ -99,10 +99,10 @@ All performance benchmarks were measured on a modern workstation environment:
       <li><strong>RAM:</strong> 64 GB DDR5</li>
       <li><strong>Operating System:</strong> Windows 11 Pro 64-bit</li>
       <li><strong>R Environment:</strong> R 4.4.2 (CRAN `bfast`, `phenofit`, `twdtw`, `torch` 0.17.0, `sits` 1.5.2)</li>
-      <li><strong>Python Environment:</strong> Python 3.12.8, PyTorch 2.14.0, CDTS 0.18.0+</li>
+      <li><strong>Python Environment:</strong> Python 3.12.8, PyTorch 2.14.0, Zeit 0.18.0+</li>
       <li><strong>GDL / Octave:</strong> GDL 1.1.2 (native Windows), GNU Octave 11.3 (compiled Fortran GLMnet)</li>
     </ul>
-    <p class="bm-kpi-sub">SOM (re-validated in CDTS 0.21.0 after the bit-exact <code>minisom</code> port) was measured on an AMD Ryzen 7 7730U laptop (8 cores / 16 threads, Windows 11, Python 3.10, NumPy 1.26, <code>minisom</code> 2.3.6). Its speedups are ratios measured on that same machine.</p>
+    <p class="bm-kpi-sub">SOM (re-validated in Zeit 0.21.0 after the bit-exact <code>minisom</code> port) was measured on an AMD Ryzen 7 7730U laptop (8 cores / 16 threads, Windows 11, Python 3.10, NumPy 1.26, <code>minisom</code> 2.3.6). Its speedups are ratios measured on that same machine.</p>
   </div>
 </div>
 
@@ -117,21 +117,21 @@ Empirical validation demonstrates that reproducing published remote sensing algo
 - **LandTrendr:** Replicating Kennedy *et al.* (2010) with 100% vertex year agreement (330/330 series) required reproducing subtle source behaviors: fitting on the despiked series, in-place `take_out_weakest2` mutation, whole-ladder Levenberg-Marquardt fallback, flat-line non-significance fallback, and single-precision F-test p-value tie-breaking.
 - **CCDC:** Matching Zhu & Woodcock (2014) across 350 pixels (599 models, 249 breaks) required a native float32 port of Fortran GLMnet lasso, MATLAB `datenum` coordinate alignment, and bisquare Tmask outlier detection.
 - **SNIC:** Achieving bit-for-bit label parity with Achanta & Süsstrunk (2017) required reproducing priority queue heap tie-breaking order, while resolving upstream heap underflow crashes on edge-case inputs.
-- **SOM:** Reproducing Python `minisom` codebooks bit-for-bit required matching its `RandomState` draw sequence, NumPy's pairwise summation inside the distance norm, `argmin` tie-breaking on square-rooted distances, and sample-order accumulation in the batch update. An earlier CDTS variant that only *resembled* the batch algorithm (different decay, no learning rate, epoch-based `num_iters`) agreed with `minisom` at just ARI = 0.39 and ran 6–10× slower on the same call; the exact port is identical and 37–198× faster.
+- **SOM:** Reproducing Python `minisom` codebooks bit-for-bit required matching its `RandomState` draw sequence, NumPy's pairwise summation inside the distance norm, `argmin` tie-breaking on square-rooted distances, and sample-order accumulation in the batch update. An earlier Zeit variant that only *resembled* the batch algorithm (different decay, no learning rate, epoch-based `num_iters`) agreed with `minisom` at just ARI = 0.39 and ran 6–10× slower on the same call; the exact port is identical and 37–198× faster.
 
-Across all families, CDTS delivers **100% bitwise and statistical parity** with the authoritative reference implementations.
+Across all families, Zeit delivers **100% bitwise and statistical parity** with the authoritative reference implementations.
 
 ### 2. High-Performance Local Processing Beats Cloud Queues
 
 The prevailing assumption in remote sensing has been that massive spatial workflows require distributed cloud infrastructure like Google Earth Engine. Our full Landsat tile benchmark demonstrates otherwise:
 
-- **CDTS processing 54,731,482 pixels (41 years)** on a single desktop PC completed in **98.44 seconds** (556,007 pixels/sec) using OpenMP.
+- **Zeit processing 54,731,482 pixels (41 years)** on a single desktop PC completed in **98.44 seconds** (556,007 pixels/sec) using OpenMP.
 - **Google Earth Engine's distributed cluster** executed active server compute on ~38M pixels in **1,396 seconds** (27,213 pixels/sec), with an additional **5.08 hours of cloud queue latency**.
-- CDTS delivered **20.4× higher compute throughput** than GEE's server cluster, with zero queue overhead and zero network egress costs.
+- Zeit delivered **20.4× higher compute throughput** than GEE's server cluster, with zero queue overhead and zero network egress costs.
 
 ### 3. Phenology: Start-of-Season is Robust; Senescence is Ambiguous
 
-Testing CDTS against R `phenofit` on 25 years of real satellite data (178,710 joined observations across 17 phenometrics) uncovered a vital scientific nuance:
+Testing Zeit against R `phenofit` on 25 years of real satellite data (178,710 joined observations across 17 phenometrics) uncovered a vital scientific nuance:
 - **Green-up and Start-of-Season (SOS)** metrics agree remarkably well (MAE **3.7 to 5.3 days**, with 99.1% of pixels matching within 15 days).
 - **End-of-Season (EOS) and senescence** metrics diverge significantly (Dormancy MAE **76.9 days**).
 - This divergence is not an error in either implementation; it reflects fundamental mathematical differences in how asymmetric logistic curves fit noisy, moisture-stressed post-harvest tail observations. Researchers are strongly advised to analyze SOS and EOS metrics separately.

@@ -16,9 +16,9 @@
 
 ## Why segment a time series?
 
-`cdts.run_snic` works on a single image *and* on a whole time-series cube: every `(time, band)` pair becomes one feature, so two pixels are close when their **trajectories** are close. Two fields with the same average NDVI but opposite seasons fall into different segments. This is the object-based workflow of `sits_segment(seg_fn = sits_snic())` in R's [sits](https://github.com/e-sensing/sits).
+`zeit.run_snic` works on a single image *and* on a whole time-series cube: every `(time, band)` pair becomes one feature, so two pixels are close when their **trajectories** are close. Two fields with the same average NDVI but opposite seasons fall into different segments. This is the object-based workflow of `sits_segment(seg_fn = sits_snic())` in R's [sits](https://github.com/e-sensing/sits).
 
-Given the same seeds, CDTS produces **the same labels as the authors' reference implementation** ([github.com/achanta/SNIC](https://github.com/achanta/SNIC)), pixel for pixel.
+Given the same seeds, Zeit produces **the same labels as the authors' reference implementation** ([github.com/achanta/SNIC](https://github.com/achanta/SNIC)), pixel for pixel.
 
 ## How SNIC works
 
@@ -45,7 +45,7 @@ where $\mathbf{c}$ are the features (all bands at all dates), $\mathbf{p}$ the r
 
 ```python
 import numpy as np
-from cdts import run_snic, snic_to_polygons
+from zeit import run_snic, snic_to_polygons
 
 # cube: (time, band, y, x), e.g. 23 dates x (NDVI, EVI) from a regularised cube
 res = run_snic(cube.astype(np.float32), spacing=10, compactness=0.5, grid="hexagonal")
@@ -66,9 +66,9 @@ Seeds come from one of two places:
 ### 2. Or use the xarray accessor
 
 ```python
-import cdts.xarray_api  # registers .cdts
+import zeit.xarray_api  # registers .zeit
 
-ds = cube_da.cdts.run_snic(spacing=10, compactness=0.5)   # dims (..., y, x)
+ds = cube_da.zeit.run_snic(spacing=10, compactness=0.5)   # dims (..., y, x)
 ds["labels"]          # (y, x)
 ds["means"]           # (segment, time, band) with the cube's coordinates
 ```
@@ -76,7 +76,7 @@ ds["means"]           # (segment, time, band) with the cube's coordinates
 ### 3. Export polygons
 
 ```python
-from cdts.io import get_georef
+from zeit.io import get_georef
 geo = get_georef(cube_da)
 gdf = snic_to_polygons(res, transform=geo["transform"], crs=geo["crs"], include_means=True)
 # columns: supercells, x, y (centroid), n_pixels, f0..fN (flattened means), geometry
@@ -97,7 +97,7 @@ res = run_snic(cube, spacing=10, compactness=0.5, tile_size=512, n_jobs=-1)
 Memory: the core keeps one pixel-major copy of each tile being processed (`rows × cols × features` values of the input dtype) plus the priority queue.
 
 ??? info "Fidelity to the reference implementation"
-    From the same seeds, the labels match those of `snic.c` (Achanta, EPFL). That includes how ties are broken: when two clusters reach a pixel at exactly the same cost, the heap's order decides the winner the same way. The test suite gives cdts the seeds the original placed and compares labels on RGB-like, noisy, piecewise-constant (many ties) and time-series inputs, in float32 and float64. The original's code is not included in cdts.
+    From the same seeds, the labels match those of `snic.c` (Achanta, EPFL). That includes how ties are broken: when two clusters reach a pixel at exactly the same cost, the heap's order decides the winner the same way. The test suite gives Zeit the seeds the original placed and compares labels on RGB-like, noisy, piecewise-constant (many ties) and time-series inputs, in float32 and float64. The original's code is not included in Zeit.
 
     Differences from the original:
 

@@ -2,23 +2,23 @@
 Example 17: Spatial Post-Processing End-to-End (MMU, Majority, Bayesian Filters)
 
 Loads two synthetic rasters (no network needed) that mirror what
-`cdts`'s other tools typically hand off to spatial post-processing: a
+`zeit`'s other tools typically hand off to spatial post-processing: a
 LandTrendr-style disturbance-year map (0 = no disturbance) with a few noisy
 single-pixel specks, and a "salt and pepper" multi-class classification map
 - the kind a per-pixel classifier (TWDTW, Random Forest, SOM, ...)
 typically produces. Cleans them up with a Minimum Mapping Unit (MMU) filter
-that reads/writes GeoTIFFs directly (`cdts.apply_mmu_filter`), an in-memory
-majority/mode filter (`cdts.apply_majority_filter`), and a probability-aware
-Bayesian smoothing filter (`cdts.apply_bayesian_filter`). Every stage is
-saved with `cdts.save_raster` (or, for the MMU filter, its own file-based
+that reads/writes GeoTIFFs directly (`zeit.apply_mmu_filter`), an in-memory
+majority/mode filter (`zeit.apply_majority_filter`), and a probability-aware
+Bayesian smoothing filter (`zeit.apply_bayesian_filter`). Every stage is
+saved with `zeit.save_raster` (or, for the MMU filter, its own file-based
 writer).
 """
 import os
 import numpy as np
 from rasterio.transform import from_origin
-import cdts
-from cdts.spatial import apply_bayesian_filter
-from cdts.io import load_raster
+import zeit
+from zeit.spatial import apply_bayesian_filter
+from zeit.io import load_raster
 
 
 def build_disturbance_map(rows=60, cols=60, seed=10):
@@ -81,7 +81,7 @@ def probs_from_labels(noisy, clean, n_classes=3, confidence_correct=0.8, confide
 
 
 def main():
-    print("CDTS Example 17: Spatial Post-Processing (MMU, Majority, Bayesian Filters)")
+    print("Zeit Example 17: Spatial Post-Processing (MMU, Majority, Bayesian Filters)")
 
     rows, cols = 60, 60
     transform = from_origin(500000.0, 8800000.0, 30.0, 30.0)
@@ -92,11 +92,11 @@ def main():
     print(f"    {n_disturbed_before} disturbed pixels total (3 real patches >= 9 px + ~40 single-pixel noise specks).")
 
     in_tif = os.path.join("data", "spatial_disturbance_map.tif")
-    cdts.save_raster(disturbance, in_tif, crs="EPSG:32721", transform=transform, nodata=0)
+    zeit.save_raster(disturbance, in_tif, crs="EPSG:32721", transform=transform, nodata=0)
 
     print("\n[2/4] Applying the Minimum Mapping Unit (MMU) filter (file-based, removes patches < 9 px)...")
     out_mmu = os.path.join("data", "spatial_mmu_filtered.tif")
-    cdts.apply_mmu_filter(in_tif, out_mmu, mmu_pixels=9)
+    zeit.apply_mmu_filter(in_tif, out_mmu, mmu_pixels=9)
     mmu_result, _ = load_raster(out_mmu)
     n_disturbed_after = int((mmu_result[0] != 0).sum())
     print(f"    Disturbed pixels after MMU filtering: {n_disturbed_after} "
@@ -106,11 +106,11 @@ def main():
     clean, noisy = build_noisy_classification(rows=rows, cols=cols)
     noisy_accuracy = (noisy == clean).mean()
     print(f"    Raw agreement with ground truth: {noisy_accuracy:.1%}.")
-    majority_result = cdts.apply_majority_filter(noisy, size=3).astype("uint8")
+    majority_result = zeit.apply_majority_filter(noisy, size=3).astype("uint8")
     majority_accuracy = (majority_result == clean).mean()
     print(f"    Agreement after majority filtering: {majority_accuracy:.1%}.")
     out_majority = os.path.join("data", "spatial_majority_filtered.tif")
-    cdts.save_raster(majority_result, out_majority, crs="EPSG:32721", transform=transform, nodata=255)
+    zeit.save_raster(majority_result, out_majority, crs="EPSG:32721", transform=transform, nodata=255)
 
     print("\n[4/4] Applying the Bayesian probability-smoothing filter to the same scene "
           "(using a fake classifier confidence that's realistically lower right where it's wrong)...")
@@ -119,7 +119,7 @@ def main():
     bayesian_accuracy = (bayesian_result == clean).mean()
     print(f"    Agreement after Bayesian filtering: {bayesian_accuracy:.1%}.")
     out_bayes = os.path.join("data", "spatial_bayesian_filtered.tif")
-    cdts.save_raster(bayesian_result, out_bayes, crs="EPSG:32721", transform=transform, nodata=255)
+    zeit.save_raster(bayesian_result, out_bayes, crs="EPSG:32721", transform=transform, nodata=255)
 
     print(f"\nDone! Saved: {in_tif}, {out_mmu}, {out_majority}, {out_bayes}")
 

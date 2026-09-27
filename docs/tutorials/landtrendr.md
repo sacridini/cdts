@@ -40,13 +40,13 @@ LandTrendr needs **one value per pixel per year**, usually a cloud-free composit
 - **NDVI**: easy to interpret, good for agriculture and savanna, less sensitive to structural forest change.
 - **Tasseled Cap Wetness**: robust for forest structure.
 
-Store it as a GeoTIFF with one band per year. [Google Earth Engine](gee-downloads.md) (`composite_type="annual"`) and [STAC cubes](stac-downloads.md) with `regularize_time_series(freq="1YS")` both produce this. So does [LT-GEE](https://github.com/eMapR/LT-GEE): the stack used on this page is an NDVI composite collection exported from LT-GEE, so an existing LT-GEE workflow can move to local processing with CDTS unchanged.
+Store it as a GeoTIFF with one band per year. [Google Earth Engine](gee-downloads.md) (`composite_type="annual"`) and [STAC cubes](stac-downloads.md) with `regularize_time_series(freq="1YS")` both produce this. So does [LT-GEE](https://github.com/eMapR/LT-GEE): the stack used on this page is an NDVI composite collection exported from LT-GEE, so an existing LT-GEE workflow can move to local processing with Zeit unchanged.
 
 ```python
 import numpy as np
-import cdts
+import zeit
 
-stack, profile = cdts.io.load_raster("ndvi_1985_2024.tif", raster_check="landtrendr")
+stack, profile = zeit.io.load_raster("ndvi_1985_2024.tif", raster_check="landtrendr")
 years = np.arange(1985, 1985 + stack.shape[0])
 
 print(stack.shape)   # (40, 1671, 1686) -> (years, rows, cols)
@@ -57,7 +57,7 @@ print(stack.shape)   # (40, 1671, 1686) -> (years, rows, cols)
 ### 2. Segment every pixel
 
 ```python
-vertices, rmse = cdts.run_landtrendr_array(
+vertices, rmse = zeit.run_landtrendr_array(
     years,
     stack.astype(np.float32),
     max_segments=6,      # at most 6 segments, 7 vertices
@@ -81,7 +81,7 @@ The result is a `(14, rows, cols)` array. With `max_segments=6` there are up to 
 `extract_events` reads the vertices and returns one event per pixel as a set of maps:
 
 ```python
-loss = cdts.extract_events(
+loss = zeit.extract_events(
     vertices,
     event_type="loss",      # "loss" (index fell) or "gain" (index rose)
     sort_by="greatest",     # which event to keep if there are several
@@ -113,9 +113,9 @@ Keep confident events, then write GeoTIFFs:
 confident = (loss["yod"] > 0) & (loss["dsnr"] >= 3)
 first_year = np.where(confident, loss["yod"] + 1, 0).astype("uint16")
 
-cdts.save_raster(first_year, "results/loss_year.tif",
+zeit.save_raster(first_year, "results/loss_year.tif",
                  crs=profile["crs"], transform=profile["transform"], nodata=0)
-cdts.save_raster(np.where(confident, loss["magnitude"], 0).astype("float32"),
+zeit.save_raster(np.where(confident, loss["magnitude"], 0).astype("float32"),
                  "results/loss_magnitude.tif",
                  crs=profile["crs"], transform=profile["transform"], nodata=0)
 ```
@@ -123,7 +123,7 @@ cdts.save_raster(np.where(confident, loss["magnitude"], 0).astype("float32"),
 Isolated single pixels are usually noise. A **minimum mapping unit** filter removes patches smaller than a given size:
 
 ```python
-cdts.apply_mmu_filter("results/loss_year.tif", "results/loss_year_mmu.tif", mmu_pixels=11)
+zeit.apply_mmu_filter("results/loss_year.tif", "results/loss_year_mmu.tif", mmu_pixels=11)
 ```
 
 The map at the top of this page uses exactly these steps: `dsnr >= 3` and an 11-pixel minimum mapping unit.
@@ -149,7 +149,7 @@ plt.show()
 For a single series you can also call the pixel-level function directly. It returns the vertices as a list of dicts:
 
 ```python
-from cdts.landtrendr import run_landtrendr
+from zeit.landtrendr import run_landtrendr
 
 run_landtrendr(years, stack[:, row, col], modifier=-1.0)
 # values rounded for display:
@@ -163,7 +163,7 @@ run_landtrendr(years, stack[:, row, col], modifier=-1.0)
 A classic LandTrendr trick is to segment on one index (say NBR) and then describe the same periods with other bands. This is known as *fitting to vertices* (FTV). `apply_vertices` does this per pixel:
 
 ```python
-from cdts.landtrendr import apply_vertices
+from zeit.landtrendr import apply_vertices
 
 # Vertex years found on the primary index for this pixel (step 5)...
 vertex_years = v_years[used]
@@ -192,7 +192,7 @@ The defaults follow the original LandTrendr and work well for 25–40 years of L
 **GeoTIFFs larger than memory.** `run_landtrendr_image` reads the file in blocks, runs the steps above on each block, and writes one GeoTIFF per output map. The orientation (`modifier`) is chosen automatically from `event_type`:
 
 ```python
-cdts.run_landtrendr_image(
+zeit.run_landtrendr_image(
     "ndvi_1985_2024.tif", "results/",
     start_year=1985,
     event_type="loss",
@@ -202,19 +202,19 @@ cdts.run_landtrendr_image(
 # results/lt_event_yod.tif, lt_event_magnitude.tif, lt_event_duration.tif, ...
 ```
 
-The same is available from the shell as [`cdts landtrendr`](../cli.md#1-landtrendr-landtrendr).
+The same is available from the shell as [`zeit landtrendr`](../cli.md#1-landtrendr-landtrendr).
 
-**Dask cubes and clusters.** For lazy xarray cubes (for example from STAC or Zarr) use the `.cdts` accessor. Keep the time axis in one chunk:
+**Dask cubes and clusters.** For lazy xarray cubes (for example from STAC or Zarr) use the `.zeit` accessor. Keep the time axis in one chunk:
 
 ```python
-import cdts
+import zeit
 
 annual = annual_ndvi.chunk({"time": -1, "y": 512, "x": 512})   # (time, y, x)
 
 # The accessor runs with the default modifier (+1), so flip the index
 # to make a vegetation loss look like a rise, then ask for "gain" events.
-vertices = (-annual).cdts.run_landtrendr(years=years, max_segments=6).compute()
-loss = cdts.extract_events(vertices.values, event_type="gain", min_magnitude=0.2)
+vertices = (-annual).zeit.run_landtrendr(years=years, max_segments=6).compute()
+loss = zeit.extract_events(vertices.values, event_type="gain", min_magnitude=0.2)
 # loss["pre_val"] and loss["post_val"] are negated NDVI here; flip them back if needed.
 ```
 
@@ -224,8 +224,8 @@ Negating the index is the traditional LandTrendr convention and gives exactly th
 
 - **Use a stable season.** Composite the same months every year, so phenology is not mistaken for change.
 - **Mask clouds before compositing.** Residual clouds create spikes. `spike_threshold` removes most of them, but clean input always wins.
-- **Validate on the ground truth you have.** `cdts.generate_landtrendr_accuracy_dashboard` builds an interactive HTML page to review points against image chips (see the [API reference](../api/post-processing.md)).
-- **Compare with the published method.** CDTS reproduces the original IDL LandTrendr vertex for vertex, see [Algorithm Fidelity](../benchmarks/fidelity.md#1-landtrendr-kennedy-et-al-2010).
+- **Validate on the ground truth you have.** `zeit.generate_landtrendr_accuracy_dashboard` builds an interactive HTML page to review points against image chips (see the [API reference](../api/post-processing.md)).
+- **Compare with the published method.** Zeit reproduces the original IDL LandTrendr vertex for vertex, see [Algorithm Fidelity](../benchmarks/fidelity.md#1-landtrendr-kennedy-et-al-2010).
 
 ## References
 

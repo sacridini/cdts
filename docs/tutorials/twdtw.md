@@ -34,7 +34,7 @@ Each pattern is a pair `(values, days)`. Use the same day numbering for patterns
 
 ```python
 import numpy as np
-import cdts
+import zeit
 
 days = np.arange(0, 365, 16)                     # a 16-day series over one year
 t = days / 365
@@ -49,7 +49,7 @@ patterns = {
 ### 2. Compare one pixel
 
 ```python
-from cdts.twdtw import run_twdtw
+from zeit.twdtw import run_twdtw
 
 pixel = ...   # 1-D array of NDVI values on `days`
 for name, (values, pdays) in patterns.items():
@@ -66,7 +66,7 @@ These are the distances in the figure above. Pass `return_path=True` to also get
 `classify_twdtw` runs every pattern against every pixel in parallel and keeps the closest:
 
 ```python
-from cdts.twdtw import classify_twdtw
+from zeit.twdtw import classify_twdtw
 
 # cube: (rows, cols, time) or (rows, cols, time, bands). Note: time comes after space here.
 classes, distance, names = classify_twdtw(cube, days, patterns, n_jobs=-1)

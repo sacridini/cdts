@@ -1,7 +1,7 @@
 """SOM: parity with Python MiniSom and invariants.
 
 tests/data/som_minisom_parity.npz holds codebooks trained by MiniSom 2.3.6
-(see make_som_parity_fixtures.py); cdts.ai.SOM is a port of the same
+(see make_som_parity_fixtures.py); zeit.ai.SOM is a port of the same
 algorithms and must reproduce them. When minisom is installed, extra tests
 compare against it live.
 """
@@ -12,7 +12,7 @@ import warnings
 import numpy as np
 import pytest
 
-from cdts.ai import SOM
+from zeit.ai import SOM
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PARITY = np.load(os.path.join(HERE, "data", "som_minisom_parity.npz"))

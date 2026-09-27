@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <limits>
 
-namespace cdts {
+namespace zeit {
 namespace utils {
 
 py::array_t<double> compute_medoid(
@@ -118,4 +118,4 @@ py::array_t<double> compute_medoid(
 }
 
 } // namespace utils
-} // namespace cdts
+} // namespace zeit

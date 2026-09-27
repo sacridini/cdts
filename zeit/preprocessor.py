@@ -5,7 +5,7 @@ import os
 from typing import Optional
 
 try:
-    from cdts._core.utils import compute_medoid
+    from zeit._core.utils import compute_medoid
 except ImportError:
     # Fallback or just let it crash if C++ extension is not built
     def compute_medoid(array, nodata):

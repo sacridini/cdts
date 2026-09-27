@@ -2,7 +2,7 @@ import gc
 import numpy as np
 import tracemalloc
 import pytest
-import cdts
+import zeit
 
 def test_landtrendr_memory_leak():
     print("\n=== Iniciando Teste de Memory Leak (Python + C++) ===")
@@ -19,7 +19,7 @@ def test_landtrendr_memory_leak():
     iteracoes = 10
     print(f"Rodando LandTrendr C++ por {iteracoes} iterações...")
     for i in range(iteracoes):
-        _ = cdts.run_landtrendr_array(years, data, max_segments=6)
+        _ = zeit.run_landtrendr_array(years, data, max_segments=6)
         gc.collect()  # Forçar o Garbage Collector do Python a rodar
         
     # 4. Tirar uma nova "foto" da memória e comparar

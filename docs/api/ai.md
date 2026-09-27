@@ -1,14 +1,14 @@
 # Deep Learning
 
-<p class="lead">PyTorch modules in <code>cdts.ai</code>. They are ordinary <code>nn.Module</code>s: move them to any device and train them with your usual loop. Tutorials: <a href="../../tutorials/ai/">Deep Learning</a>.</p>
+<p class="lead">PyTorch modules in <code>zeit.ai</code>. They are ordinary <code>nn.Module</code>s: move them to any device and train them with your usual loop. Tutorials: <a href="../../tutorials/ai/">Deep Learning</a>.</p>
 
 ## Data
 
 ### `STACCubeDataset` { .api .cls }
 
-<!-- sig: cdts.ai.STACCubeDataset -->
+<!-- sig: zeit.ai.STACCubeDataset -->
 ```python
-class cdts.ai.STACCubeDataset(cube, patch_size=256, stride=256)
+class zeit.ai.STACCubeDataset(cube, patch_size=256, stride=256)
 ```
 
 A PyTorch `Dataset` that cuts a lazy xarray cube into square spatial patches. Only the requested patch is computed, so it works on cubes larger than memory.
@@ -26,7 +26,7 @@ A PyTorch `Dataset` that cuts a lazy xarray cube into square spatial patches. On
 Each item is `(patch, dates)`: a float32 tensor `(time, band, patch_size, patch_size)` with NaN replaced by 0, and the day of year of each observation. `dataset.dates` holds the same dates.
 
 ```python
-from cdts.ai import STACCubeDataset
+from zeit.ai import STACCubeDataset
 
 dataset = STACCubeDataset(cube, patch_size=64, stride=64)
 patch, dates = dataset[0]
@@ -36,9 +36,9 @@ patch, dates = dataset[0]
 
 ### `TempCNN` { .api .cls }
 
-<!-- sig: cdts.ai.TempCNN -->
+<!-- sig: zeit.ai.TempCNN -->
 ```python
-class cdts.ai.TempCNN(
+class zeit.ai.TempCNN(
     in_channels, n_times, num_classes=5, hidden_dims=(64, 64, 64),
     kernel_sizes=(3, 3, 3), dropout_rates=(0.2, 0.2, 0.2),
     dense_layer_nodes=256, dense_layer_dropout_rate=0.5,
@@ -63,7 +63,7 @@ Temporal convolutional network (Pelletier et al., 2019), ported layer for layer 
 </div>
 
 ```python
-from cdts.ai import TempCNN
+from zeit.ai import TempCNN
 
 model = TempCNN(in_channels=6, n_times=23, num_classes=4)
 logits = model(torch.randn(32, 6, 23))   # (32, 4)
@@ -71,9 +71,9 @@ logits = model(torch.randn(32, 6, 23))   # (32, 4)
 
 ### `LightTAE` { .api .cls }
 
-<!-- sig: cdts.ai.LightTAE -->
+<!-- sig: zeit.ai.LightTAE -->
 ```python
-class cdts.ai.LightTAE(
+class zeit.ai.LightTAE(
     n_bands, day_offsets, n_labels,
     layers_spatial_encoder=(32, 64, 128), n_heads=16,
     n_neurons=(256, 128), dropout_rate=0.2, dim_input_decoder=128,
@@ -100,7 +100,7 @@ Lightweight temporal attention classifier: per-observation MLP encoder, L-TAE te
 </div>
 
 ```python
-from cdts.ai import LightTAE
+from zeit.ai import LightTAE
 
 model = LightTAE(n_bands=6, day_offsets=list(range(0, 36 * 16, 16)), n_labels=5)
 logits = model(torch.randn(8, 36, 6))    # (8, 5)
@@ -108,9 +108,9 @@ logits = model(torch.randn(8, 36, 6))    # (8, 5)
 
 ### `LTAE` { .api .cls }
 
-<!-- sig: cdts.ai.LTAE -->
+<!-- sig: zeit.ai.LTAE -->
 ```python
-class cdts.ai.LTAE(
+class zeit.ai.LTAE(
     in_channels=128, day_offsets=None, n_heads=16,
     n_neurons=(256, 128), dropout_rate=0.2,
 )
@@ -134,9 +134,9 @@ The L-TAE temporal attention block on its own, to build custom models. Input `(b
 
 ### `UTAE` { .api .cls }
 
-<!-- sig: cdts.ai.UTAE -->
+<!-- sig: zeit.ai.UTAE -->
 ```python
-class cdts.ai.UTAE(
+class zeit.ai.UTAE(
     input_dim, encoder_widths=(64, 64, 64, 128),
     decoder_widths=(32, 32, 64, 128), out_conv=(32, 20), str_conv_k=4,
     str_conv_s=2, str_conv_p=1, agg_mode="att_group",
@@ -170,7 +170,7 @@ U-Net with temporal attention (Garnot & Landrieu, 2021), ported from the officia
 </div>
 
 ```python
-from cdts.ai import UTAE
+from zeit.ai import UTAE
 
 model = UTAE(input_dim=6, out_conv=[32, 10]).eval()
 x = torch.randn(2, 12, 6, 128, 128)
@@ -182,9 +182,9 @@ scores = model(x, batch_positions=days)   # (2, 10, 128, 128)
 
 ### `SiameseChangeDetector` { .api .cls }
 
-<!-- sig: cdts.ai.SiameseChangeDetector -->
+<!-- sig: zeit.ai.SiameseChangeDetector -->
 ```python
-class cdts.ai.SiameseChangeDetector(in_channels, num_classes=2)
+class zeit.ai.SiameseChangeDetector(in_channels, num_classes=2)
 ```
 
 Two-date change detection with a shared (Siamese) convolutional encoder: both images are encoded with the same weights, their feature difference is decoded to a per-pixel map. An independent implementation of the design of Daudt et al. (2018). Tutorial: [Siamese Change Detector](../tutorials/siamese.md).
@@ -199,7 +199,7 @@ Two-date change detection with a shared (Siamese) convolutional encoder: both im
 </div>
 
 ```python
-from cdts.ai import SiameseChangeDetector
+from zeit.ai import SiameseChangeDetector
 
 model = SiameseChangeDetector(in_channels=4)
 logits = model(torch.randn(8, 4, 256, 256), torch.randn(8, 4, 256, 256))   # (8, 2, 256, 256)
@@ -209,9 +209,9 @@ logits = model(torch.randn(8, 4, 256, 256), torch.randn(8, 4, 256, 256))   # (8,
 
 ### `GeoFoundationViT` { .api .cls }
 
-<!-- sig: cdts.ai.GeoFoundationViT -->
+<!-- sig: zeit.ai.GeoFoundationViT -->
 ```python
-class cdts.ai.GeoFoundationViT(
+class zeit.ai.GeoFoundationViT(
     model_id="ibm-nasa-geospatial/Prithvi-100M", num_classes=2,
 )
 ```
@@ -231,9 +231,9 @@ Loads a geospatial foundation model from the HuggingFace Hub (Prithvi-100M by de
 
 ### `FocalLoss` { .api .cls }
 
-<!-- sig: cdts.ai.losses.FocalLoss -->
+<!-- sig: zeit.ai.losses.FocalLoss -->
 ```python
-class cdts.ai.losses.FocalLoss(
+class zeit.ai.losses.FocalLoss(
     alpha=0.25, gamma=2.0, reduction="mean",
 )
 ```
@@ -252,9 +252,9 @@ Cross-entropy that down-weights easy examples, for heavily imbalanced problems s
 
 ### `TverskyLoss` { .api .cls }
 
-<!-- sig: cdts.ai.losses.TverskyLoss -->
+<!-- sig: zeit.ai.losses.TverskyLoss -->
 ```python
-class cdts.ai.losses.TverskyLoss(alpha=0.3, beta=0.7, smooth=1.0)
+class zeit.ai.losses.TverskyLoss(alpha=0.3, beta=0.7, smooth=1.0)
 ```
 
 Overlap-based loss for the positive (change) class, with separate weights for false positives and false negatives.
@@ -271,9 +271,9 @@ Overlap-based loss for the positive (change) class, with separate weights for fa
 
 ### `ContrastiveSiameseLoss` { .api .cls }
 
-<!-- sig: cdts.ai.losses.ContrastiveSiameseLoss -->
+<!-- sig: zeit.ai.losses.ContrastiveSiameseLoss -->
 ```python
-class cdts.ai.losses.ContrastiveSiameseLoss(margin=2.0)
+class zeit.ai.losses.ContrastiveSiameseLoss(margin=2.0)
 ```
 
 Contrastive loss on two feature maps: pulls features together where nothing changed (label 0) and pushes them at least `margin` apart where something changed (label 1).

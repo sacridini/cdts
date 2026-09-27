@@ -2,20 +2,20 @@
 Example 18: CCDC-Based Land Cover Classification End-to-End
 
 Loads a synthetic CCDC coefficient stack (no network needed - in a real
-pipeline this would come from `cdts.run_ccdc_image`), trains a Random Forest
+pipeline this would come from `zeit.run_ccdc_image`), trains a Random Forest
 classifier on a handful of labeled training samples with
-`cdts.train_ccdc_classifier`, applies it chunk-by-chunk to the full
-coefficient GeoTIFF with `cdts.classify_ccdc_stack`, and loads the result
-back with `cdts.load_raster` to check it. `classify_ccdc_stack` writes its
+`zeit.train_ccdc_classifier`, applies it chunk-by-chunk to the full
+coefficient GeoTIFF with `zeit.classify_ccdc_stack`, and loads the result
+back with `zeit.load_raster` to check it. `classify_ccdc_stack` writes its
 own output file directly (it's designed for coefficient stacks too large to
 fit in memory), so this is the one example where saving happens inside the
-CDTS function itself rather than via a separate `save_raster` call.
+Zeit function itself rather than via a separate `save_raster` call.
 """
 import os
 import numpy as np
 from rasterio.transform import from_origin
-import cdts
-from cdts.io import load_raster
+import zeit
+from zeit.io import load_raster
 
 N_FEATURES = 10  # e.g. intercept/slope/harmonic coefficients + RMSE, per a single band
 
@@ -55,13 +55,13 @@ def build_synthetic_coef_stack(rows=50, cols=50, n_classes=3, seed=13):
 
 
 def main():
-    print("CDTS Example 18: CCDC-Based Land Cover Classification")
+    print("Zeit Example 18: CCDC-Based Land Cover Classification")
 
     print(f"\n[1/4] Generating {3*60} synthetic training samples ({N_FEATURES} CCDC-like features/class)...")
     X_train, y_train = build_training_samples()
 
-    print("\n[2/4] Training the Random Forest classifier (cdts.train_ccdc_classifier)...")
-    clf = cdts.train_ccdc_classifier(X_train, y_train, n_estimators=100)
+    print("\n[2/4] Training the Random Forest classifier (zeit.train_ccdc_classifier)...")
+    clf = zeit.train_ccdc_classifier(X_train, y_train, n_estimators=100)
     train_accuracy = clf.score(X_train, y_train)
     print(f"    Training-set accuracy: {train_accuracy:.1%}")
 
@@ -70,11 +70,11 @@ def main():
     coef_stack, truth = build_synthetic_coef_stack(rows=rows, cols=cols)
     transform = from_origin(500000.0, 8800000.0, 30.0, 30.0)
     coef_path = os.path.join("data", "ccdc_coef_stack.tif")
-    cdts.save_raster(coef_stack, coef_path, crs="EPSG:32721", transform=transform, nodata=0)
+    zeit.save_raster(coef_stack, coef_path, crs="EPSG:32721", transform=transform, nodata=0)
 
-    print("\n[4/4] Classifying the full stack with cdts.classify_ccdc_stack() (chunked, writes its own output)...")
+    print("\n[4/4] Classifying the full stack with zeit.classify_ccdc_stack() (chunked, writes its own output)...")
     class_path = os.path.join("data", "ccdc_land_cover_classification.tif")
-    cdts.classify_ccdc_stack(clf, coef_path, class_path, chunk_size=32)
+    zeit.classify_ccdc_stack(clf, coef_path, class_path, chunk_size=32)
 
     predicted, _ = load_raster(class_path)
     accuracy = (predicted[0] == truth).mean()

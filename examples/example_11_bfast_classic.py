@@ -3,16 +3,16 @@ Example 11: Classic BFAST End-to-End (Iterative Trend + Season Break Detection)
 
 Loads a synthetic 16-day composite datacube (no network needed) where half
 the pixels have an injected trend break (e.g. a land-cover change), runs the
-classic iterative `bfast()` via the `.cdts` accessor (STL seasonal seed +
+classic iterative `bfast()` via the `.zeit` accessor (STL seasonal seed +
 alternating trend/season segmented regressions), and saves the breakpoint
-and magnitude maps with `cdts.save_raster`.
+and magnitude maps with `zeit.save_raster`.
 """
 import os
 import numpy as np
 import xarray as xr
 from rasterio.transform import from_origin
-import cdts
-from cdts.bfast import bf_metric_names
+import zeit
+from zeit.bfast import bf_metric_names
 
 FREQUENCY = 23
 START_TIME = 2000.0
@@ -46,7 +46,7 @@ def build_synthetic_cube(n_years=13, rows=12, cols=12, seed=3):
 
 
 def main():
-    print("CDTS Example 11: Classic BFAST (Iterative Trend + Season Break Detection)")
+    print("Zeit Example 11: Classic BFAST (Iterative Trend + Season Break Detection)")
 
     rows, cols = 12, 12
     print(f"\n[1/3] Generating synthetic cube ({rows}x{cols} px, {FREQUENCY} obs/year)...")
@@ -59,9 +59,9 @@ def main():
         coords={"y": np.arange(rows), "x": np.arange(cols)},
     )
 
-    print("\n[2/3] Running classic bfast() via .cdts accessor (this alternates trend/season "
+    print("\n[2/3] Running classic bfast() via .zeit accessor (this alternates trend/season "
           "segmented regressions until convergence)...")
-    result = cube.cdts.run_bfast(
+    result = cube.zeit.run_bfast(
         start_time=START_TIME, frequency=FREQUENCY, h=0.15,
         max_breaks_trend=MAX_BREAKS_TREND, max_breaks_season=MAX_BREAKS_SEASON,
         n_jobs=-1,
@@ -76,10 +76,10 @@ def main():
     print(f"    Mean magnitude on the disturbed half: {np.nanmean(magnitude[:, cols // 2:]):.3f} "
           f"(injected: 0.4).")
 
-    print("\n[3/3] Saving results with cdts.save_raster()...")
+    print("\n[3/3] Saving results with zeit.save_raster()...")
     out_tif = os.path.join("data", "bfast_classic_breaks.tif")
     transform = from_origin(500000.0, 8800000.0, 30.0, 30.0)
-    cdts.save_raster(result.values.astype("float32"), out_tif, crs="EPSG:32721", transform=transform, nodata=np.nan)
+    zeit.save_raster(result.values.astype("float32"), out_tif, crs="EPSG:32721", transform=transform, nodata=np.nan)
 
     names = bf_metric_names(MAX_BREAKS_TREND, MAX_BREAKS_SEASON)
     print(f"\nDone! {len(names)}-band raster ({', '.join(names)}) saved to {out_tif}")

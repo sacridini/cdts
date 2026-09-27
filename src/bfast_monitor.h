@@ -15,7 +15,7 @@
 // bfast.h for the classic iterative `bfast()` and bfast_lite.h for the
 // single-pass `bfastlite()`.
 
-namespace cdts {
+namespace zeit {
 namespace bfastmonitor {
 
 struct BFMResult {
@@ -59,4 +59,4 @@ pybind11::array_t<double> fit_bfast_monitor_batch(
     int n_jobs = -1);
 
 } // namespace bfastmonitor
-} // namespace cdts
+} // namespace zeit

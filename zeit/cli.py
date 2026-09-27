@@ -162,7 +162,7 @@ def run_mmu_filter_cli(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="cdts: Change Detection Python Library")
+    parser = argparse.ArgumentParser(description="zeit: Change Detection Python Library")
     subparsers = parser.add_subparsers(dest="command", help="Available algorithms")
     
     # LandTrendr Subparser

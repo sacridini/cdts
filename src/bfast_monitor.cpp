@@ -20,7 +20,7 @@
 #include <stdexcept>
 #include <Eigen/Dense>
 
-namespace cdts {
+namespace zeit {
 namespace bfastmonitor {
 
 namespace {
@@ -319,4 +319,4 @@ pybind11::array_t<double> fit_bfast_monitor_batch(
 }
 
 } // namespace bfastmonitor
-} // namespace cdts
+} // namespace zeit

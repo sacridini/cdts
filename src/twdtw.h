@@ -3,7 +3,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
-namespace cdts {
+namespace zeit {
 namespace twdtw {
 
 struct TWDTWParams {
@@ -43,4 +43,4 @@ pybind11::array_t<double> fit_twdtw_batch(
 );
 
 } // namespace twdtw
-} // namespace cdts
+} // namespace zeit

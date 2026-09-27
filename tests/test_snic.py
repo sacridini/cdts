@@ -3,7 +3,7 @@
 tests/data/snic_reference_parity.npz holds, for each stored input, the seeds
 the authors' reference implementation (github.com/achanta/SNIC, snic.c,
 SNIC_main with doRGBtoLAB=0) placed and the labels it produced; see
-make_snic_parity_fixtures.py. cdts is given the same seeds.
+make_snic_parity_fixtures.py. zeit is given the same seeds.
 """
 import os
 
@@ -11,8 +11,8 @@ import numpy as np
 import pytest
 from scipy import ndimage
 
-from cdts._core import snic as core
-from cdts.segmentation import run_snic, snic_grid, snic_to_polygons
+from zeit._core import snic as core
+from zeit.segmentation import run_snic, snic_grid, snic_to_polygons
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PARITY = np.load(os.path.join(HERE, "data", "snic_reference_parity.npz"))
@@ -228,13 +228,13 @@ def test_grids_stay_inside_padding(grid):
 
 def test_xarray_accessor():
     xr = pytest.importorskip("xarray")
-    import cdts.xarray_api  # noqa: F401
+    import zeit.xarray_api  # noqa: F401
 
     cube = _random_cube(7, shape=(5, 3, 24, 30))
     da = xr.DataArray(cube, dims=("time", "band", "y", "x"),
                       coords={"time": np.arange(5), "band": ["red", "nir", "swir"],
                               "y": np.arange(24)[::-1] * 10.0, "x": np.arange(30) * 10.0})
-    ds = da.cdts.run_snic(spacing=6, compactness=0.3)
+    ds = da.zeit.run_snic(spacing=6, compactness=0.3)
     ref = run_snic(cube, spacing=6, compactness=0.3)
     np.testing.assert_array_equal(ds["labels"].values, ref.labels)
     assert ds["means"].dims == ("segment", "time", "band")

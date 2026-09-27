@@ -1,10 +1,10 @@
-site_name: CDTS
+site_name: Zeit
 site_description: Change detection and time-series analysis for satellite imagery, in Python. Fast C++ ports of LandTrendr, CCDC, BFAST and more, from a single pixel to a Dask cluster.
-site_url: https://sacridini.github.io/cdts/
-repo_url: https://github.com/sacridini/cdts
-repo_name: sacridini/cdts
+site_url: https://sacridini.github.io/zeit/
+repo_url: https://github.com/sacridini/zeit
+repo_name: sacridini/zeit
 edit_uri: edit/main/docs/
-copyright: CDTS is free software released under the GPL-2.0-or-later license.
+copyright: Zeit is free software released under the GPL-2.0-or-later license.
 
 theme:
   name: material
@@ -105,18 +105,18 @@ extra_javascript:
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
 extra_css:
-  - assets/stylesheets/cdts.css
+  - assets/stylesheets/zeit.css
   - assets/benchmarks.css
 
 extra:
   generator: false
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/sacridini/cdts
-      name: CDTS on GitHub
+      link: https://github.com/sacridini/zeit
+      name: Zeit on GitHub
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/cdts/
-      name: CDTS on PyPI
+      link: https://pypi.org/project/zeit/
+      name: Zeit on PyPI
 
 nav:
   - Home: index.md

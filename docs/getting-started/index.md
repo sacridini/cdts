@@ -1,11 +1,11 @@
 # Get Started
 
-<p class="lead">New to CDTS, or to satellite time series in general? These pages take you from installation to your first map, and explain the handful of ideas that every tutorial builds on.</p>
+<p class="lead">New to Zeit, or to satellite time series in general? These pages take you from installation to your first map, and explain the handful of ideas that every tutorial builds on.</p>
 
 <div class="steps" markdown>
 
 <div markdown>
-**[Install CDTS](installation.md)**
+**[Install Zeit](installation.md)**
 
 One `pip install`. Pre-built wheels, no compiler needed.
 </div>
@@ -32,5 +32,5 @@ Match your question to the right method, then follow its tutorial.
 
 ## Other pages in this section
 
-- **[Docker](docker.md)**: ready-made images with CDTS, GDAL and PyTorch (GPU or CPU).
+- **[Docker](docker.md)**: ready-made images with Zeit, GDAL and PyTorch (GPU or CPU).
 - **[Contributing](contributing.md)**: set up a development build, run the tests and build these docs.

@@ -4,8 +4,8 @@ Example 05: TempCNN
 import os
 import torch
 import numpy as np
-from cdts import build_time_series, save_raster
-from cdts.ai import TempCNN
+from zeit import build_time_series, save_raster
+from zeit.ai import TempCNN
 
 bbox = [-55.01, -11.01, -55.00, -11.00]
 cube = build_time_series(bbox=bbox, start_date="2021-01-01", end_date="2021-06-30", source="earth_search", bands=['blue', 'green', 'red', 'nir', 'swir16', 'swir22'], resolution=30, epsg=3857, cloud_cover_max=20)

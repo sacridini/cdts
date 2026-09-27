@@ -4,8 +4,8 @@ Downloads snic.c/snic.h of the authors' reference implementation
 (github.com/achanta/SNIC, pinned below), builds it as a shared library with the
 compiler setuptools finds, runs SNIC_main (doRGBtoLAB=0) on the cases below and
 stores the inputs, the seeds the reference placed (from its FindSeeds) and its
-labels. The reference code is not redistributed and cdts does not use its seed
-grid; only its outputs are kept, and the tests feed cdts the same seeds.
+labels. The reference code is not redistributed and zeit does not use its seed
+grid; only its outputs are kept, and the tests feed zeit the same seeds.
 
     python tests/data/make_snic_parity_fixtures.py
 """

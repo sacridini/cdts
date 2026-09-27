@@ -3,7 +3,7 @@ Example 02: CCDC and COLD End-to-End
 """
 import os
 import numpy as np
-from cdts import build_time_series, apply_tmask_stack, run_ccdc_array, predict_synthetic_image, save_raster
+from zeit import build_time_series, apply_tmask_stack, run_ccdc_array, predict_synthetic_image, save_raster
 
 # Very small bounding box
 bbox = [-55.01, -11.01, -55.00, -11.00]

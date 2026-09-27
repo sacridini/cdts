@@ -4,7 +4,7 @@ import xarray as xr
 import pandas as pd
 import os
 
-from cdts.preprocessor import cbers_to_landtrendr, cbers_to_ccdc
+from zeit.preprocessor import cbers_to_landtrendr, cbers_to_ccdc
 
 def _create_dummy_cube():
     # Create a dummy xarray DataArray with shape (time=4, band=3, y=10, x=10)

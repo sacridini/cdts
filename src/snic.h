@@ -24,7 +24,7 @@
 // valid pixels only, as in the R `snic` package; a seed on a masked pixel
 // yields an empty segment.
 
-namespace cdts {
+namespace zeit {
 namespace snic {
 
 // Segment a planar image data[F, H, W] (float32 or float64) from seeds[K, 2]
@@ -46,4 +46,4 @@ pybind11::tuple snic_segment(
     int n_jobs = -1);
 
 } // namespace snic
-} // namespace cdts
+} // namespace zeit

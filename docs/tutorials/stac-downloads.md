@@ -9,17 +9,17 @@
 <div><span class="k">Next</span><span class="v">Composite, smooth, and feed any algorithm</span></div>
 </div>
 
-[STAC](https://stacspec.org) (SpatioTemporal Asset Catalog) is the standard way cloud providers publish satellite imagery. CDTS searches a catalog, keeps the images that match your query, and assembles them with `stackstac` into one aligned cube.
+[STAC](https://stacspec.org) (SpatioTemporal Asset Catalog) is the standard way cloud providers publish satellite imagery. Zeit searches a catalog, keeps the images that match your query, and assembles them with `stackstac` into one aligned cube.
 
 ## 1. Query a catalog
 
 Select the area with a bounding box, a vector file (`vector_path`), or tile IDs: MGRS for Sentinel-2, WRS-2 path/row for Landsat.
 
 ```python
-import cdts
+import zeit
 
 # Option A: Bounding Box
-cube = cdts.build_time_series(
+cube = zeit.build_time_series(
     source="earth_search",
     collection="sentinel-2-l2a",
     bbox=[-48.5, -22.5, -48.0, -22.0],
@@ -29,7 +29,7 @@ cube = cdts.build_time_series(
 )
 
 # Option B: MGRS Tiles (Sentinel-2)
-cube_tiles_s2 = cdts.build_time_series(
+cube_tiles_s2 = zeit.build_time_series(
     source="earth_search",
     collection="sentinel-2-l2a",
     tiles=["22JFQ", "22JGQ"], # Fetch specific Sentinel-2 MGRS tiles
@@ -39,7 +39,7 @@ cube_tiles_s2 = cdts.build_time_series(
 )
 
 # Option C: WRS-2 Path/Row Tiles (Landsat)
-cube_tiles_l8 = cdts.build_time_series(
+cube_tiles_l8 = zeit.build_time_series(
     source="earth_search",
     collection="landsat-c2-l2",
     tiles=["215065"], # 6-digit Path/Row string (Path 215, Row 065)
@@ -51,11 +51,11 @@ cube_tiles_l8 = cdts.build_time_series(
 
 ## 2. Mask clouds
 
-CDTS can automatically identify the satellite platform (Sentinel-2, Landsat) and apply semantic cloud masking natively before returning the cube. Just pass `apply_cloud_mask=True`. 
+Zeit can automatically identify the satellite platform (Sentinel-2, Landsat) and apply semantic cloud masking natively before returning the cube. Just pass `apply_cloud_mask=True`. 
 This will automatically download the respective Quality Assurance (QA) band (like `scl` for Sentinel) and mask out clouds, shadows, and cirrus.
 
 ```python
-cube_clean = cdts.build_time_series(
+cube_clean = zeit.build_time_series(
     source="earth_search",
     collection="sentinel-2-l2a",
     tiles=["22JFQ"],
@@ -70,15 +70,15 @@ cube_clean = cdts.build_time_series(
 
 `build_time_series` is not hardcoded to Sentinel-2/Landsat — it talks to any STAC API, so switching `source`/`collection`/`bands` is enough to pull other sensors from a catalog that hosts them. Microsoft Planetary Computer is the most complete public option for MODIS and Sentinel-1.
 
-**Caveat:** `apply_cloud_mask=True` only knows how to decode Sentinel-2's `scl` and Landsat's `qa_pixel` bands (see `cdts/cube.py`). For MODIS and Sentinel-1, leave `apply_cloud_mask=False` and handle QA/no cloud-masking as shown below.
+**Caveat:** `apply_cloud_mask=True` only knows how to decode Sentinel-2's `scl` and Landsat's `qa_pixel` bands (see `zeit/cube.py`). For MODIS and Sentinel-1, leave `apply_cloud_mask=False` and handle QA/no cloud-masking as shown below.
 
 **MODIS (vegetation indices, 250m/16-day)**
 
 ```python
-import cdts
-from cdts.qc import qc_modis_summary
+import zeit
+from zeit.qc import qc_modis_summary
 
-cube_modis = cdts.build_time_series(
+cube_modis = zeit.build_time_series(
     source="planetary_computer",
     collection="modis-13Q1-061",  # NDVI/EVI 250m, 16-day composites (modis-09A1-061 for 500m/8-day surface reflectance)
     bbox=[-52.10, -12.55, -51.95, -12.40],
@@ -95,12 +95,12 @@ qa = cube_modis.sel(band="250m_16_days_pixel_reliability")
 weights = qc_modis_summary(qa)
 ```
 
-For 500m 8-day surface reflectance (`modis-09A1-061`), decode the `sur_refl_state_500m` QA band with `cdts.qc.qc_modis_state` instead.
+For 500m 8-day surface reflectance (`modis-09A1-061`), decode the `sur_refl_state_500m` QA band with `zeit.qc.qc_modis_state` instead.
 
 **Sentinel-1 SAR (radar, no clouds)**
 
 ```python
-cube_s1 = cdts.build_time_series(
+cube_s1 = zeit.build_time_series(
     source="planetary_computer",
     collection="sentinel-1-rtc",  # radiometrically terrain-corrected, analysis-ready (prefer this over the raw "sentinel-1-grd" unless you plan to do RTC yourself)
     bbox=[-52.10, -12.55, -51.95, -12.40],
@@ -120,10 +120,10 @@ Neither `earth_search` nor `brazil_data_cube` currently expose MODIS or Sentinel
 
 Raw STAC data usually comes in irregular time steps (e.g., passing every 5, 8, or 12 days). For advanced Machine Learning and TWDTW, you must regularize the cube to fixed temporal steps.
 
-You can use `cdts.regularize_time_series` to composite these observations into regular windows (e.g., 16-day composites) using multi-dimensional `medoid` or `median` strategies. Because it uses `xarray`, this computation remains fully lazy!
+You can use `zeit.regularize_time_series` to composite these observations into regular windows (e.g., 16-day composites) using multi-dimensional `medoid` or `median` strategies. Because it uses `xarray`, this computation remains fully lazy!
 
 ```python
-from cdts import regularize_time_series
+from zeit import regularize_time_series
 
 # Create a 16-day Medoid composite
 cube_16d = regularize_time_series(cube_clean, freq="16D", method="medoid")
@@ -139,7 +139,7 @@ If you wish to obtain only a specific spectral index like NDVI, there are two po
 **1. The index is pre-calculated by the provider**
 If the catalog (such as Brazil Data Cube) natively provides an `ndvi` asset, you can fetch it directly without downloading the raw optical bands:
 ```python
-cube_ndvi = cdts.build_time_series(
+cube_ndvi = zeit.build_time_series(
     source="brazil_data_cube",
     collection="CBERS4A_WFI_L4_SR",
     tiles=["022024"],
@@ -148,9 +148,9 @@ cube_ndvi = cdts.build_time_series(
 ```
 
 **2. The index is NOT pre-calculated (e.g., Earth Search)**
-Standard Level-2A collections typically do not store the index to save space. You must explicitly download the `red` and `nir` bands and calculate the index locally. Because CDTS is built on Dask, this mathematical operation is lazy and virtually memory-free until you save it or plot it.
+Standard Level-2A collections typically do not store the index to save space. You must explicitly download the `red` and `nir` bands and calculate the index locally. Because Zeit is built on Dask, this mathematical operation is lazy and virtually memory-free until you save it or plot it.
 ```python
-cube_raw = cdts.build_time_series(
+cube_raw = zeit.build_time_series(
     source="earth_search",
     collection="sentinel-2-l2a",
     tiles=["22JFQ"],
@@ -171,22 +171,22 @@ Even after masking and compositing, some cloud-affected values remain. Two smoot
 </figure>
 
 ```python
-from cdts.smooth import apply_savgol_filter, apply_whittaker_filter
+from zeit.smooth import apply_savgol_filter, apply_whittaker_filter
 
 smooth_sg = apply_savgol_filter(ndvi, window_length=7, polyorder=2)
 
-weights = clear.astype(float)             # 1 = clear, 0 = cloudy, or QA weights from cdts.qc
+weights = clear.astype(float)             # 1 = clear, 0 = cloudy, or QA weights from zeit.qc
 smooth_wh = apply_whittaker_filter(ndvi, lmbd=10, weights=weights)
 ```
 
-`lmbd` sets the smoothness of the Whittaker filter: larger values give a stiffer curve. For per-observation weights from a QA band, see `cdts.qc` (`qc_sentinel2_scl`, `qc_modis_summary`, `qc_modis_state`).
+`lmbd` sets the smoothness of the Whittaker filter: larger values give a stiffer curve. For per-observation weights from a QA band, see `zeit.qc` (`qc_sentinel2_scl`, `qc_modis_summary`, `qc_modis_state`).
 
 ## Local GeoTIFFs instead of a catalog
 
 Already have the files on disk? `build_local_cube` builds the same kind of lazy cube from a folder, parsing dates and bands from the file names.
 
 ```python
-from cdts import build_local_cube
+from zeit import build_local_cube
 
 # Assume you have files like: "SENTINEL_20220101_B02.tif"
 # The regex must capture (?P<date>...) and (?P<band>...)

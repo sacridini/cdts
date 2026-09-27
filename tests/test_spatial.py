@@ -1,7 +1,7 @@
 import numpy as np
 import rasterio
 import os
-from cdts.spatial import apply_mmu_filter
+from zeit.spatial import apply_mmu_filter
 
 def test_apply_mmu_filter(tmp_path):
     # Create a dummy raster with salt and pepper noise
@@ -49,7 +49,7 @@ def test_apply_mmu_filter(tmp_path):
     assert np.all(filtered[6:10, 0:3] == 1)
 
 
-from cdts.spatial import apply_majority_filter
+from zeit.spatial import apply_majority_filter
 
 def test_majority_filter():
     # Create a 5x5 image with salt and pepper noise

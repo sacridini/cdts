@@ -3,10 +3,10 @@
 #include <pybind11/numpy.h>
 #include <cstdint>
 
-namespace cdts {
+namespace zeit {
 namespace som {
 
-// Codes shared with cdts/ai/som.py (keep in sync).
+// Codes shared with zeit/ai/som.py (keep in sync).
 // Learning-rate decay: 0 asymptotic_decay, 1 inverse_decay_to_zero, 2 linear_decay_to_zero
 // Sigma decay:         0 asymptotic_decay, 1 inverse_decay_to_one,  2 linear_decay_to_one
 // Neighborhood:        0 gaussian, 1 mexican_hat, 2 bubble, 3 triangle
@@ -51,4 +51,4 @@ pybind11::array_t<int> predict_bmus(
     int n_jobs);
 
 } // namespace som
-} // namespace cdts
+} // namespace zeit

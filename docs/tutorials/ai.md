@@ -1,6 +1,6 @@
 # Deep Learning
 
-<p class="lead">When you have labelled examples, neural networks usually give the most accurate land-cover and change maps. <code>cdts.ai</code> provides PyTorch implementations of the architectures most used for satellite image time series, ported layer for layer from their reference code so that trained weights are interchangeable.</p>
+<p class="lead">When you have labelled examples, neural networks usually give the most accurate land-cover and change maps. <code>zeit.ai</code> provides PyTorch implementations of the architectures most used for satellite image time series, ported layer for layer from their reference code so that trained weights are interchangeable.</p>
 
 <figure markdown>
   ![TempCNN trained on four synthetic land-cover classes: samples, accuracy per epoch and confusion matrix](../assets/figures/tempcnn_training.png)
@@ -30,9 +30,9 @@
 
 ```python
 from torch.utils.data import DataLoader
-from cdts.ai import STACCubeDataset
+from zeit.ai import STACCubeDataset
 
-# cube: (time, band, y, x) DataArray, e.g. from cdts.build_time_series
+# cube: (time, band, y, x) DataArray, e.g. from zeit.build_time_series
 dataset = STACCubeDataset(cube, patch_size=64, stride=64)
 
 patch, dates = dataset[0]
@@ -48,10 +48,10 @@ The dataset yields images only. For supervised training, pair each patch with it
 
 ## Loss functions for imbalanced classes
 
-Imbalanced classes are very common in change detection and land-cover classification (where the class of interest is often a small minority of pixels). `cdts.ai.losses` provides three specialized loss functions used throughout the per-model tutorials:
+Imbalanced classes are very common in change detection and land-cover classification (where the class of interest is often a small minority of pixels). `zeit.ai.losses` provides three specialized loss functions used throughout the per-model tutorials:
 
 ```python
-from cdts.ai.losses import FocalLoss, TverskyLoss, ContrastiveSiameseLoss
+from zeit.ai.losses import FocalLoss, TverskyLoss, ContrastiveSiameseLoss
 
 # Down-weights easy examples, focuses training on hard-to-classify pixels
 criterion = FocalLoss(alpha=0.25, gamma=2.0)

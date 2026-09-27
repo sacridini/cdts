@@ -2,9 +2,9 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 
-from cdts._core.bfastlite import bfast_lite, fit_bfast_lite_batch
-from cdts.bfast import run_bfast_lite_dask, bfl_metric_names
-import cdts.xarray_api  # noqa: F401 - registers the .cdts accessor
+from zeit._core.bfastlite import bfast_lite, fit_bfast_lite_batch
+from zeit.bfast import run_bfast_lite_dask, bfl_metric_names
+import zeit.xarray_api  # noqa: F401 - registers the .zeit accessor
 
 FREQ = 23
 
@@ -112,7 +112,7 @@ def test_xarray_accessor_run_bfast_lite():
     data = da.from_array(block, chunks=(time_steps, 3, 3))
 
     ds = xr.DataArray(data, dims=["time", "y", "x"], coords={"y": np.arange(rows), "x": np.arange(cols)})
-    res = ds.cdts.run_bfast_lite(start_time=2000.0, frequency=FREQ, max_breaks_output=max_breaks)
+    res = ds.zeit.run_bfast_lite(start_time=2000.0, frequency=FREQ, max_breaks_output=max_breaks)
 
     assert isinstance(res, xr.DataArray)
     assert res.dims == ("metric", "y", "x")

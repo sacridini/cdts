@@ -6,9 +6,9 @@
 
 ### `build_time_series` { .api }
 
-<!-- sig: cdts.cube.build_time_series -->
+<!-- sig: zeit.cube.build_time_series -->
 ```python
-cdts.cube.build_time_series(
+zeit.cube.build_time_series(
     source="earth_search", collection="sentinel-2-l2a", bbox=None,
     vector_path=None, tiles=None, start_date="2020-01-01",
     end_date="2020-12-31", cloud_cover_max=30, bands=None,
@@ -17,7 +17,7 @@ cdts.cube.build_time_series(
 )
 ```
 
-Builds a lazy, Dask-backed `xarray.DataArray` from a STAC catalog. It searches the catalog, keeps the items matching the area, dates and cloud-cover limit, and stacks them into an aligned cube shaped `(time, band, y, x)`. Nothing is downloaded until the cube is computed. Also exported as `cdts.build_time_series`. Tutorial: [STAC Data Cubes](../tutorials/stac-downloads.md).
+Builds a lazy, Dask-backed `xarray.DataArray` from a STAC catalog. It searches the catalog, keeps the items matching the area, dates and cloud-cover limit, and stacks them into an aligned cube shaped `(time, band, y, x)`. Nothing is downloaded until the cube is computed. Also exported as `zeit.build_time_series`. Tutorial: [STAC Data Cubes](../tutorials/stac-downloads.md).
 
 <div class="params" markdown>
 
@@ -42,9 +42,9 @@ Builds a lazy, Dask-backed `xarray.DataArray` from a STAC catalog. It searches t
 **Returns** a lazy `xarray.DataArray` `(time, band, y, x)`.
 
 ```python
-import cdts
+import zeit
 
-cube = cdts.build_time_series(
+cube = zeit.build_time_series(
     source="earth_search",
     collection="sentinel-2-l2a",
     bbox=[-48.0, -16.0, -47.9, -15.9],
@@ -59,14 +59,14 @@ cube = cdts.build_time_series(
 
 ### `build_local_cube` { .api }
 
-<!-- sig: cdts.local.build_local_cube -->
+<!-- sig: zeit.local.build_local_cube -->
 ```python
-cdts.local.build_local_cube(
+zeit.local.build_local_cube(
     data_dir, regex_pattern, date_format="%Y%m%d",
 )
 ```
 
-Builds the same kind of lazy cube from a folder of GeoTIFFs, reading the date and band of each file from its name. Also exported as `cdts.build_local_cube`.
+Builds the same kind of lazy cube from a folder of GeoTIFFs, reading the date and band of each file from its name. Also exported as `zeit.build_local_cube`.
 
 <div class="params" markdown>
 
@@ -79,7 +79,7 @@ Builds the same kind of lazy cube from a folder of GeoTIFFs, reading the date an
 </div>
 
 ```python
-cube = cdts.build_local_cube(
+cube = zeit.build_local_cube(
     "/data/tiles",
     regex_pattern=r".*_(?P<date>\d{8})_(?P<band>B\d{2})\.tif",
 )
@@ -87,9 +87,9 @@ cube = cdts.build_local_cube(
 
 ### `download_gee_timeseries` { .api }
 
-<!-- sig: cdts.gee.download_gee_timeseries -->
+<!-- sig: zeit.gee.download_gee_timeseries -->
 ```python
-cdts.gee.download_gee_timeseries(
+zeit.gee.download_gee_timeseries(
     roi, start_date, end_date, out_dir, method="auto",
     composite_type="annual", bands=None, project=None,
 )
@@ -112,7 +112,7 @@ Builds harmonised Landsat 5/7/8/9 composites on Google Earth Engine and download
 </div>
 
 ```python
-from cdts.gee import download_gee_timeseries
+from zeit.gee import download_gee_timeseries
 
 download_gee_timeseries(
     roi="217/076",                      # WRS-2 path/row; or a bbox, .shp, .gpkg, .tif ...
@@ -126,9 +126,9 @@ Masked pixels are written as `-inf` (float outputs). Convert them to `NaN` befor
 
 ### `download_gee_image` { .api }
 
-<!-- sig: cdts.gee.downloader.download_gee_image -->
+<!-- sig: zeit.gee.downloader.download_gee_image -->
 ```python
-cdts.gee.downloader.download_gee_image(
+zeit.gee.downloader.download_gee_image(
     image, roi, out_filename, method="auto", scale=30, tile_size=None,
     sub_tile_workers=16, crs="EPSG:4326", max_tile_mb=None,
     max_direct_mb=4096, max_retries=5, base_backoff=5.0,
@@ -158,11 +158,11 @@ Downloads one `ee.Image` to a local GeoTIFF by the fastest route that works. Thi
 **Returns** the output path, or `None` if the download failed (nothing is written in that case).
 
 ```python
-from cdts.gee.auth import initialize_gee
-from cdts.gee.roi import resolve_roi
-from cdts.gee.harmonization import get_harmonized_collection
-from cdts.gee.composites import create_annual_medoid
-from cdts.gee.downloader import download_gee_image
+from zeit.gee.auth import initialize_gee
+from zeit.gee.roi import resolve_roi
+from zeit.gee.harmonization import get_harmonized_collection
+from zeit.gee.composites import create_annual_medoid
+from zeit.gee.downloader import download_gee_image
 
 initialize_gee(project="my-gcp-project")
 roi = resolve_roi("data/study_area.gpkg")       # or "217/076", "23KPQ", a bbox ...
@@ -176,9 +176,9 @@ for year in range(1985, 2026):
 
 ### `resolve_roi` { .api }
 
-<!-- sig: cdts.gee.roi.resolve_roi -->
+<!-- sig: zeit.gee.roi.resolve_roi -->
 ```python
-cdts.gee.roi.resolve_roi(roi)
+zeit.gee.roi.resolve_roi(roi)
 ```
 
 Turns any supported area description into the `ee.Geometry` the Earth Engine functions need, so your code never builds Earth Engine objects. Local inputs are reduced to their bounding box.
@@ -202,20 +202,20 @@ Turns any supported area description into the `ee.Geometry` the Earth Engine fun
 | shapely geometry | `box(...)` | Its bounds (assumed lon/lat) |
 | `ee.Geometry` | | Passed through |
 
-Sentinel-1 has no fixed tiling grid, so describe Sentinel-1 areas with any of the other inputs. Two offline helpers live in the same module: `cdts.gee.roi.roi_bounds(roi)` returns the lon/lat bounding box of a local input or a Sentinel-2 tile, and `cdts.gee.roi.s2_tile_utm_bounds("23KPQ")` returns a tile's exact UTM box, e.g. `("EPSG:32723", (600000, 7390200, 709800, 7500000))`.
+Sentinel-1 has no fixed tiling grid, so describe Sentinel-1 areas with any of the other inputs. Two offline helpers live in the same module: `zeit.gee.roi.roi_bounds(roi)` returns the lon/lat bounding box of a local input or a Sentinel-2 tile, and `zeit.gee.roi.s2_tile_utm_bounds("23KPQ")` returns a tile's exact UTM box, e.g. `("EPSG:32723", (600000, 7390200, 709800, 7500000))`.
 
 ## Compositing
 
 ### `regularize_time_series` { .api }
 
-<!-- sig: cdts.regularize.regularize_time_series -->
+<!-- sig: zeit.regularize.regularize_time_series -->
 ```python
-cdts.regularize.regularize_time_series(
+zeit.regularize.regularize_time_series(
     cube, freq="16D", method="median",
 )
 ```
 
-Composites an irregular cube to a fixed time step (16-day, monthly, yearly) with the median or the medoid of each window. Stays lazy. Also exported as `cdts.regularize_time_series`.
+Composites an irregular cube to a fixed time step (16-day, monthly, yearly) with the median or the medoid of each window. Stays lazy. Also exported as `zeit.regularize_time_series`.
 
 <div class="params" markdown>
 
@@ -228,16 +228,16 @@ Composites an irregular cube to a fixed time step (16-day, monthly, yearly) with
 </div>
 
 ```python
-cube_16d = cdts.regularize_time_series(cube, freq="16D", method="medoid")
+cube_16d = zeit.regularize_time_series(cube, freq="16D", method="medoid")
 ```
 
 ## Reading and writing rasters
 
 ### `load_raster` { .api }
 
-<!-- sig: cdts.io.load_raster -->
+<!-- sig: zeit.io.load_raster -->
 ```python
-cdts.io.load_raster(file_path, raster_check=None)
+zeit.io.load_raster(file_path, raster_check=None)
 ```
 
 Reads a GeoTIFF into a NumPy array `(bands, rows, cols)` and returns it with its rasterio profile. Optionally checks that the data looks right for an algorithm (enough layers, integer-scaled values) and warns if not.
@@ -254,20 +254,20 @@ Reads a GeoTIFF into a NumPy array `(bands, rows, cols)` and returns it with its
 **Returns** `(array, profile)`.
 
 ```python
-stack, profile = cdts.io.load_raster("ndvi_1985_2024.tif", raster_check="landtrendr")
+stack, profile = zeit.io.load_raster("ndvi_1985_2024.tif", raster_check="landtrendr")
 ```
 
 ### `save_raster` { .api }
 
-<!-- sig: cdts.io.save_raster -->
+<!-- sig: zeit.io.save_raster -->
 ```python
-cdts.io.save_raster(
+zeit.io.save_raster(
     array, output_path, reference_cube=None, crs="EPSG:4326",
     transform=None, nodata=None,
 )
 ```
 
-Writes a 2-D, 3-D or 4-D NumPy array (or an xarray `DataArray`) as a compressed, tiled GeoTIFF. The georeferencing comes from `reference_cube`, or from `crs` and `transform`. Also exported as `cdts.save_raster`.
+Writes a 2-D, 3-D or 4-D NumPy array (or an xarray `DataArray`) as a compressed, tiled GeoTIFF. The georeferencing comes from `reference_cube`, or from `crs` and `transform`. Also exported as `zeit.save_raster`.
 
 <div class="params" markdown>
 
@@ -283,18 +283,18 @@ Writes a 2-D, 3-D or 4-D NumPy array (or an xarray `DataArray`) as a compressed,
 </div>
 
 ```python
-cdts.save_raster(loss["yod"], "year_of_loss.tif",
+zeit.save_raster(loss["yod"], "year_of_loss.tif",
                  crs=profile["crs"], transform=profile["transform"], nodata=0)
 ```
 
 ### `get_georef` { .api }
 
-<!-- sig: cdts.io.get_georef -->
+<!-- sig: zeit.io.get_georef -->
 ```python
-cdts.io.get_georef(reference_cube)
+zeit.io.get_georef(reference_cube)
 ```
 
-Extracts `{"crs": ..., "transform": ...}` from a rasterio dataset or an xarray object. Handy for `snic_to_polygons` or custom writers. Also exported as `cdts.get_georef`.
+Extracts `{"crs": ..., "transform": ...}` from a rasterio dataset or an xarray object. Handy for `snic_to_polygons` or custom writers. Also exported as `zeit.get_georef`.
 
 <div class="params" markdown>
 
@@ -310,9 +310,9 @@ Decoders ported from `phenofit`'s `qcFUN.R`. Each turns a sensor's QA band into 
 
 ### `qc_sentinel2_scl` { .api }
 
-<!-- sig: cdts.qc.qc_sentinel2_scl -->
+<!-- sig: zeit.qc.qc_sentinel2_scl -->
 ```python
-cdts.qc.qc_sentinel2_scl(scl, wmin=0.2, wmid=0.5, wmax=1.0)
+zeit.qc.qc_sentinel2_scl(scl, wmin=0.2, wmid=0.5, wmax=1.0)
 ```
 
 Sentinel-2 L2A Scene Classification Layer: vegetation, bare soil, water, unclassified and thin cirrus get `wmax`; medium-probability cloud gets `wmid`; everything else (saturated, shadow, high-probability cloud, snow, no data) gets `wmin`.
@@ -328,9 +328,9 @@ Sentinel-2 L2A Scene Classification Layer: vegetation, bare soil, water, unclass
 
 ### `qc_modis_summary` { .api }
 
-<!-- sig: cdts.qc.qc_modis_summary -->
+<!-- sig: zeit.qc.qc_modis_summary -->
 ```python
-cdts.qc.qc_modis_summary(qa, wmin=0.2, wmid=0.5, wmax=1.0)
+zeit.qc.qc_modis_summary(qa, wmin=0.2, wmid=0.5, wmax=1.0)
 ```
 
 MOD13 "SummaryQA" / pixel reliability: `0` good → `wmax`, `1` marginal → `wmid`, `2` snow and `3` cloudy → `wmin`, fill → `0`.
@@ -345,16 +345,16 @@ MOD13 "SummaryQA" / pixel reliability: `0` good → `wmax`, `1` marginal → `wm
 </div>
 
 ```python
-from cdts.qc import qc_modis_summary
+from zeit.qc import qc_modis_summary
 
 weights = qc_modis_summary(qa_cube)          # same shape as qa_cube
 ```
 
 ### `qc_modis_state` { .api }
 
-<!-- sig: cdts.qc.qc_modis_state -->
+<!-- sig: zeit.qc.qc_modis_state -->
 ```python
-cdts.qc.qc_modis_state(qa, wmin=0.2, wmid=0.5, wmax=1.0)
+zeit.qc.qc_modis_state(qa, wmin=0.2, wmid=0.5, wmax=1.0)
 ```
 
 MOD09 500 m 16-bit "State QA": decodes cloud state, cloud shadow, aerosol quantity and snow/ice bits.

@@ -1,6 +1,6 @@
 # Choosing an Algorithm
 
-<p class="lead">CDTS implements more than a dozen methods. Most projects need one or two. Start from the question you are trying to answer, and let it pick the method.</p>
+<p class="lead">Zeit implements more than a dozen methods. Most projects need one or two. Start from the question you are trying to answer, and let it pick the method.</p>
 
 ## Start from your question
 

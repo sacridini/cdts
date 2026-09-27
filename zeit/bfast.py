@@ -2,9 +2,9 @@ import numpy as np
 import dask.array as da
 from typing import Optional
 
-from cdts._core.bfastmonitor import fit_bfast_monitor_batch
-from cdts._core.bfastlite import fit_bfast_lite_batch
-from cdts._core.bfast import fit_bfast_batch
+from zeit._core.bfastmonitor import fit_bfast_monitor_batch
+from zeit._core.bfastlite import fit_bfast_lite_batch
+from zeit._core.bfast import fit_bfast_batch
 
 # breakpoint, breakpoint_idx, magnitude, sigma, n_history, has_break, valid
 N_BFM_METRICS = 7
@@ -156,7 +156,7 @@ def run_bfast_lite_dask(
     breakpoints are reported via `max_breaks_output` (extra slots are
     NaN-padded; pixels needing more are simply not fully described - raise
     `max_breaks_output` if that matters for your data). Output row names:
-    `cdts.bfast.bfl_metric_names(max_breaks_output)`.
+    `zeit.bfast.bfl_metric_names(max_breaks_output)`.
 
     start_time: the series' start time (e.g. 2000.0), same convention as
     run_bfast_monitor_dask.

@@ -2,13 +2,13 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 import dask.distributed
-import cdts
+import zeit
 import os
 import shutil
 
 def main():
     print('=' * 60)
-    print('CDTS Example 07: Dask, Zarr, and Cloud Strategy A')
+    print('Zeit Example 07: Dask, Zarr, and Cloud Strategy A')
     print('=' * 60)
 
     # 1. Start a local Dask cluster with 1 Worker (Strategy A: OpenMP handles threads)
@@ -38,8 +38,8 @@ def main():
     # 3. Apply LandTrendr across the cluster using Strategy A
     print('
 [3/4] Mapping LandTrendr across the Dask cluster...')
-    print('      Note: n_jobs=-1 tells CDTS to use all CPU cores via OpenMP inside each chunk!')
-    lt_results = cube.cdts.run_landtrendr(years=years, max_segments=4, n_jobs=-1)
+    print('      Note: n_jobs=-1 tells Zeit to use all CPU cores via OpenMP inside each chunk!')
+    lt_results = cube.zeit.run_landtrendr(years=years, max_segments=4, n_jobs=-1)
     
     # 4. Save the results directly to Zarr format
     zarr_output = 'scratch_output_landtrendr.zarr'
@@ -49,7 +49,7 @@ def main():
     print(f'
 [4/4] Executing computation and writing to {zarr_output}...')
     # We use our optimized Zarr exporter
-    lt_results.cdts.to_zarr_optimized(zarr_output, chunk_size={'y': 250, 'x': 250})
+    lt_results.zeit.to_zarr_optimized(zarr_output, chunk_size={'y': 250, 'x': 250})
     
     # Verify the saved output
     saved_ds = xr.open_zarr(zarr_output)

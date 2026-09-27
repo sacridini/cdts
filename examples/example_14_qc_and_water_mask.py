@@ -3,16 +3,16 @@ Example 14: QA-Band Decoding and CCDC Water Mask End-to-End
 
 Loads synthetic MODIS "State QA" and Sentinel-2 "Scene Classification
 Layer" (SCL) bands (no network needed) and decodes them into per-observation
-reliability weights with `cdts.qc_modis_state` / `cdts.qc_sentinel2_scl`
-(the same weights `DataArray.cdts.run_phenology` accepts). Also builds a
+reliability weights with `zeit.qc_modis_state` / `zeit.qc_sentinel2_scl`
+(the same weights `DataArray.zeit.run_phenology` accepts). Also builds a
 synthetic CCDC coefficient stack with a fake "lake" footprint and extracts a
-persistent water mask from it with `cdts.extract_water_mask`. Saves
-everything with `cdts.save_raster`.
+persistent water mask from it with `zeit.extract_water_mask`. Saves
+everything with `zeit.save_raster`.
 """
 import os
 import numpy as np
 from rasterio.transform import from_origin
-import cdts
+import zeit
 
 
 def build_modis_state_qa(rows=30, cols=30, seed=6):
@@ -70,38 +70,38 @@ def build_fake_ccdc_water_scene(rows=30, cols=30, num_bands=6, green_idx=1, swir
 
 
 def main():
-    print("CDTS Example 14: QA-Band Decoding and CCDC Water Mask")
+    print("Zeit Example 14: QA-Band Decoding and CCDC Water Mask")
 
     rows, cols = 30, 30
     transform = from_origin(500000.0, 8800000.0, 30.0, 30.0)
 
     print(f"\n[1/4] Decoding a synthetic MODIS State QA layer ({rows}x{cols} px)...")
     modis_qa = build_modis_state_qa(rows=rows, cols=cols)
-    modis_weights = cdts.qc_modis_state(modis_qa)
+    modis_weights = zeit.qc_modis_state(modis_qa)
     print(f"    Weight distribution: {np.mean(modis_weights == 1.0):.1%} good, "
           f"{np.mean(modis_weights == 0.5):.1%} marginal, {np.mean(modis_weights == 0.2):.1%} bad.")
     out_modis = os.path.join("data", "qc_modis_state_weights.tif")
-    cdts.save_raster(modis_weights.astype("float32"), out_modis, crs="EPSG:32721", transform=transform, nodata=-1.0)
+    zeit.save_raster(modis_weights.astype("float32"), out_modis, crs="EPSG:32721", transform=transform, nodata=-1.0)
     print(f"    Saved -> {out_modis}")
 
     print(f"\n[2/4] Decoding a synthetic Sentinel-2 SCL layer ({rows}x{cols} px)...")
     scl = build_sentinel2_scl(rows=rows, cols=cols)
-    scl_weights = cdts.qc_sentinel2_scl(scl)
+    scl_weights = zeit.qc_sentinel2_scl(scl)
     print(f"    Weight distribution: {np.mean(scl_weights == 1.0):.1%} good, "
           f"{np.mean(scl_weights == 0.5):.1%} marginal, {np.mean(scl_weights == 0.2):.1%} bad.")
     out_scl = os.path.join("data", "qc_sentinel2_scl_weights.tif")
-    cdts.save_raster(scl_weights.astype("float32"), out_scl, crs="EPSG:32721", transform=transform, nodata=-1.0)
+    zeit.save_raster(scl_weights.astype("float32"), out_scl, crs="EPSG:32721", transform=transform, nodata=-1.0)
     print(f"    Saved -> {out_scl}")
 
     print(f"\n[3/4] Extracting a persistent water mask from a synthetic CCDC coefficient stack...")
     coefs, lake_truth = build_fake_ccdc_water_scene(rows=rows, cols=cols)
-    water_mask = cdts.extract_water_mask(coefs, green_band_idx=1, swir_band_idx=4)
+    water_mask = zeit.extract_water_mask(coefs, green_band_idx=1, swir_band_idx=4)
     hit_rate = (water_mask.astype(bool) == lake_truth).mean()
     print(f"    Agreement with the injected lake footprint: {hit_rate:.1%}.")
 
-    print("\n[4/4] Saving results with cdts.save_raster()...")
+    print("\n[4/4] Saving results with zeit.save_raster()...")
     out_water = os.path.join("data", "ccdc_water_mask.tif")
-    cdts.save_raster(water_mask.astype("uint8"), out_water, crs="EPSG:32721", transform=transform, nodata=255)
+    zeit.save_raster(water_mask.astype("uint8"), out_water, crs="EPSG:32721", transform=transform, nodata=255)
     print(f"    Saved -> {out_water}")
 
     print("\nDone!")

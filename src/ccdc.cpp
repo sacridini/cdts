@@ -26,7 +26,7 @@
 #include <omp.h>
 #endif
 
-namespace cdts {
+namespace zeit {
 namespace ccdc {
 
 namespace {
@@ -920,4 +920,4 @@ pybind11::tuple fit_ccdc_batch(
 }
 
 } // namespace ccdc
-} // namespace cdts
+} // namespace zeit

@@ -3,7 +3,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
-namespace cdts {
+namespace zeit {
 namespace landtrendr {
 
 // Struct to hold parameters for LandTrendr
@@ -72,4 +72,4 @@ pybind11::tuple fit_trajectory_batch(
     int n_jobs = -1);
 
 } // namespace landtrendr
-} // namespace cdts
+} // namespace zeit

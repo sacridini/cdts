@@ -43,7 +43,7 @@
 //    for this one-time STL seed only - the iterative trend/season fits
 //    themselves still skip NaN rows natively, as in bfast_lite/bfast_monitor.
 
-namespace cdts {
+namespace zeit {
 namespace bfast {
 
 struct BFResult {
@@ -89,4 +89,4 @@ pybind11::array_t<double> fit_bfast_batch(
     int n_jobs = -1);
 
 } // namespace bfast
-} // namespace cdts
+} // namespace zeit

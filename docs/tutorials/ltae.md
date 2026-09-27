@@ -11,12 +11,12 @@ The Lightweight Temporal Attention Encoder (L-TAE) is a compact, fast attention 
 
 > Garnot, V. S. F., & Landrieu, L. (2020). *Satellite image time series classification with pixel-set encoders and temporal self-attention.* CVPR 2020.
 
-`cdts.ai` exposes two related classes:
+`zeit.ai` exposes two related classes:
 
 - **`LTAE`**: the reusable temporal-fusion block itself — takes an encoded `(batch, seq_len, in_channels)` sequence and fuses it into a single `(batch, n_neurons[-1])` embedding via multi-head attention. Useful if you want to plug L-TAE fusion into your own custom architecture (e.g. as the temporal-fusion stage of a spatial-temporal model).
 - **`LightTAE`**: the full, ready-to-train pixel time-series classifier — a small per-pixel MLP spatial encoder, followed by `LTAE` temporal fusion, followed by an MLP decoder to class logits. This is the model you want for standard "classify this pixel's time series into a land-cover class" tasks.
 
-Both were **ported layer-for-layer from the R package [`sits`](https://github.com/e-sensing/sits)'s `sits_lighttae()`** (`.torch_light_temporal_attention_encoder` / `sits_lighttae()` in `sits`'s R/api_torch_psetae.R and R/sits_lighttae.R), so trained weights are directly portable between the two implementations via `state_dict()` — there is no name-translation table needed. This was checked by exporting a trained `sits_lighttae()` model's weights, loading them into `cdts.ai.LightTAE` via `load_state_dict`, and confirming the outputs match `sits`'s own predictions within float32 tolerance on the same input.
+Both were **ported layer-for-layer from the R package [`sits`](https://github.com/e-sensing/sits)'s `sits_lighttae()`** (`.torch_light_temporal_attention_encoder` / `sits_lighttae()` in `sits`'s R/api_torch_psetae.R and R/sits_lighttae.R), so trained weights are directly portable between the two implementations via `state_dict()` — there is no name-translation table needed. This was checked by exporting a trained `sits_lighttae()` model's weights, loading them into `zeit.ai.LightTAE` via `load_state_dict`, and confirming the outputs match `sits`'s own predictions within float32 tolerance on the same input.
 
 ## How It Works
 
@@ -56,7 +56,7 @@ X_train = torch.tensor(np.load("pixel_time_series.npy"), dtype=torch.float32)
 y_train = torch.tensor(np.load("pixel_labels.npy"), dtype=torch.long)
 ```
 
-If you're pulling data from a `cdts` STAC cube rather than pre-extracted `.npy` arrays, reduce the cube to a table of per-pixel time series (e.g. via `.stack(pixel=("y", "x"))` on an `xarray.DataArray`) and compute `day_offsets` from `cube.time`:
+If you're pulling data from a `zeit` STAC cube rather than pre-extracted `.npy` arrays, reduce the cube to a table of per-pixel time series (e.g. via `.stack(pixel=("y", "x"))` on an `xarray.DataArray`) and compute `day_offsets` from `cube.time`:
 
 ```python
 import xarray as xr
@@ -68,7 +68,7 @@ day_offsets = ((cube.time - cube.time[0]) / np.timedelta64(1, "D")).values.tolis
 ## Instantiating the Model
 
 ```python
-from cdts.ai import LightTAE
+from zeit.ai import LightTAE
 
 model = LightTAE(
     n_bands=6,              # number of spectral bands per observation
@@ -91,7 +91,7 @@ model = model.to(device)
 If you want L-TAE's temporal fusion inside a custom architecture (e.g. after your own spatial feature extractor), instantiate it directly:
 
 ```python
-from cdts.ai import LTAE
+from zeit.ai import LTAE
 
 temporal_fusion = LTAE(
     in_channels=128,   # dimensionality of your incoming per-timestep features
@@ -110,7 +110,7 @@ fused = temporal_fusion(x)
 ```python
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-from cdts.ai.losses import FocalLoss
+from zeit.ai.losses import FocalLoss
 
 train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=64, shuffle=True)
 
@@ -151,7 +151,7 @@ For inference over an entire spatial extent, extract each pixel's time series (r
 
 ## Validation Against `sits`
 
-Both `LTAE` and `LightTAE` were validated end-to-end in-session against `sits_lighttae()`: a model trained in R was exported (`state_dict()`-compatible weight names, since the port is layer-for-layer), loaded into `cdts.ai.LightTAE` via `load_state_dict()`, and run on the same input data. Outputs matched `sits`'s predictions within float32 numerical tolerance, confirming a faithful architectural port rather than just a similar-looking reimplementation.
+Both `LTAE` and `LightTAE` were validated end-to-end in-session against `sits_lighttae()`: a model trained in R was exported (`state_dict()`-compatible weight names, since the port is layer-for-layer), loaded into `zeit.ai.LightTAE` via `load_state_dict()`, and run on the same input data. Outputs matched `sits`'s predictions within float32 numerical tolerance, confirming a faithful architectural port rather than just a similar-looking reimplementation.
 
 ---
 

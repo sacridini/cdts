@@ -2,7 +2,7 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 import pytest
-from cdts.regularize import regularize_time_series
+from zeit.regularize import regularize_time_series
 
 def test_regularize_median():
     time = pd.date_range("2020-01-01", periods=5, freq="5D")

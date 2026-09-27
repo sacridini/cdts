@@ -1,6 +1,6 @@
 import numpy as np
-from cdts.metrics import extract_events
-from cdts.ccdc import run_ccdc
+from zeit.metrics import extract_events
+from zeit.ccdc import run_ccdc
 
 def test_extract_events():
     # Shape: (max_vertices * 2, rows, cols)

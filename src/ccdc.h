@@ -3,7 +3,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
-namespace cdts {
+namespace zeit {
 namespace ccdc {
 
 // One time-series model of a pixel -- one element of the original's rec_cg.
@@ -53,4 +53,4 @@ pybind11::tuple fit_ccdc_batch(
     int n_jobs = -1);
 
 } // namespace ccdc
-} // namespace cdts
+} // namespace zeit

@@ -1,6 +1,6 @@
 """Regenerate tests/data/som_minisom_parity.npz from Python MiniSom.
 
-Trains MiniSom (the reference cdts.ai.SOM ports) on the cases below and stores
+Trains MiniSom (the reference zeit.ai.SOM ports) on the cases below and stores
 the input data, the configuration, the initialized and the trained codebook,
 so the parity tests run even where minisom is not installed.
 

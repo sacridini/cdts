@@ -19,7 +19,7 @@
 #include <limits>
 #include <stdexcept>
 
-namespace cdts {
+namespace zeit {
 namespace mannkendall {
 
 namespace {
@@ -511,4 +511,4 @@ pybind11::array_t<double> fit_mann_kendall_batch(
 }
 
 } // namespace mannkendall
-} // namespace cdts
+} // namespace zeit

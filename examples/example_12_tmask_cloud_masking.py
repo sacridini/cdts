@@ -5,12 +5,12 @@ Loads a synthetic Green/SWIR1 datacube (no network needed) with randomly
 injected cloud (high Green) and cloud-shadow (low SWIR) contamination, runs
 the Tmask robust time-series masking algorithm (Zhu & Woodcock, 2014), and
 saves the resulting per-observation clear/cloudy mask stack with
-`cdts.save_raster`.
+`zeit.save_raster`.
 """
 import os
 import numpy as np
 from rasterio.transform import from_origin
-import cdts
+import zeit
 
 
 def build_synthetic_stack(n_obs=140, rows=8, cols=8, seed=4):
@@ -47,7 +47,7 @@ def build_synthetic_stack(n_obs=140, rows=8, cols=8, seed=4):
 
 
 def main():
-    print("CDTS Example 12: Tmask (Time-Series-Based Cloud/Shadow Masking)")
+    print("Zeit Example 12: Tmask (Time-Series-Based Cloud/Shadow Masking)")
 
     rows, cols = 8, 8
     print(f"\n[1/3] Generating synthetic Green/SWIR1 stack ({rows}x{cols} px)...")
@@ -56,21 +56,21 @@ def main():
           f"{int(is_shadow.sum())} shadow-contaminated dates injected.")
 
     print("\n[2/3] Running Tmask (per-pixel robust harmonic regression)...")
-    clear_mask = cdts.apply_tmask_stack(dates_julian, green, swir1, scale_factor=10000.0)
+    clear_mask = zeit.apply_tmask_stack(dates_julian, green, swir1, scale_factor=10000.0)
 
     clear_fraction = clear_mask.mean(axis=0)
     print(f"    Mean fraction of observations flagged clear per pixel: {clear_fraction.mean():.2%} "
           f"(injected contamination rate: {(is_cloud | is_shadow).mean():.2%}).")
 
-    print("\n[3/3] Saving results with cdts.save_raster()...")
+    print("\n[3/3] Saving results with zeit.save_raster()...")
     transform = from_origin(500000.0, 8800000.0, 30.0, 30.0)
 
     out_mask = os.path.join("data", "tmask_clear_mask_stack.tif")
-    cdts.save_raster(clear_mask.astype("uint8"), out_mask, crs="EPSG:32721", transform=transform, nodata=255)
+    zeit.save_raster(clear_mask.astype("uint8"), out_mask, crs="EPSG:32721", transform=transform, nodata=255)
     print(f"    Full clear/cloudy mask stack ({clear_mask.shape[0]} bands, 1=clear/0=cloudy) -> {out_mask}")
 
     out_fraction = os.path.join("data", "tmask_clear_fraction.tif")
-    cdts.save_raster(clear_fraction.astype("float32"), out_fraction, crs="EPSG:32721", transform=transform, nodata=np.nan)
+    zeit.save_raster(clear_fraction.astype("float32"), out_fraction, crs="EPSG:32721", transform=transform, nodata=np.nan)
     print(f"    Per-pixel clear-observation fraction -> {out_fraction}")
 
     print("\nDone!")

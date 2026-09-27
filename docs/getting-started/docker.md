@@ -1,6 +1,6 @@
 # Docker
 
-<p class="lead">Ready-made container images with CDTS, GDAL, PyTorch and JupyterLab. Use them to share an identical environment across a team, or to run CDTS workers on a cluster.</p>
+<p class="lead">Ready-made container images with Zeit, GDAL, PyTorch and JupyterLab. Use them to share an identical environment across a team, or to run Zeit workers on a cluster.</p>
 
 ## Official Docker Images
 
@@ -11,7 +11,7 @@ We provide two Dockerfiles, built the same way but on different base images:
 
 Both images include:
 * System dependencies for C++ compilation and GDAL.
-* Python dependencies and the CDTS package installed in editable mode.
+* Python dependencies and the Zeit package installed in editable mode.
 * JupyterLab for interactive data science.
 
 ## Building and Running
@@ -23,7 +23,7 @@ To build the C++ engines, install PyTorch, and launch a JupyterLab environment, 
 `docker-compose.yml` reserves an NVIDIA GPU for the container (`deploy.resources.reservations.devices`), so it requires the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed on the host in addition to Docker itself.
 
 1. Ensure you have Docker, Docker Compose, and the NVIDIA Container Toolkit installed on your system.
-2. Navigate to the root directory of the CDTS repository.
+2. Navigate to the root directory of the Zeit repository.
 3. Run the following command:
 
 ```bash
@@ -39,7 +39,7 @@ docker-compose up --build
 docker-compose -f docker-compose.cpu.yml up --build
 ```
 
-This builds a separate, CUDA-free image (`Dockerfile.cpu`) and runs it entirely on CPU. On Apple Silicon Macs it builds as a native `arm64` image — no `amd64` emulation, unlike running the default `Dockerfile` would require. `torch.cuda.is_available()` is `False` inside this container, since it has no GPU acceleration at all; it does not have access to the host's Metal/MPS GPU either, since Docker containers can't pass that through. For MPS acceleration on a Mac, use the native `pip install` path from the [installation guide](installation.md#gpu-acceleration-for-cdtsai) instead of Docker.
+This builds a separate, CUDA-free image (`Dockerfile.cpu`) and runs it entirely on CPU. On Apple Silicon Macs it builds as a native `arm64` image — no `amd64` emulation, unlike running the default `Dockerfile` would require. `torch.cuda.is_available()` is `False` inside this container, since it has no GPU acceleration at all; it does not have access to the host's Metal/MPS GPU either, since Docker containers can't pass that through. For MPS acceleration on a Mac, use the native `pip install` path from the [installation guide](installation.md#gpu-acceleration-for-zeitai) instead of Docker.
 
 !!! tip "OpenMP works automatically here, on every Mac chip (M1–M6 and beyond)"
     `setup.py`'s OpenMP detection branches on `sys.platform`, not CPU architecture. Native macOS installs hit the `darwin` branch, which needs Homebrew's `libomp` and the `CFLAGS`/`CXXFLAGS`/`LDFLAGS` exports from the [Installing from Source](installation.md#installing-from-source) guide. Inside `Dockerfile.cpu`, though, the compiler is the container's own GCC running on Linux — `sys.platform` is `linux`, so it takes the plain `-fopenmp` path that Linux and Windows already get for free, with no Homebrew workaround needed. This holds for any host chip, present or future, since it never depends on the host's compiler at all.

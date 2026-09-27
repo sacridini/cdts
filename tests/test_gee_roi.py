@@ -3,7 +3,7 @@ import pytest
 import rasterio
 from rasterio.transform import from_origin
 
-from cdts.gee.roi import parse_mgrs, parse_wrs2, resolve_roi, roi_bounds, s2_tile_utm_bounds
+from zeit.gee.roi import parse_mgrs, parse_wrs2, resolve_roi, roi_bounds, s2_tile_utm_bounds
 
 gpd = pytest.importorskip('geopandas')
 shapely_geometry = pytest.importorskip('shapely.geometry')

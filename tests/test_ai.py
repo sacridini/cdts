@@ -1,6 +1,6 @@
 import torch
-from cdts.ai.tempcnn import TempCNN
-from cdts.ai.utae import LTAE, LightTAE, UTAE
+from zeit.ai.tempcnn import TempCNN
+from zeit.ai.utae import LTAE, LightTAE, UTAE
 
 def test_tempcnn():
     # Batch size 4, 6 bands, 24 timesteps

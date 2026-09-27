@@ -2,12 +2,12 @@
 
 Every API entry in ``docs/api/*.md`` starts with a marker naming the object:
 
-    <!-- sig: cdts.raster.run_landtrendr_array -->
+    <!-- sig: zeit.raster.run_landtrendr_array -->
     ```python
     ...generated...
     ```
 
-Running this script (from the repository root, with CDTS importable):
+Running this script (from the repository root, with Zeit importable):
 
     python docs/scripts/sync_api.py           # rewrite the signature blocks
     python docs/scripts/sync_api.py --check   # only report problems, exit 1 if any
@@ -49,9 +49,9 @@ def fmt_default(value):
 
 
 def display_name(path):
-    # Methods of the xarray accessor read as `DataArray.cdts.method`.
-    if ".CDTSAccessor." in path:
-        return "DataArray.cdts." + path.rsplit(".", 1)[1]
+    # Methods of the xarray accessor read as `DataArray.zeit.method`.
+    if ".ZeitAccessor." in path:
+        return "DataArray.zeit." + path.rsplit(".", 1)[1]
     return path
 
 

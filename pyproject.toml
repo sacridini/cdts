@@ -3,9 +3,9 @@ requires = ["setuptools>=77", "wheel", "pybind11>=2.10.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cdts"
+name = "zeit"
 version = "0.23.0"
-description = "Change Detection and Time Series for Python (CDTS) - LandTrendr and CCDC tools for Python"
+description = "Zeit: Change Detection and Time Series for Python - LandTrendr and CCDC tools"
 license = "GPL-2.0-or-later"
 license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 dependencies = [
@@ -38,4 +38,4 @@ dev = [
 ]
 
 [project.scripts]
-cdts = "cdts.cli:main"
+zeit = "zeit.cli:main"

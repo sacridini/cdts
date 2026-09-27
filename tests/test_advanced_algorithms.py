@@ -1,9 +1,9 @@
 import pytest
 import numpy as np
 
-from cdts.ai.som import SOM
-from cdts.smooth import apply_whittaker_filter
-from cdts.spatial import apply_bayesian_filter
+from zeit.ai.som import SOM
+from zeit.smooth import apply_whittaker_filter
+from zeit.spatial import apply_bayesian_filter
 
 def test_som_filter():
     # Create simple 1D dataset (3 classes)

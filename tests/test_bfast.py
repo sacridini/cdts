@@ -2,9 +2,9 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 
-from cdts._core.bfast import bfast, fit_bfast_batch
-from cdts.bfast import run_bfast_dask, bf_metric_names
-import cdts.xarray_api  # noqa: F401 - registers the .cdts accessor
+from zeit._core.bfast import bfast, fit_bfast_batch
+from zeit.bfast import run_bfast_dask, bf_metric_names
+import zeit.xarray_api  # noqa: F401 - registers the .zeit accessor
 
 FREQ = 23
 N = 200  # > 2*FREQ, the STL seasonal seed's own minimum-length requirement
@@ -159,7 +159,7 @@ def test_xarray_accessor_run_bfast():
     data = da.from_array(block, chunks=(N, 2, 2))
 
     ds = xr.DataArray(data, dims=["time", "y", "x"], coords={"y": np.arange(rows), "x": np.arange(cols)})
-    res = ds.cdts.run_bfast(start_time=2000.0, frequency=FREQ,
+    res = ds.zeit.run_bfast(start_time=2000.0, frequency=FREQ,
                              max_breaks_trend=max_bt, max_breaks_season=max_bs)
 
     assert isinstance(res, xr.DataArray)

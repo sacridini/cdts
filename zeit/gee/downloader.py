@@ -438,7 +438,7 @@ def _download_drive(image: ee.Image, roi: ee.Geometry, out_filename: str, scale:
     filename_no_ext = os.path.splitext(os.path.basename(out_filename))[0]
     # Use the base name of the output directory as the Drive folder name
     out_dir = os.path.dirname(out_filename)
-    drive_folder = os.path.basename(out_dir) if out_dir and os.path.basename(out_dir) else 'CDTS_Downloads'
+    drive_folder = os.path.basename(out_dir) if out_dir and os.path.basename(out_dir) else 'Zeit_Downloads'
 
     task = submit_drive_export(image, filename_no_ext, drive_folder, roi.bounds(), scale=scale, crs=crs)
     print(f"[{filename_no_ext}] Task sent to Google Drive (Task ID: {task.id}). Waiting for completion...")

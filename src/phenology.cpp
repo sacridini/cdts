@@ -85,7 +85,7 @@ PhenologyMetrics extract_metrics(const Eigen::VectorXd& params, CurveType type, 
     metrics.der_eos = t_eval(der_eos_idx);
     metrics.der_pos = metrics.pop;
     
-    // LOS based on DER (standard CDTS default)
+    // LOS based on DER (standard Zeit default)
     metrics.los = metrics.der_eos - metrics.der_sos;
 
     // 2. THRESHOLDS (TRS2: 20%, TRS5: 50%, TRS6: 60%)

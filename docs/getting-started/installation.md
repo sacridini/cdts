@@ -1,27 +1,27 @@
 # Installation
 
-<p class="lead">One command installs CDTS with pre-compiled wheels for Windows, macOS and Linux. Build from source only if you want to change the C++ core or enable multi-threading on macOS.</p>
+<p class="lead">One command installs Zeit with pre-compiled wheels for Windows, macOS and Linux. Build from source only if you want to change the C++ core or enable multi-threading on macOS.</p>
 
 ## Standard Installation
 
-The easiest way to install CDTS is via Python's package manager, `pip`. We provide pre-compiled binaries (wheels) for Windows, macOS, and Linux, supporting Python 3.9 and newer. Because we distribute pre-compiled binaries, **you do not need a C++ compiler** installed on your machine for the standard installation.
+The easiest way to install Zeit is via Python's package manager, `pip`. We provide pre-compiled binaries (wheels) for Windows, macOS, and Linux, supporting Python 3.9 and newer. Because we distribute pre-compiled binaries, **you do not need a C++ compiler** installed on your machine for the standard installation.
 
 ```bash
-pip install cdts
+pip install zeit
 ```
 
 This command automatically installs all required Python dependencies, including `xarray`, `dask`, `scikit-learn`, `rasterio`, `torch`, and `pystac-client`.
 
 !!! note "macOS: Apple Silicon vs. Intel"
-    Prebuilt wheels are published for whichever architecture GitHub Actions' `macos-latest` runner uses at build time, which is Apple Silicon (`arm64`) as of this writing. If `pip install cdts` on an Intel Mac reports no matching distribution, pip will fall back to building from source automatically — see [Installing from Source](#installing-from-source) below for the compiler prerequisites that requires.
+    Prebuilt wheels are published for whichever architecture GitHub Actions' `macos-latest` runner uses at build time, which is Apple Silicon (`arm64`) as of this writing. If `pip install zeit` on an Intel Mac reports no matching distribution, pip will fall back to building from source automatically — see [Installing from Source](#installing-from-source) below for the compiler prerequisites that requires.
 
 ## Verifying the Installation
 
 Once installed, confirm the package and its CLI are working:
 
 ```bash
-python -c "from importlib.metadata import version; print(version('cdts'))"
-cdts --help
+python -c "from importlib.metadata import version; print(version('zeit'))"
+zeit --help
 ```
 
 ## Optional Dependencies
@@ -29,12 +29,12 @@ cdts --help
 For development and running tests, you can install the optional development dependencies:
 
 ```bash
-pip install cdts[dev]
+pip install zeit[dev]
 ```
 
 ## Installing from Source
 
-If you need to modify the C++ backend, use the latest unreleased features, or build the package on an unsupported architecture, you will need to install CDTS from the source.
+If you need to modify the C++ backend, use the latest unreleased features, or build the package on an unsupported architecture, you will need to install Zeit from the source.
 
 ### Requirements
 
@@ -49,8 +49,8 @@ If you need to modify the C++ backend, use the latest unreleased features, or bu
 
 1. Clone the repository from GitHub:
    ```bash
-   git clone https://github.com/sacridini/cdts.git
-   cd cdts
+   git clone https://github.com/sacridini/zeit.git
+   cd zeit
    ```
 
 2. Install the package in editable mode:
@@ -62,9 +62,9 @@ This process will invoke `pybind11` and your system's C++ compiler to build the 
 
 ### Enabling OpenMP on macOS (Apple Silicon & Intel)
 
-By default, the Apple Clang compiler does not include native support for OpenMP. As a result, when installing via standard Wheels or basic source installation, CDTS falls back to single-threaded mode for its C++ mathematical operations on macOS. (Note: Dask still parallelizes effectively at the chunk level).
+By default, the Apple Clang compiler does not include native support for OpenMP. As a result, when installing via standard Wheels or basic source installation, Zeit falls back to single-threaded mode for its C++ mathematical operations on macOS. (Note: Dask still parallelizes effectively at the chunk level).
 
-If you want the maximum possible performance out of the C++ core on macOS, you can enable OpenMP by installing it via Homebrew and compiling CDTS from source:
+If you want the maximum possible performance out of the C++ core on macOS, you can enable OpenMP by installing it via Homebrew and compiling Zeit from source:
 
 1. Install the `libomp` library using Homebrew:
    ```bash
@@ -78,21 +78,21 @@ If you want the maximum possible performance out of the C++ core on macOS, you c
    export LDFLAGS="-L$(brew --prefix libomp)/lib -lomp"
    ```
 
-3. With those exported in the same shell, install CDTS from source. `setup.py` will now detect `libomp` and compile with OpenMP support:
+3. With those exported in the same shell, install Zeit from source. `setup.py` will now detect `libomp` and compile with OpenMP support:
    ```bash
-   pip install --no-binary cdts cdts
+   pip install --no-binary zeit zeit
    # or, if cloning from GitHub: pip install -e .
    ```
 
 ### OpenMP on Windows and Linux
 
-Unlike macOS, Windows (MSVC) and Linux (GCC) ship with native OpenMP support, so no extra steps are needed — `setup.py` enables it automatically for both a standard `pip install cdts` (wheel) and a source install.
+Unlike macOS, Windows (MSVC) and Linux (GCC) ship with native OpenMP support, so no extra steps are needed — `setup.py` enables it automatically for both a standard `pip install zeit` (wheel) and a source install.
 
-## GPU Acceleration for `cdts.ai`
+## GPU Acceleration for `zeit.ai`
 
-The deep learning models in `cdts.ai` (`UTAE`, `LTAE`/`LightTAE`, `TempCNN`, `Siamese Change Detector`, `GeoFoundationViT`) are plain PyTorch `nn.Module`s and run on whatever device you move them to — none of them hard-code CUDA.
+The deep learning models in `zeit.ai` (`UTAE`, `LTAE`/`LightTAE`, `TempCNN`, `Siamese Change Detector`, `GeoFoundationViT`) are plain PyTorch `nn.Module`s and run on whatever device you move them to — none of them hard-code CUDA.
 
-*   **NVIDIA GPUs (Linux/Windows):** the standard `pip install cdts` installs a `torch` build with CUDA support where available. Use `torch.device("cuda")` as usual.
+*   **NVIDIA GPUs (Linux/Windows):** the standard `pip install zeit` installs a `torch` build with CUDA support where available. Use `torch.device("cuda")` as usual.
 *   **Apple Silicon (any M-series chip):** PyTorch's Metal (`mps`) backend gives you native GPU acceleration on macOS — no CUDA or extra install needed, since it ships in the same `torch` package:
     ```python
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
@@ -102,4 +102,4 @@ The deep learning models in `cdts.ai` (`UTAE`, `LTAE`/`LightTAE`, `TempCNN`, `Si
 *   **CPU fallback:** works everywhere, just slower.
 
 !!! note "Docker and MPS"
-    The [Docker image](docker.md) is built on a CUDA base image and has no access to Apple's Metal APIs. To use `mps` acceleration on macOS, install CDTS natively with `pip` rather than through Docker.
+    The [Docker image](docker.md) is built on a CUDA base image and has no access to Apple's Metal APIs. To use `mps` acceleration on macOS, install Zeit natively with `pip` rather than through Docker.

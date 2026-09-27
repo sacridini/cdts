@@ -1,8 +1,8 @@
 import numpy as np
-import cdts
+import zeit
 
 def main():
-    print("CDTS Phenofit: End-to-End Phenology Extraction Example")
+    print("Zeit Phenofit: End-to-End Phenology Extraction Example")
     
     # 1. Simulate a multi-year vegetation time-series (e.g., NDVI for 3 years)
     # We will create a synthetic dataset for 10 pixels over 3 years (16-day composites)
@@ -35,7 +35,7 @@ def main():
     print(f"Created synthetic datacube with shape: {cube_data.shape}")
     
     # 2. Convert to an xarray DataArray (Dask backed)
-    # In a real scenario, this would be returned by cdts.build_time_series()
+    # In a real scenario, this would be returned by zeit.build_time_series()
     import xarray as xr
     import dask.array as da
     
@@ -45,10 +45,10 @@ def main():
     # 3. Run Phenology Extraction
     # We will use the HANTS smoother, double logistic (Beck) curve, and the DERIVATIVE extraction method.
     print("\nRunning Phenology extraction (this will process via C++ / OpenMP)...")
-    pheno_results = xr_cube.cdts.run_phenology(
+    pheno_results = xr_cube.zeit.run_phenology(
         dates=dates,
-        curve_type=cdts.CurveType.BECK,
-        extraction_method=cdts.ExtractionMethod.DERIVATIVE,
+        curve_type=zeit.CurveType.BECK,
+        extraction_method=zeit.ExtractionMethod.DERIVATIVE,
         max_seasons=years,               # Expecting 1 season per year
         
         # Smoothing Configuration

@@ -1,11 +1,11 @@
 version: '3.8'
 
 services:
-  cdts:
+  zeit:
     build:
       context: .
       dockerfile: Dockerfile.cpu
-    container_name: cdts_runtime_cpu
+    container_name: zeit_runtime_cpu
     ports:
       - "8888:8888"
     volumes:

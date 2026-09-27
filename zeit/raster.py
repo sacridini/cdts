@@ -110,8 +110,8 @@ def run_ccdc_array(dates: "np.ndarray", raster_stack: "np.ndarray", qa_stack: "n
     Apply CCDC across a 4D numpy array (bands, time, rows, cols) using C++ OpenMP batch processing.
 
     dates are Python ordinal days, raster_stack surface reflectance x 10000 and
-    qa_stack (time, rows, cols) Fmask codes -- see cdts.ccdc.run_ccdc. Extra
-    keyword arguments are passed on to cdts.ccdc.run_ccdc_batch.
+    qa_stack (time, rows, cols) Fmask codes -- see zeit.ccdc.run_ccdc. Extra
+    keyword arguments are passed on to zeit.ccdc.run_ccdc_batch.
     Returns (max_segments, 3 + bands * 9, rows, cols): t_start, t_end, t_break,
     then per band rmse and the 8 harmonic coefficients.
     """
@@ -422,7 +422,7 @@ def run_bfast_monitor_image(input_path: str, output_dir: str, start_time: float,
     High-level CLI/scripting entry point: runs bfastmonitor over a full
     multi-band time-series GeoTIFF (one band per equally-spaced observation)
     in chunks, writing a single multi-band output GeoTIFF - band order and
-    names match `cdts.bfast.BFM_METRIC_NAMES`.
+    names match `zeit.bfast.BFM_METRIC_NAMES`.
     """
     from .bfast import run_bfast_monitor_dask, BFM_METRIC_NAMES
 
@@ -444,7 +444,7 @@ def run_bfast_lite_image(input_path: str, output_dir: str, start_time: float, fr
     High-level CLI/scripting entry point: runs bfastlite over a full
     multi-band time-series GeoTIFF in chunks, writing a single multi-band
     output GeoTIFF - band order and names match
-    `cdts.bfast.bfl_metric_names(max_breaks_output)`.
+    `zeit.bfast.bfl_metric_names(max_breaks_output)`.
     """
     from .bfast import run_bfast_lite_dask, bfl_metric_names
 
@@ -467,7 +467,7 @@ def run_bfast_image(input_path: str, output_dir: str, start_time: float, frequen
     High-level CLI/scripting entry point: runs the classic iterative
     bfast() over a full multi-band time-series GeoTIFF in chunks, writing a
     single multi-band output GeoTIFF - band order and names match
-    `cdts.bfast.bf_metric_names(max_breaks_trend, max_breaks_season)`.
+    `zeit.bfast.bf_metric_names(max_breaks_trend, max_breaks_season)`.
     """
     from .bfast import run_bfast_dask, bf_metric_names
 
@@ -490,7 +490,7 @@ def run_mann_kendall_image(input_path: str, output_dir: str, method: str = "hame
     High-level CLI/scripting entry point: runs the Mann-Kendall trend test +
     Theil-Sen slope estimator over a full multi-band time-series GeoTIFF (one
     band per observation) in chunks, writing a single multi-band output
-    GeoTIFF - band order and names match `cdts.trend.MK_METRIC_NAMES`.
+    GeoTIFF - band order and names match `zeit.trend.MK_METRIC_NAMES`.
     """
     from .trend import run_mann_kendall_dask, MK_METRIC_NAMES
 

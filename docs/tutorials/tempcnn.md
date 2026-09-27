@@ -16,7 +16,7 @@ TempCNN is a 1D convolutional neural network designed for classifying **per-pixe
 
 > Pelletier, C., Webb, G. I., & Petitjean, F. (2019). *Temporal convolutional neural network for the classification of satellite image time series*. **Remote Sensing**, 11(5), 523. [https://doi.org/10.3390/rs11050523](https://doi.org/10.3390/rs11050523)
 
-`cdts.ai.TempCNN` was **ported layer-for-layer from the R package [`sits`](https://github.com/e-sensing/sits)'s `sits_tempcnn()`** (`R/sits_tempcnn.R`, `R/api_torch.R`), so trained weights are directly portable between the two via `state_dict()` — no name translation needed. This was checked by exporting a trained `sits_tempcnn()` model's weights, loading them into `cdts.ai.TempCNN` via `load_state_dict()`, and confirming the predictions match `sits`'s own output within float32 numerical tolerance on identical input.
+`zeit.ai.TempCNN` was **ported layer-for-layer from the R package [`sits`](https://github.com/e-sensing/sits)'s `sits_tempcnn()`** (`R/sits_tempcnn.R`, `R/api_torch.R`), so trained weights are directly portable between the two via `state_dict()` — no name translation needed. This was checked by exporting a trained `sits_tempcnn()` model's weights, loading them into `zeit.ai.TempCNN` via `load_state_dict()`, and confirming the predictions match `sits`'s own output within float32 numerical tolerance on identical input.
 
 ## How It Works
 
@@ -55,7 +55,7 @@ n_times = X_train.shape[2]
 ## Instantiating the Model
 
 ```python
-from cdts.ai import TempCNN
+from zeit.ai import TempCNN
 
 model = TempCNN(
     in_channels=n_bands,
@@ -81,7 +81,7 @@ from torch.utils.data import DataLoader, TensorDataset
 train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=64, shuffle=True)
 
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
-criterion = torch.nn.CrossEntropyLoss()  # or cdts.ai.losses.FocalLoss for imbalanced classes
+criterion = torch.nn.CrossEntropyLoss()  # or zeit.ai.losses.FocalLoss for imbalanced classes
 
 num_epochs = 30
 for epoch in range(num_epochs):
@@ -117,7 +117,7 @@ For inference over a whole raster, extract every pixel's time series into a `(N_
 
 ## Validation Against `sits`
 
-`TempCNN` was validated end-to-end against `sits_tempcnn()`: a model trained in R was exported, its weights loaded into `cdts.ai.TempCNN` via `load_state_dict()` (a direct, layer-for-layer match — no key renaming), and run on the same input. Outputs matched `sits`'s predictions within float32 numerical tolerance.
+`TempCNN` was validated end-to-end against `sits_tempcnn()`: a model trained in R was exported, its weights loaded into `zeit.ai.TempCNN` via `load_state_dict()` (a direct, layer-for-layer match — no key renaming), and run on the same input. Outputs matched `sits`'s predictions within float32 numerical tolerance.
 
 ---
 

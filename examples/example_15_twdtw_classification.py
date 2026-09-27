@@ -5,14 +5,14 @@ Loads a synthetic single-season NDVI datacube (no network needed) where the
 left half of the image follows a "soybean"-like early-peak phenological
 curve and the right half a "corn"-like late-peak curve (both with noise and
 a random phase jitter, as real fields would have), classifies every pixel
-against two reference patterns with `cdts.classify_twdtw`, and saves the
-classification + distance maps with `cdts.save_raster`.
+against two reference patterns with `zeit.classify_twdtw`, and saves the
+classification + distance maps with `zeit.save_raster`.
 """
 import os
 import numpy as np
 from rasterio.transform import from_origin
-import cdts
-from cdts.twdtw import classify_twdtw
+import zeit
+from zeit.twdtw import classify_twdtw
 
 
 def double_logistic(doy, sos, eos, peak_amplitude=0.7, base=0.15, steepness=0.1):
@@ -55,7 +55,7 @@ def build_synthetic_cube(rows=20, cols=20, seed=8):
 
 
 def main():
-    print("CDTS Example 15: TWDTW (Time-Weighted Dynamic Time Warping) Classification")
+    print("Zeit Example 15: TWDTW (Time-Weighted Dynamic Time Warping) Classification")
 
     rows, cols = 20, 20
     print(f"\n[1/3] Generating synthetic single-season NDVI cube ({rows}x{cols} px)...")
@@ -77,15 +77,15 @@ def main():
     print(f"    Agreement with the injected ground truth: {accuracy:.1%}")
     print(f"    Mean TWDTW distance to the winning class: {distance_map.mean():.3f}")
 
-    print("\n[3/3] Saving results with cdts.save_raster()...")
+    print("\n[3/3] Saving results with zeit.save_raster()...")
     transform = from_origin(500000.0, 8800000.0, 30.0, 30.0)
 
     out_class = os.path.join("data", "twdtw_classification.tif")
-    cdts.save_raster(classification_map.astype("uint8"), out_class, crs="EPSG:32721", transform=transform, nodata=255)
+    zeit.save_raster(classification_map.astype("uint8"), out_class, crs="EPSG:32721", transform=transform, nodata=255)
     print(f"    Classification map (0={class_names[0]}, 1={class_names[1]}) -> {out_class}")
 
     out_dist = os.path.join("data", "twdtw_distance.tif")
-    cdts.save_raster(distance_map.astype("float32"), out_dist, crs="EPSG:32721", transform=transform, nodata=np.nan)
+    zeit.save_raster(distance_map.astype("float32"), out_dist, crs="EPSG:32721", transform=transform, nodata=np.nan)
     print(f"    Winning-class distance map -> {out_dist}")
 
     print("\nDone!")

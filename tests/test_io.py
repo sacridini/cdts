@@ -2,7 +2,7 @@ import os
 import numpy as np
 import rasterio
 import pytest
-from cdts.io import save_raster, load_raster
+from zeit.io import save_raster, load_raster
 
 def test_load_raster_basic(tmp_path):
     # Create a dummy array and save it

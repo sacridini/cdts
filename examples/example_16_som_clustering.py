@@ -3,15 +3,15 @@ Example 16: Self-Organizing Map (SOM) End-to-End Unsupervised Clustering
 
 Loads a synthetic 4-band reflectance datacube (no network needed) with 3
 spatially distinct land-cover-like clusters (water, vegetation, bare soil),
-trains a Batch SOM on the per-pixel spectra with `cdts.ai.SOM`, predicts a
+trains a Batch SOM on the per-pixel spectra with `zeit.ai.SOM`, predicts a
 Best-Matching-Unit (BMU) map, and saves both the raw BMU map and a
-noise-filtering diagnostic with `cdts.save_raster`.
+noise-filtering diagnostic with `zeit.save_raster`.
 """
 import os
 import numpy as np
 from rasterio.transform import from_origin
-import cdts
-from cdts.ai import SOM
+import zeit
+from zeit.ai import SOM
 
 
 def build_synthetic_scene(rows=40, cols=40, seed=9):
@@ -51,7 +51,7 @@ def build_synthetic_scene(rows=40, cols=40, seed=9):
 
 
 def main():
-    print("CDTS Example 16: Self-Organizing Map (SOM) Unsupervised Clustering")
+    print("Zeit Example 16: Self-Organizing Map (SOM) Unsupervised Clustering")
 
     rows, cols = 40, 40
     print(f"\n[1/3] Generating synthetic 4-band scene ({rows}x{cols} px, 3 land-cover clusters + noise)...")
@@ -73,15 +73,15 @@ def main():
     print(f"    Flagged {np.sum(~clean_mask):d}/{clean_mask.size} pixels as noisy; "
           f"recall on the actually-injected noise: {recall:.1%}.")
 
-    print("\n[3/3] Saving results with cdts.save_raster()...")
+    print("\n[3/3] Saving results with zeit.save_raster()...")
     transform = from_origin(500000.0, 8800000.0, 30.0, 30.0)
 
     out_bmu = os.path.join("data", "som_bmu_map.tif")
-    cdts.save_raster(bmu_map.astype("float32"), out_bmu, crs="EPSG:32721", transform=transform, nodata=-1.0)
+    zeit.save_raster(bmu_map.astype("float32"), out_bmu, crs="EPSG:32721", transform=transform, nodata=-1.0)
     print(f"    BMU map (0-15, one id per SOM neuron) -> {out_bmu}")
 
     out_clean = os.path.join("data", "som_clean_mask.tif")
-    cdts.save_raster(clean_mask_map.astype("uint8"), out_clean, crs="EPSG:32721", transform=transform, nodata=255)
+    zeit.save_raster(clean_mask_map.astype("uint8"), out_clean, crs="EPSG:32721", transform=transform, nodata=255)
     print(f"    Noise-filter mask (1=kept, 0=flagged as noisy) -> {out_clean}")
 
     print("\nDone!")

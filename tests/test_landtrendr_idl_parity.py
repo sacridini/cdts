@@ -1,4 +1,4 @@
-"""Parity of cdts's LandTrendr against the original LandTrendr-2012 IDL code.
+"""Parity of zeit's LandTrendr against the original LandTrendr-2012 IDL code.
 
 Every expected output below was produced by the original IDL source run under
 GDL on the same inputs, and covers each branch of tbcd_v2.pro's control flow:
@@ -9,7 +9,7 @@ best_model_proportion above 1.
 """
 import numpy as np
 import pytest
-from cdts.landtrendr import run_landtrendr
+from zeit.landtrendr import run_landtrendr
 
 # Reference outputs of the ORIGINAL LandTrendr-2012 IDL code (fit_trajectory_v2.pro /
 # tbcd_v2.pro, KennedyResearch/LandTrendr-2012), produced by running it under GDL
@@ -142,6 +142,6 @@ def test_matches_original_idl(case):
 
     assert [v["year"] for v in vertices] == case["idl_years"]
     # The original truncates modifier-space values to integers and computes in
-    # float32; cdts keeps full double precision in the original scale.
+    # float32; zeit keeps full double precision in the original scale.
     got = np.trunc(np.array([v["value"] for v in vertices]) * params["modifier"])
     np.testing.assert_allclose(got, case["idl_values"], atol=1.0)

@@ -34,12 +34,12 @@ Compared with [BFAST Lite](bfast_lite.md), classic BFAST is slower (several iter
 ## Step by step
 
 ```python
-import cdts
+import zeit
 
 # ndvi_16d: (time, y, x) DataArray of 16-day composites starting in January 2010
 ndvi_16d = ndvi_16d.chunk({"time": -1, "y": 256, "x": 256})
 
-result = ndvi_16d.cdts.run_bfast(
+result = ndvi_16d.zeit.run_bfast(
     start_time=2010.0,
     frequency=23,
     h=0.15,                 # minimum segment size, fraction of the observations
@@ -53,11 +53,11 @@ jump = result.sel(metric="magnitude")    # largest trend jump, 0 if none
 when = result.sel(metric="time")         # fractional year of that jump
 ```
 
-Also available as `cdts.bfast.run_bfast_dask` (plain Dask arrays), `cdts.run_bfast_image` (large GeoTIFFs) and [`cdts bfast`](../cli.md#5-classic-bfast-bfast).
+Also available as `zeit.bfast.run_bfast_dask` (plain Dask arrays), `zeit.run_bfast_image` (large GeoTIFFs) and [`zeit bfast`](../cli.md#5-classic-bfast-bfast).
 
 ## Reading the output
 
-Metric names come from `cdts.bfast.bf_metric_names(max_breaks_trend, max_breaks_season)`:
+Metric names come from `zeit.bfast.bf_metric_names(max_breaks_trend, max_breaks_season)`:
 
 | Metric | Meaning |
 | :--- | :--- |

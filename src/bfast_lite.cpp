@@ -19,7 +19,7 @@
 #include <stdexcept>
 #include <Eigen/Dense>
 
-namespace cdts {
+namespace zeit {
 namespace bfastlite {
 
 namespace {
@@ -309,4 +309,4 @@ pybind11::array_t<double> fit_bfast_lite_batch(
 }
 
 } // namespace bfastlite
-} // namespace cdts
+} // namespace zeit

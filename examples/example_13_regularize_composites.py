@@ -4,15 +4,15 @@ Example 13: Temporal Regularization End-to-End (Irregular ARD -> Regular Composi
 Loads a synthetic multi-band datacube with irregular acquisition dates (as
 real satellite archives have, due to revisit gaps and cloud cover - no
 network needed), regularizes it to fixed 16-day composites using both the
-`median` and `medoid` strategies via `cdts.regularize_time_series`, and
-saves the resulting composites with `cdts.save_raster`.
+`median` and `medoid` strategies via `zeit.regularize_time_series`, and
+saves the resulting composites with `zeit.save_raster`.
 """
 import os
 import numpy as np
 import pandas as pd
 import xarray as xr
 from rasterio.transform import from_origin
-import cdts
+import zeit
 
 
 def build_irregular_cube(rows=20, cols=20, seed=5):
@@ -51,7 +51,7 @@ def build_irregular_cube(rows=20, cols=20, seed=5):
 
 
 def main():
-    print("CDTS Example 13: Temporal Regularization (Irregular ARD -> Regular Composites)")
+    print("Zeit Example 13: Temporal Regularization (Irregular ARD -> Regular Composites)")
 
     rows, cols = 20, 20
     print(f"\n[1/3] Generating synthetic irregular-date cube ({rows}x{cols} px, 2 bands)...")
@@ -61,20 +61,20 @@ def main():
           f"{n_outliers} cloud-corrupted dates injected.")
 
     print("\n[2/3] Regularizing to 16-day composites (median and medoid)...")
-    median_cube = cdts.regularize_time_series(cube, freq="16D", method="median").compute()
-    medoid_cube = cdts.regularize_time_series(cube, freq="16D", method="medoid").compute()
+    median_cube = zeit.regularize_time_series(cube, freq="16D", method="median").compute()
+    medoid_cube = zeit.regularize_time_series(cube, freq="16D", method="medoid").compute()
     print(f"    Regularized from {cube.sizes['time']} irregular dates down to "
           f"{median_cube.sizes['time']} regular 16-day composites.")
 
-    print("\n[3/3] Saving results with cdts.save_raster()...")
+    print("\n[3/3] Saving results with zeit.save_raster()...")
     transform = from_origin(500000.0, 8800000.0, 30.0, 30.0)
 
     out_median = os.path.join("data", "regularized_median.tif")
-    cdts.save_raster(median_cube.values.astype("float32"), out_median, crs="EPSG:32721", transform=transform, nodata=np.nan)
+    zeit.save_raster(median_cube.values.astype("float32"), out_median, crs="EPSG:32721", transform=transform, nodata=np.nan)
     print(f"    Median composites ({median_cube.sizes['time']} dates x {median_cube.sizes['band']} bands) -> {out_median}")
 
     out_medoid = os.path.join("data", "regularized_medoid.tif")
-    cdts.save_raster(medoid_cube.values.astype("float32"), out_medoid, crs="EPSG:32721", transform=transform, nodata=np.nan)
+    zeit.save_raster(medoid_cube.values.astype("float32"), out_medoid, crs="EPSG:32721", transform=transform, nodata=np.nan)
     print(f"    Medoid composites ({medoid_cube.sizes['time']} dates x {medoid_cube.sizes['band']} bands) -> {out_medoid}")
 
     print("\nDone!")

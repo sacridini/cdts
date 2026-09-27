@@ -3,7 +3,7 @@
 <p class="lead">Every public function and class, with its signature, parameters and an example. Signatures on these pages are generated from the code, so they always match the installed version.</p>
 
 !!! tip "How to import"
-    `import cdts` gives you the most used functions at the top level (`cdts.run_landtrendr_array`, `cdts.save_raster`, …) and registers the `.cdts` xarray accessor. Everything else lives in submodules (`cdts.bfast`, `cdts.trend`, `cdts.ai`, …), shown in each signature.
+    `import zeit` gives you the most used functions at the top level (`zeit.run_landtrendr_array`, `zeit.save_raster`, …) and registers the `.zeit` xarray accessor. Everything else lives in submodules (`zeit.bfast`, `zeit.trend`, `zeit.ai`, …), shown in each signature.
 
 <div class="grid cards" markdown>
 
@@ -47,13 +47,13 @@
 
     ---
 
-    `DataArray.cdts.*`: every algorithm on lazy Dask cubes, and Zarr output.
+    `DataArray.zeit.*`: every algorithm on lazy Dask cubes, and Zarr output.
 
 -   :material-console:{ .lg .middle } **[Command Line](../cli.md)**
 
     ---
 
-    The core algorithms as `cdts` subcommands, for scripts and HPC jobs.
+    The core algorithms as `zeit` subcommands, for scripts and HPC jobs.
 
 </div>
 
@@ -99,7 +99,7 @@
 | [`train_ccdc_classifier`](post-processing.md#train_ccdc_classifier) / [`classify_ccdc_stack`](post-processing.md#classify_ccdc_stack) | Classify CCDC coefficients |
 | [`extract_water_mask`](post-processing.md#extract_water_mask) | Water mask from CCDC |
 | [`generate_landtrendr_accuracy_dashboard`](post-processing.md#generate_landtrendr_accuracy_dashboard) | Interactive validation page |
-| **Deep learning** (`cdts.ai`) | |
+| **Deep learning** (`zeit.ai`) | |
 | [`TempCNN`](ai.md#tempcnn), [`LightTAE`](ai.md#lighttae), [`LTAE`](ai.md#ltae) | Pixel time-series classifiers |
 | [`UTAE`](ai.md#utae) | Spatio-temporal patch segmentation |
 | [`SiameseChangeDetector`](ai.md#siamesechangedetector) | Two-date change detection |

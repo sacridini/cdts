@@ -4,8 +4,8 @@ import dask.array as da
 import pytest
 from unittest.mock import patch
 
-from cdts.phenology import run_phenology_dask
-import cdts.xarray_api # Registers the accessor
+from zeit.phenology import run_phenology_dask
+import zeit.xarray_api # Registers the accessor
 
 def mock_fit_phenology_batch(values_array, dates_array, curve_type, extraction_method, max_seasons, whittaker_lambda, apply_whittaker, apply_hants, hants_frequencies, hants_threshold, min_season_length, min_amplitude, min_pixel_amplitude, n_jobs, **kwargs):
     n_pixels = values_array.shape[0]
@@ -19,7 +19,7 @@ def mock_fit_phenology_batch(values_array, dates_array, curve_type, extraction_m
         out_arr[20, :, s] = 0.05               # RMSE is index 20
     return out_arr
 
-@patch('cdts.phenology.fit_phenology_batch', side_effect=mock_fit_phenology_batch)
+@patch('zeit.phenology.fit_phenology_batch', side_effect=mock_fit_phenology_batch)
 def test_run_phenology_dask(mock_fit):
     time_steps = 20
     rows = 10
@@ -49,7 +49,7 @@ def test_run_phenology_dask(mock_fit):
     np.testing.assert_allclose(res_computed[19, 0, 0, 0], 0.9)
     np.testing.assert_allclose(res_computed[20, 0, 0, 0], 0.05)
 
-@patch('cdts.phenology.fit_phenology_batch', side_effect=mock_fit_phenology_batch)
+@patch('zeit.phenology.fit_phenology_batch', side_effect=mock_fit_phenology_batch)
 def test_xarray_accessor_phenology(mock_fit):
     time_steps = 20
     rows = 10
@@ -59,7 +59,7 @@ def test_xarray_accessor_phenology(mock_fit):
     ds = xr.DataArray(data, dims=["time", "y", "x"], coords={"y": np.arange(rows), "x": np.arange(cols)})
     dates = np.arange(time_steps)
     
-    res = ds.cdts.run_phenology(dates=dates, curve_type=1, max_seasons=2)
+    res = ds.zeit.run_phenology(dates=dates, curve_type=1, max_seasons=2)
     
     assert isinstance(res, xr.DataArray)
     assert res.dims == ("metric", "year", "y", "x")
@@ -99,7 +99,7 @@ def test_real_phenology_extraction_advanced_params():
                       coords={"y": np.arange(rows), "x": np.arange(cols)})
     
     # Run with HANTS + Derivative Method
-    res = ds.cdts.run_phenology(
+    res = ds.zeit.run_phenology(
         dates=dates, 
         curve_type=0, # BECK
         extraction_method=1, # DERIVATIVE
@@ -121,7 +121,7 @@ def test_real_phenology_extraction_advanced_params():
     # Index 17 is LOS
     assert np.nanmean(res_computed.loc[{"metric": "LOS"}].values) > 0
 
-@patch('cdts.phenology.fit_phenology_batch', side_effect=mock_fit_phenology_batch)
+@patch('zeit.phenology.fit_phenology_batch', side_effect=mock_fit_phenology_batch)
 def test_xarray_accessor_phenology_no_annual(mock_fit):
     time_steps = 20
     rows = 5
@@ -131,7 +131,7 @@ def test_xarray_accessor_phenology_no_annual(mock_fit):
     ds = xr.DataArray(data, dims=["time", "y", "x"], coords={"y": np.arange(rows), "x": np.arange(cols)})
     dates = np.arange(time_steps)
 
-    res = ds.cdts.run_phenology(dates=dates, curve_type=1, max_seasons=3, return_annual=False)
+    res = ds.zeit.run_phenology(dates=dates, curve_type=1, max_seasons=3, return_annual=False)
 
     assert isinstance(res, xr.DataArray)
     assert res.dims == ("metric", "season", "y", "x")
@@ -150,8 +150,8 @@ def test_xarray_accessor_phenology_no_annual(mock_fit):
 # 3. Per-season R2/RMSE goodness-of-fit metrics (mirrors phenofit's
 #    get_GOF()), now metrics 19 and 20 of fit_phenology_batch's output.
 
-from cdts._core.phenology import fit_phenology_batch as real_fit_phenology_batch
-from cdts._core.phenology import debug_split_seasons, CurveType
+from zeit._core.phenology import fit_phenology_batch as real_fit_phenology_batch
+from zeit._core.phenology import debug_split_seasons, CurveType
 
 
 def _synthetic_evi_curve(time_steps=46):
@@ -273,7 +273,7 @@ def test_run_phenology_dask_passes_weights_and_season_retry_through():
     weights = da.ones((time_steps, rows, cols), chunks=(time_steps, rows, cols))
     dates = np.arange(time_steps)
 
-    with patch('cdts.phenology.fit_phenology_batch', side_effect=capturing_mock):
+    with patch('zeit.phenology.fit_phenology_batch', side_effect=capturing_mock):
         result = run_phenology_dask(
             data, dates, curve_type=0, max_seasons=2,
             weights=weights, season_retry=False

@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-namespace cdts {
+namespace zeit {
 namespace stl {
 
 namespace {
@@ -262,4 +262,4 @@ std::vector<double> periodic_seasonal(const std::vector<double>& y, int period) 
 }
 
 } // namespace stl
-} // namespace cdts
+} // namespace zeit

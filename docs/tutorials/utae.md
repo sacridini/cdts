@@ -11,7 +11,7 @@ UTAE combines a U-Net with a temporal attention mechanism to perform **spatio-te
 
 > Garnot, V. S. F., & Landrieu, L. (2021). *Panoptic segmentation of satellite image time series with convolutional temporal attention networks*. ICCV 2021. [doi:10.1109/ICCV48922.2021.00483](https://doi.org/10.1109/ICCV48922.2021.00483)
 
-`cdts.ai.UTAE` was **ported layer-for-layer from the official reference implementation** ([VSainteuf/utae-paps](https://github.com/VSainteuf/utae-paps), MIT License). This is the most rigorously validated model in `cdts.ai`: building both implementations with identical weights (loaded via `load_state_dict()`, with `state_dict()` key names matching directly, no translation table) and feeding them the same input reproduces the reference implementation's output **bit-for-bit exactly** (`max abs diff = 0.0`), including the padded-sequence (irregular temporal sampling) code path.
+`zeit.ai.UTAE` was **ported layer-for-layer from the official reference implementation** ([VSainteuf/utae-paps](https://github.com/VSainteuf/utae-paps), MIT License). This is the most rigorously validated model in `zeit.ai`: building both implementations with identical weights (loaded via `load_state_dict()`, with `state_dict()` key names matching directly, no translation table) and feeding them the same input reproduces the reference implementation's output **bit-for-bit exactly** (`max abs diff = 0.0`), including the padded-sequence (irregular temporal sampling) code path.
 
 ## How It Works
 
@@ -49,7 +49,7 @@ For irregular sequence lengths within a batch, pad the shorter sequences (along 
 ## Instantiating the Model
 
 ```python
-from cdts.ai import UTAE
+from zeit.ai import UTAE
 
 model = UTAE(
     input_dim=6,                    # number of spectral bands
@@ -78,7 +78,7 @@ Segmentation targets are dense per-pixel class maps, so `FocalLoss` or `TverskyL
 ```python
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-from cdts.ai.losses import FocalLoss
+from zeit.ai.losses import FocalLoss
 
 train_loader = DataLoader(TensorDataset(X_train, dates_train, y_train), batch_size=8, shuffle=True)
 
@@ -131,7 +131,7 @@ logits, attn = model(new_data, batch_positions=new_dates, return_att=True)
 
 ## Validation Against the Official Reference
 
-`UTAE` (and its internal `LTAE2d`, `_TemporalAggregator`, etc.) is a line-for-line port of [VSainteuf/utae-paps](https://github.com/VSainteuf/utae-paps). Validation methodology: the official repo was cloned locally, both implementations were instantiated with the same hyperparameters and the same random weights (copied via `load_state_dict()` — the `state_dict()` key names match with no translation needed), and run forward on identical random input. The outputs were bit-for-bit identical (`max abs diff = 0.0`), across both the regular (unpadded) code path and the padded-sequence (`pad_value`/`pad_mask`) code path used for irregular temporal sampling. This cross-check is not part of the pytest suite, since it requires the reference repo cloned locally rather than a pip dependency — see the source docstring in `cdts/ai/utae.py` for details.
+`UTAE` (and its internal `LTAE2d`, `_TemporalAggregator`, etc.) is a line-for-line port of [VSainteuf/utae-paps](https://github.com/VSainteuf/utae-paps). Validation methodology: the official repo was cloned locally, both implementations were instantiated with the same hyperparameters and the same random weights (copied via `load_state_dict()` — the `state_dict()` key names match with no translation needed), and run forward on identical random input. The outputs were bit-for-bit identical (`max abs diff = 0.0`), across both the regular (unpadded) code path and the padded-sequence (`pad_value`/`pad_mask`) code path used for irregular temporal sampling. This cross-check is not part of the pytest suite, since it requires the reference repo cloned locally rather than a pip dependency — see the source docstring in `zeit/ai/utae.py` for details.
 
 ---
 

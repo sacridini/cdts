@@ -11,7 +11,7 @@
 
 <figure markdown>
   ![Three seasons of a synthetic NDVI series with the start, peak and end of each season marked](../assets/figures/phenology_metrics.png)
-  <figcaption><strong>What phenology extraction produces.</strong> Three years of an 8-day NDVI series with noise and cloud drops. For each season, CDTS finds the start (SOS, 50% of the amplitude), the peak and the end (EOS). The shifts between years, such as the later start in 2020, are exactly what anomaly analyses look for.</figcaption>
+  <figcaption><strong>What phenology extraction produces.</strong> Three years of an 8-day NDVI series with noise and cloud drops. For each season, Zeit finds the start (SOS, 50% of the amplitude), the peak and the end (EOS). The shifts between years, such as the later start in 2020, are exactly what anomaly analyses look for.</figcaption>
 </figure>
 
 ## How it works
@@ -27,7 +27,7 @@ Raw index series are noisy and gappy, so metrics are not read from the raw point
 3. **Fit** a smooth parametric curve to each season with Levenberg-Marquardt least squares. The curve is re-weighted iteratively so that low outliers (clouds) pull it less.
 4. **Extract** the transition dates from the fitted curve with several methods at once.
 
-Available curves (`curve_type`, from `cdts._core.phenology.CurveType`):
+Available curves (`curve_type`, from `zeit._core.phenology.CurveType`):
 
 | Curve | Notes |
 | :--- | :--- |
@@ -59,7 +59,7 @@ Two quality metrics, `R2` and `RMSE` of the fitted curve, follow the 19 phenolog
 
 ## Processing a raster
 
-The `cdts` package natively integrates with `xarray` through a custom accessor (`.cdts.run_phenology`). This abstracts away all the complex array reshaping and memory management, allowing you to process large MODIS/Landsat time series elegantly.
+The `zeit` package natively integrates with `xarray` through a custom accessor (`.zeit.run_phenology`). This abstracts away all the complex array reshaping and memory management, allowing you to process large MODIS/Landsat time series elegantly.
 
 By default, the pipeline automatically maps the continuous days back into calendar DOYs if you pass `return_annual=True`.
 
@@ -67,8 +67,8 @@ By default, the pipeline automatically maps the continuous days back into calend
 import rioxarray
 import numpy as np
 import pandas as pd
-import cdts # Automatically registers the .cdts accessor in xarray
-from cdts._core.phenology import CurveType
+import zeit # Automatically registers the .zeit accessor in xarray
+from zeit._core.phenology import CurveType
 
 # 1. Load the dense time series raster (Shape: Time, Y, X)
 ds = rioxarray.open_rasterio('MODIS_EVI_Series.tif')
@@ -80,7 +80,7 @@ dates_doy = np.array([d.timetuple().tm_yday + (d.year - 2001) * 365 for d in dat
 # 3. Run the Phenology Engine directly on the xarray DataArray
 # This leverages Dask internally for parallel out-of-core execution
 print("Extracting 19 phenology metrics...")
-metrics_da = ds.cdts.run_phenology(
+metrics_da = ds.zeit.run_phenology(
     dates=dates_doy,
     curve_type=int(CurveType.BECK), # Use Beck's double logistic
     max_seasons=25,                 # Process 25 years of data
@@ -104,7 +104,7 @@ for metric_name in metrics_da.metric.values:
     single_metric_da = metrics_da.sel(metric=metric_name)
     
     # Save a multi-band TIF where each band is a year
-    filename = f"cdts_{metric_name}.tif"
+    filename = f"zeit_{metric_name}.tif"
     single_metric_da.rio.to_raster(filename)
     print(f"Saved {filename}")
 ```
@@ -113,7 +113,7 @@ for metric_name in metrics_da.metric.values:
 
 This section walks through a complete, realistic problem end-to-end: **an analyst wants to know whether soybean fields in a Mato Grosso municipality (Brazil) show anomalously delayed green-up in a candidate drought year, compared to a multi-year baseline** — a common early-warning question for agricultural monitoring and drought impact assessment. Late green-up (a positive SOS anomaly, in days) is a classic remote signal of delayed planting caused by late onset of the rainy season.
 
-The workflow chains three `cdts` building blocks: `build_time_series` (STAC ingestion) → `regularize_time_series` (temporal regularization) → `.cdts.run_phenology` (metric extraction), all lazy until `.compute()` is called — so it scales from a single tile to a whole state without changing the code.
+The workflow chains three `zeit` building blocks: `build_time_series` (STAC ingestion) → `regularize_time_series` (temporal regularization) → `.zeit.run_phenology` (metric extraction), all lazy until `.compute()` is called — so it scales from a single tile to a whole state without changing the code.
 
 ### Step 1 — Build a multi-year Sentinel-2 cube for the area of interest
 
@@ -121,12 +121,12 @@ The workflow chains three `cdts` building blocks: `build_time_series` (STAC inge
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import cdts
-from cdts import regularize_time_series
-from cdts._core.phenology import CurveType
+import zeit
+from zeit import regularize_time_series
+from zeit._core.phenology import CurveType
 
 # Multi-year window covering the baseline + the candidate drought year (2021)
-cube_raw = cdts.build_time_series(
+cube_raw = zeit.build_time_series(
     source="earth_search",
     collection="sentinel-2-l2a",
     tiles=["21LWH"],              # A Sentinel-2 MGRS tile over Mato Grosso cropland
@@ -161,7 +161,7 @@ dates_doy = np.array(
 )
 n_years = int(dates_pd.year.max()) - base_year + 1
 
-pheno = ndvi_16d.cdts.run_phenology(
+pheno = ndvi_16d.zeit.run_phenology(
     dates=dates_doy,
     curve_type=int(CurveType.BECK),
     max_seasons=n_years,        # one slot per calendar year in the window
@@ -225,7 +225,7 @@ In regions with intense agricultural activity (like Mato Grosso, Brazil), a sing
 
 To capture these dynamics directly without `return_annual=True`, simply increase `max_seasons`:
 ```python
-metrics_tensor = ds.cdts.run_phenology(
+metrics_tensor = ds.zeit.run_phenology(
     # ...
     max_seasons=3,
     return_annual=False
@@ -240,15 +240,15 @@ This returns arrays of shape `(19_metrics, 3_seasons, Y, X)`. You can then map `
 - **`min_amplitude`**: Prevents the optimizer from fitting curves on background noise (e.g., bare soil that fluctuates slightly with rain). If the peak of the smoothed curve minus the base is less than this value, the season is rejected.
 
 ### Down-weighting low-quality observations
-Cloud, cloud-shadow, and snow contamination can distort the smoothed curve even after masking obvious no-data pixels. `cdts.qc` decodes a sensor's native QA/QC band into per-observation reliability weights in `[0, 1]`, which then feed both the Whittaker/HANTS smoother and the iterative curve-fit reweighting (`wTSM`) — low-quality observations pull the fit less instead of being treated as equally trustworthy as clear ones:
+Cloud, cloud-shadow, and snow contamination can distort the smoothed curve even after masking obvious no-data pixels. `zeit.qc` decodes a sensor's native QA/QC band into per-observation reliability weights in `[0, 1]`, which then feed both the Whittaker/HANTS smoother and the iterative curve-fit reweighting (`wTSM`) — low-quality observations pull the fit less instead of being treated as equally trustworthy as clear ones:
 
 ```python
-from cdts.qc import qc_modis_summary, qc_modis_state, qc_sentinel2_scl
+from zeit.qc import qc_modis_summary, qc_modis_state, qc_sentinel2_scl
 
 # MOD13A1/A2/Q1 "SummaryQA" band (0=good, 1=marginal, 2=snow/ice, 3=cloudy)
 weights = qc_modis_summary(qa_cube)  # -> [1.0, 0.5, 0.2, 0.2], aligned with qa_cube
 
-pheno_results = ds.cdts.run_phenology(
+pheno_results = ds.zeit.run_phenology(
     dates=dates_julian,
     curve_type=int(CurveType.BECK),
     weights=weights,        # (time, y, x), aligned with the input DataArray

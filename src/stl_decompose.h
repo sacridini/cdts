@@ -20,7 +20,7 @@
 // algorithm and not ported either); see bfast.cpp for how the NaN case is
 // handled by its caller (linear interpolation before calling in here).
 
-namespace cdts {
+namespace zeit {
 namespace stl {
 
 // Matches R's `stl(ts(y, frequency = period), s.window = "periodic")$time.series[, "seasonal"]`.
@@ -28,4 +28,4 @@ namespace stl {
 std::vector<double> periodic_seasonal(const std::vector<double>& y, int period);
 
 } // namespace stl
-} // namespace cdts
+} // namespace zeit

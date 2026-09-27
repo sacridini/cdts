@@ -15,7 +15,7 @@ class get_pybind_include(object):
 
 ext_modules = [
     Extension(
-        'cdts._core',
+        'zeit._core',
         ['src/main.cpp', 'src/landtrendr.cpp', 'src/ccdc.cpp', 'src/utils.cpp',
          'src/twdtw.cpp', 'src/som.cpp', 'src/phenology_math.cpp',
          'src/phenology_curves.cpp', 'src/phenology.cpp', 'src/mann_kendall.cpp',
@@ -90,9 +90,9 @@ class BuildExt(build_ext):
         build_ext.build_extensions(self)
 
 setup(
-    name='cdts',
+    name='zeit',
     version='0.23.0',
-    packages=['cdts'],
+    packages=['zeit'],
     ext_modules=ext_modules,
     setup_requires=['pybind11>=2.10.0'],
     cmdclass={'build_ext': BuildExt},

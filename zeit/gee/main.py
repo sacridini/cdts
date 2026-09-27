@@ -43,7 +43,7 @@ def download_gee_timeseries_drive(
     tile_label: str,
     bands: Optional[list] = None,
     project: Optional[str] = None,
-    drive_folder: str = "cdts_exports",
+    drive_folder: str = "zeit_exports",
     max_concurrent_tasks: int = 10,
     delete_after: bool = True,
     poll_interval: int = 15,

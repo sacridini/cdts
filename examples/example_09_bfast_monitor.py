@@ -3,16 +3,16 @@ Example 09: BFAST Monitor End-to-End (Near-Real-Time Disturbance Monitoring)
 
 Loads a synthetic 16-day composite datacube (no network needed) with a
 stable history period and, for half the pixels, an abrupt disturbance
-injected during the monitoring period. Runs `bfastmonitor` via the `.cdts`
+injected during the monitoring period. Runs `bfastmonitor` via the `.zeit`
 accessor and saves the breakpoint/magnitude/sigma maps with
-`cdts.save_raster`.
+`zeit.save_raster`.
 """
 import os
 import numpy as np
 import xarray as xr
 from rasterio.transform import from_origin
-import cdts
-from cdts.bfast import BFM_METRIC_NAMES
+import zeit
+from zeit.bfast import BFM_METRIC_NAMES
 
 FREQUENCY = 23  # 16-day composites/year
 START_TIME = 2015.0
@@ -48,7 +48,7 @@ def build_synthetic_cube(n_years=6, rows=20, cols=20, seed=1):
 
 
 def main():
-    print("CDTS Example 09: BFAST Monitor (Near-Real-Time Monitoring)")
+    print("Zeit Example 09: BFAST Monitor (Near-Real-Time Monitoring)")
 
     rows, cols = 20, 20
     print(f"\n[1/3] Generating synthetic 16-day composite cube ({rows}x{cols} px, {FREQUENCY} obs/year)...")
@@ -62,8 +62,8 @@ def main():
         coords={"time": time_years, "y": np.arange(rows), "x": np.arange(cols)},
     )
 
-    print("\n[2/3] Running bfastmonitor via .cdts accessor...")
-    result = cube.cdts.run_bfast_monitor(
+    print("\n[2/3] Running bfastmonitor via .zeit accessor...")
+    result = cube.zeit.run_bfast_monitor(
         start_time=START_TIME,
         monitor_start_time=MONITOR_START_TIME,
         frequency=FREQUENCY,
@@ -80,10 +80,10 @@ def main():
     print(f"    Median detected breakpoint index on the disturbed half: "
           f"{np.nanmedian(breakpoint_idx[:, cols // 2:]):.1f} (injected at {disturbance_row}).")
 
-    print("\n[3/3] Saving results with cdts.save_raster()...")
+    print("\n[3/3] Saving results with zeit.save_raster()...")
     out_tif = os.path.join("data", "bfast_monitor_breaks.tif")
     transform = from_origin(500000.0, 8800000.0, 30.0, 30.0)
-    cdts.save_raster(result.values.astype("float32"), out_tif, crs="EPSG:32721", transform=transform, nodata=np.nan)
+    zeit.save_raster(result.values.astype("float32"), out_tif, crs="EPSG:32721", transform=transform, nodata=np.nan)
 
     print(f"\nDone! {len(BFM_METRIC_NAMES)}-band raster ({', '.join(BFM_METRIC_NAMES)}) saved to {out_tif}")
 

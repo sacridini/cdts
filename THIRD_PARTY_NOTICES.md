@@ -1,17 +1,17 @@
 # Third-party notices
 
-cdts is licensed under the GNU General Public License, version 2 or (at your
+Zeit is licensed under the GNU General Public License, version 2 or (at your
 option) any later version (`GPL-2.0-or-later`, see `LICENSE`).
 
-Several algorithms in cdts are ports of, or are derived from, the software
-listed below. Their licenses are all compatible with distributing cdts under
+Several algorithms in Zeit are ports of, or are derived from, the software
+listed below. Their licenses are all compatible with distributing Zeit under
 the GPL. Because the CCDC lasso solver is derived from GPL-2.0-only code, the
-compiled `cdts._core` extension as a whole is distributed under the terms of
+compiled `zeit._core` extension as a whole is distributed under the terms of
 **GPL version 2**.
 
 ## Ported or derived code
 
-| cdts component | Derived from | License |
+| Zeit component | Derived from | License |
 | :--- | :--- | :--- |
 | `src/ccdc.cpp` (CCDC) | [GERSL/CCDC](https://github.com/GERSL/CCDC), Zhu & Woodcock (2014), MATLAB | MIT |
 | `src/ccdc.cpp`, `glmnet_lasso()` | GLMnet Fortran (Friedman, Hastie & Tibshirani), as bundled with GERSL/CCDC | GPL-2.0-only |
@@ -20,17 +20,17 @@ compiled `cdts._core` extension as a whole is distributed under the terms of
 | `src/stl_decompose.cpp` | R `stats::stl()` (`src/library/stats/src/stl.c`), R Core Team | GPL-2.0 or GPL-3.0 |
 | `src/mann_kendall.cpp` | [pymannkendall](https://github.com/mmhs013/pymannkendall), Hussain & Mahmud (2019) | MIT |
 | `src/phenology*.cpp` (methodology) | R package [phenofit](https://github.com/eco-hydro/phenofit), Kong et al. (2022) | GPL-2.0 |
-| `cdts/ai/utae.py` (U-TAE, L-TAE) | [VSainteuf/utae-paps](https://github.com/VSainteuf/utae-paps), Garnot & Landrieu (2021) | MIT |
-| `cdts/ai/tempcnn.py` (architecture) | R package [sits](https://github.com/e-sensing/sits), `sits_tempcnn()` | GPL-2.0 |
-| `cdts/segmentation.py` (seed grids) | R package [snic](https://github.com/rolfsimoes/snic), `snic_grid()` | GPL-2.0 |
+| `zeit/ai/utae.py` (U-TAE, L-TAE) | [VSainteuf/utae-paps](https://github.com/VSainteuf/utae-paps), Garnot & Landrieu (2021) | MIT |
+| `zeit/ai/tempcnn.py` (architecture) | R package [sits](https://github.com/e-sensing/sits), `sits_tempcnn()` | GPL-2.0 |
+| `zeit/segmentation.py` (seed grids) | R package [snic](https://github.com/rolfsimoes/snic), `snic_grid()` | GPL-2.0 |
 | `src/landtrendr.cpp` (LandTrendr) | [KennedyResearch/LandTrendr-2012](https://github.com/KennedyResearch/LandTrendr-2012), Kennedy et al. (2010), IDL | no license published — see below |
 
 SNIC (`src/snic.cpp`) is implemented from the paper (Achanta & Süsstrunk,
 CVPR 2017). The authors' reference code is not included; the test suite only
 stores outputs of it (`tests/data/snic_reference_parity.npz`) to check that
-cdts gives the same labels.
+Zeit gives the same labels.
 
-**LandTrendr-2012**: the original repository does not state a license. cdts's
+**LandTrendr-2012**: the original repository does not state a license. Zeit's
 port is a derivative of that code; permission from the authors is being
 sought. Until then, the LandTrendr port's redistribution terms are unresolved.
 

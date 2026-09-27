@@ -23,12 +23,12 @@ Unlike the classic [BFAST](bfast.md), it needs no seasonal decomposition and no 
 ## Step by step
 
 ```python
-import cdts
+import zeit
 
 # ndvi_16d: (time, y, x) DataArray of 16-day composites starting in January 2010
 ndvi_16d = ndvi_16d.chunk({"time": -1, "y": 256, "x": 256})
 
-result = ndvi_16d.cdts.run_bfast_lite(
+result = ndvi_16d.zeit.run_bfast_lite(
     start_time=2010.0,
     frequency=23,           # 23 observations per year
     h=0.15,                 # each segment holds >= 15% of the observations
@@ -45,11 +45,11 @@ To turn a break index into a date:
 first_break_time = 2010.0 + first_break / 23           # fractional year
 ```
 
-The same function is available for plain Dask arrays as `cdts.bfast.run_bfast_lite_dask`, for large GeoTIFFs as `cdts.run_bfast_lite_image`, and from the shell as [`cdts bfast-lite`](../cli.md#4-bfast-lite-bfast-lite).
+The same function is available for plain Dask arrays as `zeit.bfast.run_bfast_lite_dask`, for large GeoTIFFs as `zeit.run_bfast_lite_image`, and from the shell as [`zeit bfast-lite`](../cli.md#4-bfast-lite-bfast-lite).
 
 ## Reading the output
 
-The number of breaks varies by pixel, so the output reserves `max_breaks_output` slots and fills the unused ones with `NaN`. Metric names come from `cdts.bfast.bfl_metric_names(max_breaks_output)`:
+The number of breaks varies by pixel, so the output reserves `max_breaks_output` slots and fills the unused ones with `NaN`. Metric names come from `zeit.bfast.bfl_metric_names(max_breaks_output)`:
 
 | Metric | Meaning |
 | :--- | :--- |
@@ -78,7 +78,7 @@ The number of breaks varies by pixel, so the output reserves `max_breaks_output`
 
     **Validation.** Compared with R's `bfastlite()` on six scenarios (a single break, no break, two candidate breaks, NaN gaps, monthly data, non-default `h`). All six matched `n_breaks` and every break position exactly; `rss` differed by 1e-6 to 1e-7.
 
-    **Performance.** On 300 pixels of 150 observations, R `bfastlite()` took 34.5 ms per pixel and CDTS 11.2 ms single-threaded (about 3×). With `n_jobs=-1` on 15 of 16 cores, 20,000 pixels took 45.5 s instead of 249.3 s single-threaded (a further 5.5×). The gain is smaller than BFAST Monitor's because the dynamic program is real computation on both sides, not interpreter overhead.
+    **Performance.** On 300 pixels of 150 observations, R `bfastlite()` took 34.5 ms per pixel and Zeit 11.2 ms single-threaded (about 3×). With `n_jobs=-1` on 15 of 16 cores, 20,000 pixels took 45.5 s instead of 249.3 s single-threaded (a further 5.5×). The gain is smaller than BFAST Monitor's because the dynamic program is real computation on both sides, not interpreter overhead.
 
 ## References
 

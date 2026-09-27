@@ -1,6 +1,6 @@
-"""Generate the figures used in the CDTS documentation.
+"""Generate the figures used in the Zeit documentation.
 
-Every figure is produced by running CDTS itself, so the images double as a
+Every figure is produced by running Zeit itself, so the images double as a
 smoke test of the documented API. Run from the repository root:
 
     python docs/scripts/make_figures.py            # every figure
@@ -12,17 +12,17 @@ Two kinds of inputs are used:
 
 * **Synthetic series** (CCDC, BFAST family, Tmask, phenology, TWDTW,
   smoothing, TempCNN) are generated here with a fixed random seed and need
-  nothing but CDTS.
+  nothing but Zeit.
 * **Real Landsat data** (LandTrendr, Mann-Kendall, SNIC, SOM and the
   concept figures) use an annual NDVI stack (1985-2024, NDVI x 10000, one
   band per year) over a ~50 x 50 km area of Rondonia, Brazil, exported
   from LT-GEE (https://github.com/eMapR/LT-GEE) on Google Earth Engine. Point the
-  ``CDTS_DOCS_RONDONIA`` environment variable at that GeoTIFF; the
+  ``ZEIT_DOCS_RONDONIA`` environment variable at that GeoTIFF; the
   real-data figures are skipped when it is not set.
 
 Charts are written as palette PNGs, image-like maps as WebP.
 
-Optional: set ``CDTS_DOCS_FONT_DIR`` to a folder with the Inter TTF files so
+Optional: set ``ZEIT_DOCS_FONT_DIR`` to a folder with the Inter TTF files so
 the figures use the same typeface as the site.
 """
 
@@ -40,7 +40,7 @@ from matplotlib import font_manager
 from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 from matplotlib.lines import Line2D
 
-import cdts
+import zeit
 
 OUT = Path(__file__).resolve().parents[1] / "assets" / "figures"
 RNG_SEED = 7
@@ -71,7 +71,7 @@ DIVERGING = LinearSegmentedColormap.from_list(
 
 
 def setup_style():
-    font_dir = os.environ.get("CDTS_DOCS_FONT_DIR")
+    font_dir = os.environ.get("ZEIT_DOCS_FONT_DIR")
     family = ["DejaVu Sans"]
     if font_dir:
         for f in glob.glob(os.path.join(font_dir, "**", "Inter-*.ttf"), recursive=True):
@@ -187,7 +187,7 @@ def rondonia():
     """Load the stack once and run LandTrendr on it (cached)."""
     if _RONDONIA:
         return _RONDONIA
-    path = os.environ.get("CDTS_DOCS_RONDONIA")
+    path = os.environ.get("ZEIT_DOCS_RONDONIA")
     if not path or not os.path.exists(path):
         return None
     import rasterio
@@ -196,9 +196,9 @@ def rondonia():
     years = np.arange(1985, 1985 + stack.shape[0])
     valid = (stack != 0).all(axis=0)
 
-    vertices, rmse = cdts.run_landtrendr_array(
+    vertices, rmse = zeit.run_landtrendr_array(
         years, stack, max_segments=6, modifier=-1.0, return_rmse=True)
-    events = cdts.extract_events(
+    events = zeit.extract_events(
         vertices, event_type="loss", sort_by="greatest",
         min_magnitude=2000, rmse_map=rmse)
     _RONDONIA.update(stack=stack, years=years, valid=valid,
@@ -344,7 +344,7 @@ def fig_pixel_time_series(d):
 def fig_mann_kendall(d):
     s, valid = d["stack"], d["valid"]
     import dask.array as da
-    from cdts.trend import run_mann_kendall_dask, MK_METRIC_NAMES
+    from zeit.trend import run_mann_kendall_dask, MK_METRIC_NAMES
     arr = da.from_array(np.where(valid, s / 10000, np.nan).astype(np.float32),
                         chunks=(-1, 512, 512))
     out = run_mann_kendall_dask(arr, method="hamed_rao").compute()
@@ -379,7 +379,7 @@ def fig_snic(d):
     s, valid = d["stack"], d["valid"]
     r0, c0, n = 560, 560, 320
     crop = s[:, r0:r0 + n, c0:c0 + n] / 10000
-    res = cdts.run_snic(crop.astype(np.float32), spacing=14, compactness=0.6)
+    res = zeit.run_snic(crop.astype(np.float32), spacing=14, compactness=0.6)
     b = find_boundaries(res.labels, mode="inner")
     mean_img = res.means[res.labels][..., -1]
 
@@ -396,7 +396,7 @@ def fig_snic(d):
 
 
 def fig_som(d):
-    from cdts.ai import SOM
+    from zeit.ai import SOM
     s, y, valid = d["stack"], d["years"], d["valid"]
     r0, c0, n = 420, 420, 700
     crop = s[:, r0:r0 + n, c0:c0 + n] / 10000
@@ -454,7 +454,7 @@ def fig_quickstart():
     """Runs the exact code shown in getting-started/quickstart.md."""
     # --- quickstart code (keep in sync with the page) ----------------------
     import numpy as np
-    import cdts
+    import zeit
 
     rng = np.random.default_rng(42)
     years = np.arange(1990, 2025)                      # 35 annual observations
@@ -470,8 +470,8 @@ def fig_quickstart():
     stack[:, 70:105, 50:110] = np.where(after, 0.30 + regrow, stack[:, 70:105, 50:110])
     stack = (stack * 10000).astype(np.float32)         # NDVI x 10000, like most products
 
-    vertices = cdts.run_landtrendr_array(years, stack, modifier=-1.0)
-    loss = cdts.extract_events(vertices, event_type="loss", min_magnitude=1500)
+    vertices = zeit.run_landtrendr_array(years, stack, modifier=-1.0)
+    loss = zeit.extract_events(vertices, event_type="loss", min_magnitude=1500)
     print(np.unique(loss["yod"]))
     # ------------------------------------------------------------------------
 
@@ -503,7 +503,7 @@ def fig_quickstart():
 
 
 def fig_ccdc():
-    from cdts.ccdc import run_ccdc, predict
+    from zeit.ccdc import run_ccdc, predict
     rng = np.random.default_rng(RNG_SEED)
     dates, cloudy = _landsat_dates(2008, 2021)
     ty = frac_year(dates)
@@ -541,7 +541,7 @@ def fig_ccdc():
 
 
 def fig_tmask():
-    from cdts.tmask import run_tmask_pixel
+    from zeit.tmask import run_tmask_pixel
     rng = np.random.default_rng(RNG_SEED + 1)
     dates, _ = _landsat_dates(2016, 2019, cloud_frac=0)
     ty = frac_year(dates)
@@ -586,7 +586,7 @@ def _ols_harmonic(t, y, order=3):
 
 def fig_bfast_monitor():
     import dask.array as da
-    from cdts.bfast import run_bfast_monitor_dask, BFM_METRIC_NAMES
+    from zeit.bfast import run_bfast_monitor_dask, BFM_METRIC_NAMES
     t, y, rng = _ndvi_series(2010, 10, seed=RNG_SEED + 2)
     brk = 2017.4
     y[t >= brk] -= 0.25
@@ -624,7 +624,7 @@ def fig_bfast_monitor():
 
 def fig_bfast_lite():
     import dask.array as da
-    from cdts.bfast import run_bfast_lite_dask, bfl_metric_names
+    from zeit.bfast import run_bfast_lite_dask, bfl_metric_names
     t, y, rng = _ndvi_series(2005, 16, seed=RNG_SEED + 3)
     y[(t >= 2010.3)] -= 0.22
     y[(t >= 2015.6)] += 0.12 + 0.03 * (t[t >= 2015.6] - 2015.6)
@@ -651,7 +651,7 @@ def fig_bfast_lite():
 
 def fig_bfast_classic():
     import dask.array as da
-    from cdts.bfast import run_bfast_dask, bf_metric_names
+    from zeit.bfast import run_bfast_dask, bf_metric_names
     t, y, rng = _ndvi_series(2005, 13, seed=RNG_SEED + 4, noise=0.025)
     brk = 2011.5
     y[t >= brk] -= 0.18
@@ -695,7 +695,7 @@ def fig_bfast_classic():
 
 def fig_phenology():
     import xarray as xr
-    from cdts._core.phenology import CurveType
+    from zeit._core.phenology import CurveType
     rng = np.random.default_rng(RNG_SEED + 5)
     base = 2019
     doy = np.arange(1, 3 * 365, 8)
@@ -715,9 +715,9 @@ def fig_phenology():
 
     da_ = xr.DataArray(y[:, None, None], dims=["time", "y", "x"],
                        coords={"y": [0], "x": [0]})
-    m = da_.cdts.run_phenology(dates=doy.astype(float), curve_type=int(CurveType.BECK),
+    m = da_.zeit.run_phenology(dates=doy.astype(float), curve_type=int(CurveType.BECK),
                                max_seasons=3, base_year=base).compute()
-    sm = cdts.smooth.apply_whittaker_filter(y[:, None, None], lmbd=15)[:, 0, 0]
+    sm = zeit.smooth.apply_whittaker_filter(y[:, None, None], lmbd=15)[:, 0, 0]
 
     fig, ax = plt.subplots(figsize=(12, 4.0))
     x = base + t
@@ -741,7 +741,7 @@ def fig_phenology():
 
 
 def fig_twdtw():
-    from cdts.twdtw import run_twdtw
+    from zeit.twdtw import run_twdtw
     rng = np.random.default_rng(RNG_SEED + 6)
     pdates = np.arange(0, 365, 16)
     ft = pdates / 365
@@ -800,7 +800,7 @@ def fig_twdtw():
 
 
 def fig_smoothing():
-    from cdts.smooth import apply_savgol_filter, apply_whittaker_filter
+    from zeit.smooth import apply_savgol_filter, apply_whittaker_filter
     rng = np.random.default_rng(RNG_SEED + 8)
     t = np.arange(0, 4, 1 / 23)
     truth = 0.55 + _harmonic(t, -0.2, 0.08)
@@ -827,7 +827,7 @@ def fig_smoothing():
 def fig_tempcnn():
     import torch
     from torch import nn
-    from cdts.ai import TempCNN
+    from zeit.ai import TempCNN
     torch.manual_seed(RNG_SEED)
     rng = np.random.default_rng(RNG_SEED + 9)
     n_times, per_class = 23, 250
@@ -990,7 +990,7 @@ def main(names):
         if needs_data:
             d = rondonia()
             if d is None:
-                print("  skipped (set CDTS_DOCS_RONDONIA to the annual NDVI GeoTIFF)")
+                print("  skipped (set ZEIT_DOCS_RONDONIA to the annual NDVI GeoTIFF)")
                 continue
             fn(d)
         else:

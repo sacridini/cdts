@@ -4,16 +4,16 @@
 
 ## Basic Usage
 
-The CLI is structured around subcommands for each algorithm. You can invoke the CLI using the `cdts` command (if installed via pip) or by executing the python module directly:
+The CLI is structured around subcommands for each algorithm. You can invoke the CLI using the `zeit` command (if installed via pip) or by executing the python module directly:
 
 ```bash
-cdts <algorithm> [OPTIONS] <input_file> <output_directory>
+zeit <algorithm> [OPTIONS] <input_file> <output_directory>
 ```
-*(Alternatively: `python -m cdts.cli <algorithm> ...`)*
+*(Alternatively: `python -m zeit.cli <algorithm> ...`)*
 
 To get general help or see the list of available commands:
 ```bash
-cdts --help
+zeit --help
 ```
 
 ---
@@ -24,7 +24,7 @@ The `landtrendr` command processes a multi-band GeoTIFF representing a time seri
 
 ### Syntax
 ```bash
-cdts landtrendr <input> <output_dir> [OPTIONS]
+zeit landtrendr <input> <output_dir> [OPTIONS]
 ```
 
 ### Positional Arguments
@@ -60,7 +60,7 @@ These options control how specific change events are extracted from the temporal
 ### End-to-End Example
 Run LandTrendr on a 30-year NBR stack, extracting the greatest vegetation loss, using all CPU cores, and converting the output back to floating point (assuming NBR was scaled by 10000):
 ```bash
-cdts landtrendr ./data/nbr_stack_1990_2020.tif ./results \
+zeit landtrendr ./data/nbr_stack_1990_2020.tif ./results \
     --start-year 1990 \
     --max-segments 6 \
     --event-type loss \
@@ -77,7 +77,7 @@ The `ccdc` command runs the Continuous Change Detection and Classification algor
 
 ### Syntax
 ```bash
-cdts ccdc <input> <output_dir> [OPTIONS]
+zeit ccdc <input> <output_dir> [OPTIONS]
 ```
 
 ### Positional Arguments
@@ -102,7 +102,7 @@ cdts ccdc <input> <output_dir> [OPTIONS]
 ### End-to-End Example
 Run CCDC on an image with 6 spectral bands and 1 QA band (7 total bands per date). The 7th band (index 6) is the QA mask. The dates are provided in a text file:
 ```bash
-cdts ccdc ./data/dense_stack.tif ./results \
+zeit ccdc ./data/dense_stack.tif ./results \
     --num-bands 7 \
     --qa-band 6 \
     --dates-file ./data/dates.txt \
@@ -112,7 +112,7 @@ cdts ccdc ./data/dense_stack.tif ./results \
 
 Run the COLD algorithm on the exact same dataset:
 ```bash
-cdts ccdc ./data/dense_stack.tif ./results_cold \
+zeit ccdc ./data/dense_stack.tif ./results_cold \
     --num-bands 7 \
     --qa-band 6 \
     --dates-file ./data/dates.txt \
@@ -128,7 +128,7 @@ The `bfast-monitor` command runs near-real-time structural change monitoring on 
 
 ### Syntax
 ```bash
-cdts bfast-monitor <input> <output_dir> --start-time <float> --monitor-start-time <float> --frequency <int> [OPTIONS]
+zeit bfast-monitor <input> <output_dir> --start-time <float> --monitor-start-time <float> --frequency <int> [OPTIONS]
 ```
 
 ### Positional Arguments
@@ -152,11 +152,11 @@ cdts bfast-monitor <input> <output_dir> --start-time <float> --monitor-start-tim
 | `--jobs` | `int` | `-1` | Number of CPU cores to use. `-1` uses all available cores. |
 | `--prefix` | `str` | `bfast_monitor` | Filename (without extension) for the output GeoTIFF. |
 
-Output bands (in order): `breakpoint`, `breakpoint_idx`, `magnitude`, `sigma`, `n_history`, `has_break`, `valid` (see `cdts.bfast.BFM_METRIC_NAMES`).
+Output bands (in order): `breakpoint`, `breakpoint_idx`, `magnitude`, `sigma`, `n_history`, `has_break`, `valid` (see `zeit.bfast.BFM_METRIC_NAMES`).
 
 ### End-to-End Example
 ```bash
-cdts bfast-monitor ./data/ndvi_16day_stack.tif ./results \
+zeit bfast-monitor ./data/ndvi_16day_stack.tif ./results \
     --start-time 2015.0 \
     --monitor-start-time 2019.0 \
     --frequency 23 \
@@ -171,7 +171,7 @@ The `bfast-lite` command retrospectively segments the *whole* series into an opt
 
 ### Syntax
 ```bash
-cdts bfast-lite <input> <output_dir> --start-time <float> --frequency <int> [OPTIONS]
+zeit bfast-lite <input> <output_dir> --start-time <float> --frequency <int> [OPTIONS]
 ```
 
 ### Configuration Options
@@ -187,11 +187,11 @@ cdts bfast-lite <input> <output_dir> --start-time <float> --frequency <int> [OPT
 | `--jobs` | `int` | `-1` | Number of CPU cores to use. |
 | `--prefix` | `str` | `bfast_lite` | Filename (without extension) for the output GeoTIFF. |
 
-Output bands: `n_breaks`, `rss`, `lwz`, `n_valid`, `valid`, `breakpoint_idx_1..N` (see `cdts.bfast.bfl_metric_names`).
+Output bands: `n_breaks`, `rss`, `lwz`, `n_valid`, `valid`, `breakpoint_idx_1..N` (see `zeit.bfast.bfl_metric_names`).
 
 ### End-to-End Example
 ```bash
-cdts bfast-lite ./data/ndvi_16day_stack.tif ./results --start-time 2010.0 --frequency 23 --max-breaks-output 5
+zeit bfast-lite ./data/ndvi_16day_stack.tif ./results --start-time 2010.0 --frequency 23 --max-breaks-output 5
 ```
 
 ---
@@ -202,7 +202,7 @@ The `bfast` command runs the original iterative `bfast()` algorithm: an STL seas
 
 ### Syntax
 ```bash
-cdts bfast <input> <output_dir> --start-time <float> --frequency <int> [OPTIONS]
+zeit bfast <input> <output_dir> --start-time <float> --frequency <int> [OPTIONS]
 ```
 
 ### Configuration Options
@@ -221,11 +221,11 @@ cdts bfast <input> <output_dir> --start-time <float> --frequency <int> [OPTIONS]
 | `--jobs` | `int` | `-1` | Number of CPU cores to use. |
 | `--prefix` | `str` | `bfast` | Filename (without extension) for the output GeoTIFF. |
 
-Output bands: `n_trend_breaks`, `n_season_breaks`, `magnitude`, `time`, `n_iter`, `n_valid`, `valid`, `trend_breakpoint_idx_1..N`, `season_breakpoint_idx_1..N` (see `cdts.bfast.bf_metric_names`).
+Output bands: `n_trend_breaks`, `n_season_breaks`, `magnitude`, `time`, `n_iter`, `n_valid`, `valid`, `trend_breakpoint_idx_1..N`, `season_breakpoint_idx_1..N` (see `zeit.bfast.bf_metric_names`).
 
 ### End-to-End Example
 ```bash
-cdts bfast ./data/ndvi_16day_stack.tif ./results --start-time 2000.0 --frequency 23
+zeit bfast ./data/ndvi_16day_stack.tif ./results --start-time 2000.0 --frequency 23
 ```
 
 ---
@@ -236,7 +236,7 @@ The `mann-kendall` command runs the pixel-wise Mann-Kendall trend test and Theil
 
 ### Syntax
 ```bash
-cdts mann-kendall <input> <output_dir> [OPTIONS]
+zeit mann-kendall <input> <output_dir> [OPTIONS]
 ```
 
 ### Configuration Options
@@ -251,11 +251,11 @@ cdts mann-kendall <input> <output_dir> [OPTIONS]
 | `--jobs` | `int` | `-1` | Number of CPU cores to use. |
 | `--prefix` | `str` | `mann_kendall` | Filename (without extension) for the output GeoTIFF. |
 
-Output bands: `trend`, `h`, `p`, `z`, `tau`, `s`, `var_s`, `slope`, `intercept` (see `cdts.trend.MK_METRIC_NAMES`). `slope`/`intercept` are per time step (per band), so one observation per year gives a directly interpretable per-year trend.
+Output bands: `trend`, `h`, `p`, `z`, `tau`, `s`, `var_s`, `slope`, `intercept` (see `zeit.trend.MK_METRIC_NAMES`). `slope`/`intercept` are per time step (per band), so one observation per year gives a directly interpretable per-year trend.
 
 ### End-to-End Example
 ```bash
-cdts mann-kendall ./data/annual_ndvi_stack.tif ./results --method hamed_rao --jobs -1
+zeit mann-kendall ./data/annual_ndvi_stack.tif ./results --method hamed_rao --jobs -1
 ```
 
 ---
@@ -266,7 +266,7 @@ The `mmu-filter` command applies a spatial Minimum Mapping Unit (MMU) filter to 
 
 ### Syntax
 ```bash
-cdts mmu-filter <input> <output> [OPTIONS]
+zeit mmu-filter <input> <output> [OPTIONS]
 ```
 
 ### Positional Arguments
@@ -282,14 +282,14 @@ cdts mmu-filter <input> <output> [OPTIONS]
 
 ### End-to-End Example
 ```bash
-cdts mmu-filter ./results/lt_event_yod.tif ./results/lt_event_yod_mmu.tif --mmu-pixels 9
+zeit mmu-filter ./results/lt_event_yod.tif ./results/lt_event_yod_mmu.tif --mmu-pixels 9
 ```
 
 ---
 
 ## Note on AI Tools (Deep Learning)
 
-Currently, the AI tools (`cdts.ai`) are **not** exposed via the CLI. 
+Currently, the AI tools (`zeit.ai`) are **not** exposed via the CLI. 
 
 **Why?** 
 Deep learning architectures (like UTAE, TempCNN, or Siamese Networks) require highly specific initializations based on your dataset (e.g., number of input bands, number of target classes, path to pre-trained `.pth` weights, and GPU allocation strategies). These configurations are too complex and dynamic to be safely passed as simple terminal arguments.

@@ -4,14 +4,14 @@ Example 10: BFAST Lite End-to-End (Single-Pass Multiple-Breakpoint Detection)
 Loads a synthetic 16-day composite datacube (no network needed) where every
 pixel has two injected structural breaks (e.g. a disturbance followed by
 recovery/regrowth), runs the single-pass `bfastlite` segmentation via the
-`.cdts` accessor, and saves the breakpoint maps with `cdts.save_raster`.
+`.zeit` accessor, and saves the breakpoint maps with `zeit.save_raster`.
 """
 import os
 import numpy as np
 import xarray as xr
 from rasterio.transform import from_origin
-import cdts
-from cdts.bfast import bfl_metric_names
+import zeit
+from zeit.bfast import bfl_metric_names
 
 FREQUENCY = 23
 START_TIME = 2010.0
@@ -44,7 +44,7 @@ def build_synthetic_cube(n_years=8, rows=15, cols=15, seed=2):
 
 
 def main():
-    print("CDTS Example 10: BFAST Lite (Single-Pass Multiple-Breakpoint Detection)")
+    print("Zeit Example 10: BFAST Lite (Single-Pass Multiple-Breakpoint Detection)")
 
     rows, cols = 15, 15
     print(f"\n[1/3] Generating synthetic cube ({rows}x{cols} px) with 2 injected breaks per pixel...")
@@ -57,8 +57,8 @@ def main():
         coords={"y": np.arange(rows), "x": np.arange(cols)},
     )
 
-    print("\n[2/3] Running bfastlite via .cdts accessor...")
-    result = cube.cdts.run_bfast_lite(
+    print("\n[2/3] Running bfastlite via .zeit accessor...")
+    result = cube.zeit.run_bfast_lite(
         start_time=START_TIME, frequency=FREQUENCY, h=0.15, max_breaks_output=MAX_BREAKS, n_jobs=-1,
     ).compute()
 
@@ -69,10 +69,10 @@ def main():
     print(f"    Median 1st breakpoint: {np.nanmedian(bp1):.1f} (injected {break1}); "
           f"median 2nd breakpoint: {np.nanmedian(bp2):.1f} (injected {break2}).")
 
-    print("\n[3/3] Saving results with cdts.save_raster()...")
+    print("\n[3/3] Saving results with zeit.save_raster()...")
     out_tif = os.path.join("data", "bfast_lite_breaks.tif")
     transform = from_origin(500000.0, 8800000.0, 30.0, 30.0)
-    cdts.save_raster(result.values.astype("float32"), out_tif, crs="EPSG:32721", transform=transform, nodata=np.nan)
+    zeit.save_raster(result.values.astype("float32"), out_tif, crs="EPSG:32721", transform=transform, nodata=np.nan)
 
     names = bfl_metric_names(MAX_BREAKS)
     print(f"\nDone! {len(names)}-band raster ({', '.join(names)}) saved to {out_tif}")

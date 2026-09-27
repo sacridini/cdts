@@ -6,9 +6,9 @@
 
 ### `run_mann_kendall_dask` { .api }
 
-<!-- sig: cdts.trend.run_mann_kendall_dask -->
+<!-- sig: zeit.trend.run_mann_kendall_dask -->
 ```python
-cdts.trend.run_mann_kendall_dask(
+zeit.trend.run_mann_kendall_dask(
     arr, method="hamed_rao", alpha=0.05, lag=None, period=1,
     min_valid=4, n_jobs=-1,
 )
@@ -30,10 +30,10 @@ Mann-Kendall test and Theil-Sen slope for each pixel of a `(time, y, x)` Dask ar
 
 </div>
 
-**Returns** `(9, y, x)`: `trend`, `h`, `p`, `z`, `tau`, `s`, `var_s`, `slope`, `intercept` (`cdts.trend.MK_METRIC_NAMES`). The slope is per array step, or per `period` for `"seasonal"`.
+**Returns** `(9, y, x)`: `trend`, `h`, `p`, `z`, `tau`, `s`, `var_s`, `slope`, `intercept` (`zeit.trend.MK_METRIC_NAMES`). The slope is per array step, or per `period` for `"seasonal"`.
 
 ```python
-from cdts.trend import run_mann_kendall_dask, MK_METRIC_NAMES
+from zeit.trend import run_mann_kendall_dask, MK_METRIC_NAMES
 
 out = run_mann_kendall_dask(annual_dask_array).compute()
 slope = out[MK_METRIC_NAMES.index("slope")]
@@ -41,16 +41,16 @@ slope = out[MK_METRIC_NAMES.index("slope")]
 
 ### `run_mann_kendall_image` { .api }
 
-<!-- sig: cdts.raster.run_mann_kendall_image -->
+<!-- sig: zeit.raster.run_mann_kendall_image -->
 ```python
-cdts.raster.run_mann_kendall_image(
+zeit.raster.run_mann_kendall_image(
     input_path, output_dir, method="hamed_rao", alpha=0.05, lag=None,
     period=1, min_valid=4, chunk_size=512, n_jobs=-1,
     prefix="mann_kendall",
 )
 ```
 
-The same test on a GeoTIFF (one band per time step), block by block. Writes `<output_dir>/<prefix>.tif` with one band per metric. Also exported as `cdts.run_mann_kendall_image`; CLI: `cdts mann-kendall`.
+The same test on a GeoTIFF (one band per time step), block by block. Writes `<output_dir>/<prefix>.tif` with one band per metric. Also exported as `zeit.run_mann_kendall_image`; CLI: `zeit mann-kendall`.
 
 <div class="params" markdown>
 
@@ -69,9 +69,9 @@ The same test on a GeoTIFF (one band per time step), block by block. Writes `<ou
 
 ### `run_phenology_dask` { .api }
 
-<!-- sig: cdts.phenology.run_phenology_dask -->
+<!-- sig: zeit.phenology.run_phenology_dask -->
 ```python
-cdts.phenology.run_phenology_dask(
+zeit.phenology.run_phenology_dask(
     arr, dates, curve_type, extraction_method=0, max_seasons=2,
     whittaker_lambda=10.0, apply_whittaker=True, apply_hants=False,
     hants_frequencies=3, hants_threshold=0.1, min_season_length=0,
@@ -88,7 +88,7 @@ Smoothing, curve fitting and extraction of 19 phenology metrics (plus fit R² an
 | :--- | :--- | :--- | :--- |
 | `arr` | `dask.array.Array` | required | `(time, y, x)` vegetation index. |
 | `dates` | 1-D array | required | Days since 1 January of `base_year` (`doy + (year - base_year) * 365`). |
-| `curve_type` | `int` | required | `int(CurveType.BECK)` etc., from `cdts._core.phenology`: `BECK`, `ELMORE`, `GU`, `KLOS`, `ZHANG`, `AG`, `DL`. |
+| `curve_type` | `int` | required | `int(CurveType.BECK)` etc., from `zeit._core.phenology`: `BECK`, `ELMORE`, `GU`, `KLOS`, `ZHANG`, `AG`, `DL`. |
 | `extraction_method` | `int` | `0` | Kept at `0`; all metrics are always returned. |
 | `max_seasons` | `int` | `2` | Season slots (per year with `return_annual=True`). |
 | `whittaker_lambda` | `float` | `10.0` | Whittaker smoothness. |
@@ -102,17 +102,17 @@ Smoothing, curve fitting and extraction of 19 phenology metrics (plus fit R² an
 | `return_annual` | `bool` | `True` | Align seasons to calendar years (`year` axis) instead of sequential slots. |
 | `base_year` | `int` | `2001` | First year of `dates`. |
 | `n_jobs` | `int` | `-1` | Threads. |
-| `weights` | `dask.array.Array` | `None` | `(time, y, x)` observation weights in `[0, 1]`, e.g. from `cdts.qc`. |
+| `weights` | `dask.array.Array` | `None` | `(time, y, x)` observation weights in `[0, 1]`, e.g. from `zeit.qc`. |
 | `season_retry` | `bool` | `True` | Retry pixels with no season once with a relaxed trough threshold. |
 
 </div>
 
-**Returns** `(21, max_seasons, y, x)`: `TRS2.sos`, `TRS2.eos`, `TRS5.sos`, `TRS5.eos`, `TRS6.sos`, `TRS6.eos`, `DER.sos`, `DER.pos`, `DER.eos`, `UD`, `SD`, `DD`, `RD`, `Greenup`, `Maturity`, `Senescence`, `Dormancy`, `LOS`, `POP`, `R2`, `RMSE`. The accessor form, `DataArray.cdts.run_phenology`, returns the same array labelled with these names.
+**Returns** `(21, max_seasons, y, x)`: `TRS2.sos`, `TRS2.eos`, `TRS5.sos`, `TRS5.eos`, `TRS6.sos`, `TRS6.eos`, `DER.sos`, `DER.pos`, `DER.eos`, `UD`, `SD`, `DD`, `RD`, `Greenup`, `Maturity`, `Senescence`, `Dormancy`, `LOS`, `POP`, `R2`, `RMSE`. The accessor form, `DataArray.zeit.run_phenology`, returns the same array labelled with these names.
 
 ```python
-from cdts._core.phenology import CurveType
+from zeit._core.phenology import CurveType
 
-pheno = ndvi_16d.cdts.run_phenology(dates=days, curve_type=int(CurveType.BECK),
+pheno = ndvi_16d.zeit.run_phenology(dates=days, curve_type=int(CurveType.BECK),
                                     max_seasons=3, base_year=2019).compute()
 sos = pheno.sel(metric="TRS5.sos")
 ```
@@ -123,9 +123,9 @@ Tutorial: [Pattern Matching](../tutorials/twdtw.md). The time weight is `alpha /
 
 ### `classify_twdtw` { .api }
 
-<!-- sig: cdts.twdtw.classify_twdtw -->
+<!-- sig: zeit.twdtw.classify_twdtw -->
 ```python
-cdts.twdtw.classify_twdtw(
+zeit.twdtw.classify_twdtw(
     values_array, dates_array, patterns, alpha=0.1, beta=0.05,
     gamma=50.0, max_time_warp=365, subsequence_matching=False,
     n_jobs=-1,
@@ -153,14 +153,14 @@ Compares every pixel with every class pattern and keeps the closest.
 **Returns** `(classes, distance, names)`: the index of the best class per pixel, its distance, and the class names in index order.
 
 ```python
-classes, distance, names = cdts.twdtw.classify_twdtw(np.moveaxis(stack, 0, -1), days, patterns)
+classes, distance, names = zeit.twdtw.classify_twdtw(np.moveaxis(stack, 0, -1), days, patterns)
 ```
 
 ### `run_twdtw` { .api }
 
-<!-- sig: cdts.twdtw.run_twdtw -->
+<!-- sig: zeit.twdtw.run_twdtw -->
 ```python
-cdts.twdtw.run_twdtw(
+zeit.twdtw.run_twdtw(
     ts_values, ts_dates, pattern_values, pattern_dates, alpha=0.1,
     beta=0.05, gamma=50.0, max_time_warp=365,
     subsequence_matching=False, abort_threshold=inf,
@@ -168,7 +168,7 @@ cdts.twdtw.run_twdtw(
 )
 ```
 
-TWDTW distance between one series and one pattern. Also exported as `cdts.run_twdtw`.
+TWDTW distance between one series and one pattern. Also exported as `zeit.run_twdtw`.
 
 <div class="params" markdown>
 
@@ -188,16 +188,16 @@ TWDTW distance between one series and one pattern. Also exported as `cdts.run_tw
 
 ### `run_twdtw_batch` { .api }
 
-<!-- sig: cdts.twdtw.run_twdtw_batch -->
+<!-- sig: zeit.twdtw.run_twdtw_batch -->
 ```python
-cdts.twdtw.run_twdtw_batch(
+zeit.twdtw.run_twdtw_batch(
     values_array, dates_array, pattern_values, pattern_dates,
     alpha=0.1, beta=0.05, gamma=50.0, max_time_warp=365,
     subsequence_matching=False, abort_threshold=inf, n_jobs=-1,
 )
 ```
 
-Distance from every pixel to one pattern. Also exported as `cdts.run_twdtw_batch`.
+Distance from every pixel to one pattern. Also exported as `zeit.run_twdtw_batch`.
 
 <div class="params" markdown>
 
@@ -219,15 +219,15 @@ Tutorial: [Segmentation](../tutorials/snic.md).
 
 ### `run_snic` { .api }
 
-<!-- sig: cdts.segmentation.run_snic -->
+<!-- sig: zeit.segmentation.run_snic -->
 ```python
-cdts.segmentation.run_snic(
+zeit.segmentation.run_snic(
     data, spacing=10, compactness=0.5, seeds=None, grid="rectangular",
     padding=None, tile_size=None, random_state=None, n_jobs=-1,
 )
 ```
 
-SNIC superpixels of an image or a whole cube; every leading axis becomes a feature. Given the same seeds, labels match the reference C implementation. Also exported as `cdts.run_snic`.
+SNIC superpixels of an image or a whole cube; every leading axis becomes a feature. Given the same seeds, labels match the reference C implementation. Also exported as `zeit.run_snic`.
 
 <div class="params" markdown>
 
@@ -249,14 +249,14 @@ SNIC superpixels of an image or a whole cube; every leading axis becomes a featu
 
 ### `snic_to_polygons` { .api }
 
-<!-- sig: cdts.segmentation.snic_to_polygons -->
+<!-- sig: zeit.segmentation.snic_to_polygons -->
 ```python
-cdts.segmentation.snic_to_polygons(
+zeit.segmentation.snic_to_polygons(
     result, transform=None, crs=None, include_means=False,
 )
 ```
 
-Converts SNIC labels to a GeoDataFrame, one polygon per segment, like `sits_segment()`. Also exported as `cdts.snic_to_polygons`.
+Converts SNIC labels to a GeoDataFrame, one polygon per segment, like `sits_segment()`. Also exported as `zeit.snic_to_polygons`.
 
 <div class="params" markdown>
 
@@ -271,15 +271,15 @@ Converts SNIC labels to a GeoDataFrame, one polygon per segment, like `sits_segm
 
 ### `snic_grid` { .api }
 
-<!-- sig: cdts.segmentation.snic_grid -->
+<!-- sig: zeit.segmentation.snic_grid -->
 ```python
-cdts.segmentation.snic_grid(
+zeit.segmentation.snic_grid(
     shape, spacing, padding=None, type="rectangular",
     random_state=None,
 )
 ```
 
-The seed grids of the R `snic` package, as `(n, 2)` `(row, col)` positions. Also exported as `cdts.snic_grid`.
+The seed grids of the R `snic` package, as `(n, 2)` `(row, col)` positions. Also exported as `zeit.snic_grid`.
 
 <div class="params" markdown>
 
@@ -297,9 +297,9 @@ The seed grids of the R `snic` package, as `(n, 2)` `(row, col)` positions. Also
 
 ### `SOM` { .api .cls }
 
-<!-- sig: cdts.ai.SOM -->
+<!-- sig: zeit.ai.SOM -->
 ```python
-class cdts.ai.SOM(
+class zeit.ai.SOM(
     x, y, input_len, sigma=1.0, learning_rate=0.5,
     decay_function="asymptotic_decay",
     neighborhood_function="gaussian", topology="rectangular",
@@ -336,7 +336,7 @@ Self-organizing map in C++ (online and batch, OpenMP). An operation-by-operation
 | `filter_noisy_samples(data, labels, n_jobs=-1)` | Boolean mask of samples to **keep**: `False` where a sample's label disagrees with the majority label of its neuron. |
 
 ```python
-from cdts.ai import SOM
+from zeit.ai import SOM
 
 som = SOM(x=10, y=10, input_len=X.shape[1], sigma=1.5)
 som.random_weights_init(X)

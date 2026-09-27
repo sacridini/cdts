@@ -8,7 +8,7 @@
 // pymannkendall (Hussain & Mahmud, 2019, JOSS, doi:10.21105/joss.01556) to
 // C++/OpenMP for per-pixel batch throughput over EO time series cubes.
 
-namespace cdts {
+namespace zeit {
 namespace mannkendall {
 
 enum class MKMethod {
@@ -67,4 +67,4 @@ pybind11::array_t<double> fit_mann_kendall_batch(
     int n_jobs = -1);
 
 } // namespace mannkendall
-} // namespace cdts
+} // namespace zeit

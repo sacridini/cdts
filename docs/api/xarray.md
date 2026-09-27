@@ -1,6 +1,6 @@
 # Xarray Accessor
 
-<p class="lead"><code>import cdts</code> registers a <code>.cdts</code> accessor on every <code>xarray.DataArray</code>. Its methods run the C++ algorithms over Dask chunks, so they work on cubes larger than memory and on clusters. All of them are lazy: call <code>.compute()</code>, or write the result with <code>to_zarr_optimized</code>.</p>
+<p class="lead"><code>import zeit</code> registers a <code>.zeit</code> accessor on every <code>xarray.DataArray</code>. Its methods run the C++ algorithms over Dask chunks, so they work on cubes larger than memory and on clusters. All of them are lazy: call <code>.compute()</code>, or write the result with <code>to_zarr_optimized</code>.</p>
 
 !!! warning "Chunk in space, never in time"
     Each pixel needs its whole history, so keep `time` (and `band`, for CCDC) in a single chunk: `cube.chunk({"time": -1, "y": 512, "x": 512})`. See [Parallel & Cloud Processing](../tutorials/parallel-cloud-processing.md).
@@ -23,9 +23,9 @@ Outputs with a `metric` dimension are labelled, so you can select by name: `resu
 
 ### `run_landtrendr` { .api .meth }
 
-<!-- sig: cdts.xarray_api.CDTSAccessor.run_landtrendr -->
+<!-- sig: zeit.xarray_api.ZeitAccessor.run_landtrendr -->
 ```python
-DataArray.cdts.run_landtrendr(
+DataArray.zeit.run_landtrendr(
     years, max_segments=6, pval_threshold=0.05, n_jobs=-1,
 )
 ```
@@ -36,15 +36,15 @@ LandTrendr vertices for every pixel. Returns `(vertex_info, y, x)`: vertex years
     The accessor segments with the default orientation (`modifier=+1`, disturbance = index increase). For indices that **drop** with disturbance (NDVI, NBR), pass the negated index and extract `"gain"` events, which is equivalent to `modifier=-1`:
 
     ```python
-    vertices = (-ndvi).cdts.run_landtrendr(years=years).compute()
-    loss = cdts.extract_events(vertices.values, event_type="gain", min_magnitude=0.2)
+    vertices = (-ndvi).zeit.run_landtrendr(years=years).compute()
+    loss = zeit.extract_events(vertices.values, event_type="gain", min_magnitude=0.2)
     ```
 
 ### `run_ccdc` { .api .meth }
 
-<!-- sig: cdts.xarray_api.CDTSAccessor.run_ccdc -->
+<!-- sig: zeit.xarray_api.ZeitAccessor.run_ccdc -->
 ```python
-DataArray.cdts.run_ccdc(
+DataArray.zeit.run_ccdc(
     dates, qa_stack=None, max_segments=6, return_coefs=True,
     conseq_anom=6, n_jobs=-1, **ccdc_kwargs,
 )
@@ -54,9 +54,9 @@ CCDC for every pixel of a `(band, time, y, x)` cube of reflectance × 10,000. `q
 
 ### `run_bfast_monitor` { .api .meth }
 
-<!-- sig: cdts.xarray_api.CDTSAccessor.run_bfast_monitor -->
+<!-- sig: zeit.xarray_api.ZeitAccessor.run_bfast_monitor -->
 ```python
-DataArray.cdts.run_bfast_monitor(
+DataArray.zeit.run_bfast_monitor(
     start_time, monitor_start_time, frequency, order=3, h=0.25,
     period=10, alpha=0.05, min_valid=10, n_jobs=-1,
 )
@@ -64,9 +64,9 @@ DataArray.cdts.run_bfast_monitor(
 
 ### `run_bfast_lite` { .api .meth }
 
-<!-- sig: cdts.xarray_api.CDTSAccessor.run_bfast_lite -->
+<!-- sig: zeit.xarray_api.ZeitAccessor.run_bfast_lite -->
 ```python
-DataArray.cdts.run_bfast_lite(
+DataArray.zeit.run_bfast_lite(
     start_time, frequency, order=3, h=0.15, max_breaks_output=5,
     min_valid=20, n_jobs=-1,
 )
@@ -74,9 +74,9 @@ DataArray.cdts.run_bfast_lite(
 
 ### `run_bfast` { .api .meth }
 
-<!-- sig: cdts.xarray_api.CDTSAccessor.run_bfast -->
+<!-- sig: zeit.xarray_api.ZeitAccessor.run_bfast -->
 ```python
-DataArray.cdts.run_bfast(
+DataArray.zeit.run_bfast(
     start_time, frequency, order=3, h=0.15, max_breaks_trend=5,
     max_breaks_season=5, max_iter=10, level=0.05, min_valid=20,
     n_jobs=-1,
@@ -87,24 +87,24 @@ DataArray.cdts.run_bfast(
 
 ### `run_mann_kendall` { .api .meth }
 
-<!-- sig: cdts.xarray_api.CDTSAccessor.run_mann_kendall -->
+<!-- sig: zeit.xarray_api.ZeitAccessor.run_mann_kendall -->
 ```python
-DataArray.cdts.run_mann_kendall(
+DataArray.zeit.run_mann_kendall(
     method="hamed_rao", alpha=0.05, lag=None, period=1, min_valid=4,
     n_jobs=-1,
 )
 ```
 
 ```python
-trend = annual_ndvi.cdts.run_mann_kendall(method="hamed_rao").compute()
+trend = annual_ndvi.zeit.run_mann_kendall(method="hamed_rao").compute()
 slope = trend.sel(metric="slope")
 ```
 
 ### `run_phenology` { .api .meth }
 
-<!-- sig: cdts.xarray_api.CDTSAccessor.run_phenology -->
+<!-- sig: zeit.xarray_api.ZeitAccessor.run_phenology -->
 ```python
-DataArray.cdts.run_phenology(
+DataArray.zeit.run_phenology(
     dates, curve_type, extraction_method=0, max_seasons=2,
     whittaker_lambda=10.0, apply_whittaker=True, apply_hants=False,
     hants_frequencies=3, hants_threshold=0.1, min_season_length=0,
@@ -117,9 +117,9 @@ DataArray.cdts.run_phenology(
 
 ### `run_snic` { .api .meth }
 
-<!-- sig: cdts.xarray_api.CDTSAccessor.run_snic -->
+<!-- sig: zeit.xarray_api.ZeitAccessor.run_snic -->
 ```python
-DataArray.cdts.run_snic(
+DataArray.zeit.run_snic(
     spacing=10, compactness=0.5, seeds=None, grid="rectangular",
     padding=None, tile_size=None, random_state=None, n_jobs=-1,
 )
@@ -131,9 +131,9 @@ Returns an `xr.Dataset` with `labels` `(y, x)`, the mean trajectory of each segm
 
 ### `to_zarr_optimized` { .api .meth }
 
-<!-- sig: cdts.xarray_api.CDTSAccessor.to_zarr_optimized -->
+<!-- sig: zeit.xarray_api.ZeitAccessor.to_zarr_optimized -->
 ```python
-DataArray.cdts.to_zarr_optimized(
+DataArray.zeit.to_zarr_optimized(
     store_path, chunk_size={'y': 512, 'x': 512},
 )
 ```
@@ -150,5 +150,5 @@ Rechunks the array spatially and writes it to a Zarr store with consolidated met
 </div>
 
 ```python
-trend.cdts.to_zarr_optimized("s3://my-bucket/ndvi_trend.zarr")
+trend.zeit.to_zarr_optimized("s3://my-bucket/ndvi_trend.zarr")
 ```

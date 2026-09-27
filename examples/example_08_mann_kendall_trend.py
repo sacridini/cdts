@@ -3,15 +3,15 @@ Example 08: Mann-Kendall / Theil-Sen Trend Detection End-to-End
 
 Loads a synthetic annual NDVI datacube (no network needed), runs the
 pixel-wise Mann-Kendall trend test + Theil-Sen slope estimator via the
-`.cdts` xarray accessor, and saves the resulting trend/slope/p-value maps
-as a multi-band GeoTIFF with `cdts.save_raster`.
+`.zeit` xarray accessor, and saves the resulting trend/slope/p-value maps
+as a multi-band GeoTIFF with `zeit.save_raster`.
 """
 import os
 import numpy as np
 import xarray as xr
 from rasterio.transform import from_origin
-import cdts
-from cdts.trend import MK_METRIC_NAMES
+import zeit
+from zeit.trend import MK_METRIC_NAMES
 
 
 def build_synthetic_ndvi_cube(n_years=20, rows=40, cols=40, seed=0):
@@ -39,7 +39,7 @@ def build_synthetic_ndvi_cube(n_years=20, rows=40, cols=40, seed=0):
 
 
 def main():
-    print("CDTS Example 08: Mann-Kendall / Theil-Sen Trend Detection")
+    print("Zeit Example 08: Mann-Kendall / Theil-Sen Trend Detection")
 
     n_years, rows, cols = 20, 40, 40
     start_year = 2004
@@ -56,9 +56,9 @@ def main():
         },
     )
 
-    print("\n[2/3] Running Mann-Kendall (hamed_rao, autocorrelation-corrected) via .cdts accessor...")
+    print("\n[2/3] Running Mann-Kendall (hamed_rao, autocorrelation-corrected) via .zeit accessor...")
     # One NDVI composite per year, so slope comes out directly in NDVI/year.
-    result = cube.cdts.run_mann_kendall(method="hamed_rao", alpha=0.05, n_jobs=-1).compute()
+    result = cube.zeit.run_mann_kendall(method="hamed_rao", alpha=0.05, n_jobs=-1).compute()
 
     trend = result.sel(metric="trend").values
     slope = result.sel(metric="slope").values
@@ -69,12 +69,12 @@ def main():
     print(f"    Mean slope on the greening half: {np.nanmean(slope[:, :cols // 2]):.4f} NDVI/year "
           f"(injected: 0.01).")
 
-    print("\n[3/3] Saving results with cdts.save_raster()...")
+    print("\n[3/3] Saving results with zeit.save_raster()...")
     out_tif = os.path.join("data", "mann_kendall_trend.tif")
     # Fake a 30m-resolution geotransform (e.g. UTM-like), since this data has
     # no real-world footprint - see MK_METRIC_NAMES for the band order.
     transform = from_origin(500000.0, 8800000.0, 30.0, 30.0)
-    cdts.save_raster(result.values.astype("float32"), out_tif, crs="EPSG:32721", transform=transform, nodata=np.nan)
+    zeit.save_raster(result.values.astype("float32"), out_tif, crs="EPSG:32721", transform=transform, nodata=np.nan)
 
     print(f"\nDone! {len(MK_METRIC_NAMES)}-band raster ({', '.join(MK_METRIC_NAMES)}) saved to {out_tif}")
 

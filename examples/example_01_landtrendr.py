@@ -3,8 +3,8 @@ Example 01: LandTrendr End-to-End
 """
 import os
 import numpy as np
-from cdts import build_time_series, run_landtrendr_array, extract_events, save_raster
-from cdts.smooth import apply_savgol_filter
+from zeit import build_time_series, run_landtrendr_array, extract_events, save_raster
+from zeit.smooth import apply_savgol_filter
 
 if __name__ == '__main__':
     # Very small bounding box (0.01 degree) for ultra-fast execution

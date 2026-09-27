@@ -10,7 +10,7 @@ from rasterio.io import MemoryFile
 from rasterio.transform import Affine
 from rasterio.windows import Window
 
-from cdts.gee import downloader as dl
+from zeit.gee import downloader as dl
 
 
 # --- pure planning helpers -------------------------------------------------

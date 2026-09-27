@@ -1,7 +1,7 @@
-/* CDTS Benchmarks & Validation Stylesheet */
+/* Zeit Benchmarks & Validation Stylesheet */
 
 :root {
-  --bm-cdts: #2563eb;
+  --bm-zeit: #2563eb;
   --bm-ref: #ea580c;
   --bm-gpu-lo: #60a5fa;
   --bm-gpu-hi: #1d4ed8;
@@ -17,7 +17,7 @@
 }
 
 [data-md-color-scheme="slate"] {
-  --bm-cdts: #3b82f6;
+  --bm-zeit: #3b82f6;
   --bm-ref: #f97316;
   --bm-gpu-lo: #60a5fa;
   --bm-gpu-hi: #93c5fd;
@@ -68,7 +68,7 @@
   font-size: 2.2rem;
   font-weight: 800;
   line-height: 1.1;
-  color: var(--bm-cdts);
+  color: var(--bm-zeit);
   letter-spacing: -0.02em;
 }
 
@@ -195,8 +195,8 @@
   filter: brightness(1.12);
 }
 
-.bm-cdts-bar {
-  fill: var(--bm-cdts);
+.bm-zeit-bar {
+  fill: var(--bm-zeit);
 }
 
 .bm-ref-bar {

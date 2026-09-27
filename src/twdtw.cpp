@@ -13,7 +13,7 @@
 #endif
 #include <Eigen/Dense>
 
-namespace cdts {
+namespace zeit {
 namespace twdtw {
 
 class TWDTW_LUT {
@@ -282,4 +282,4 @@ pybind11::array_t<double> fit_twdtw_batch(
 }
 
 } // namespace twdtw
-} // namespace cdts
+} // namespace zeit

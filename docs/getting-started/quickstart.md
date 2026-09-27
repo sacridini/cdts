@@ -3,7 +3,7 @@
 <p class="lead">In five minutes you will build a small image time series, run LandTrendr on every pixel, and get a map of when the vegetation was lost. Nothing is downloaded: the data is generated in the script, so you can see exactly what goes in and what comes out.</p>
 
 <div class="glance" markdown>
-<div><span class="k">You need</span><span class="v">Python 3.9+ and <code>pip install cdts</code></span></div>
+<div><span class="k">You need</span><span class="v">Python 3.9+ and <code>pip install zeit</code></span></div>
 <div><span class="k">Time</span><span class="v">About 5 minutes</span></div>
 <div><span class="k">You will learn</span><span class="v">The input shape, one algorithm call, and how to read its output</span></div>
 </div>
@@ -11,7 +11,7 @@
 ## 1. Install
 
 ```bash
-pip install cdts
+pip install zeit
 ```
 
 Wheels are published for Windows, macOS and Linux, so no C++ compiler is needed. See [Installation](installation.md) for GPU support, Docker, and building from source.
@@ -27,7 +27,7 @@ Values are NDVI (a vegetation index: about 0.85 for dense forest, 0.3 for pastur
 
 ```python
 import numpy as np
-import cdts
+import zeit
 
 rng = np.random.default_rng(42)
 years = np.arange(1990, 2025)                      # 35 annual observations
@@ -47,14 +47,14 @@ print(stack.shape)   # (35, 120, 120) -> (time, rows, cols)
 ```
 
 !!! info "The one shape to remember"
-    Almost every CDTS function takes an array shaped **`(time, rows, cols)`**: the first axis is the date, the last two are the image. A GeoTIFF with one band per year, read with `rasterio` or `cdts.io.load_raster`, already has this shape.
+    Almost every Zeit function takes an array shaped **`(time, rows, cols)`**: the first axis is the date, the last two are the image. A GeoTIFF with one band per year, read with `rasterio` or `zeit.io.load_raster`, already has this shape.
 
 ## 3. Run LandTrendr on every pixel
 
 [LandTrendr](../tutorials/landtrendr.md) simplifies each pixel's history into a few straight segments. The breakpoints between segments, called *vertices*, mark the moments when something changed.
 
 ```python
-vertices = cdts.run_landtrendr_array(years, stack, modifier=-1.0)
+vertices = zeit.run_landtrendr_array(years, stack, modifier=-1.0)
 ```
 
 That one call fits all 14,400 pixels in parallel, in C++. `modifier=-1.0` tells LandTrendr that the change we care about is a **drop** in the index (vegetation loss). Use the default `+1.0` for indices where disturbance makes the value go up.
@@ -64,7 +64,7 @@ That one call fits all 14,400 pixels in parallel, in C++. `modifier=-1.0` tells 
 The vertices are compact but not yet a map. `extract_events` scans each pixel's segments and keeps the largest loss:
 
 ```python
-loss = cdts.extract_events(vertices, event_type="loss", min_magnitude=1500)
+loss = zeit.extract_events(vertices, event_type="loss", min_magnitude=1500)
 
 years_found, n_pixels = np.unique(loss["yod"], return_counts=True)
 print({int(y): int(n) for y, n in zip(years_found, n_pixels)})
@@ -109,13 +109,13 @@ plt.show()
 Swap the synthetic stack for a real one. Any GeoTIFF with one band per year works:
 
 ```python
-stack, profile = cdts.io.load_raster("my_ndvi_1990_2024.tif")   # (time, rows, cols)
+stack, profile = zeit.io.load_raster("my_ndvi_1990_2024.tif")   # (time, rows, cols)
 years = np.arange(1990, 1990 + stack.shape[0])
 
-vertices = cdts.run_landtrendr_array(years, stack.astype(np.float32), modifier=-1.0)
-loss = cdts.extract_events(vertices, event_type="loss", min_magnitude=1500)
+vertices = zeit.run_landtrendr_array(years, stack.astype(np.float32), modifier=-1.0)
+loss = zeit.extract_events(vertices, event_type="loss", min_magnitude=1500)
 
-cdts.save_raster(loss["yod"], "year_of_loss.tif",
+zeit.save_raster(loss["yod"], "year_of_loss.tif",
                  crs=profile["crs"], transform=profile["transform"], nodata=0)
 ```
 

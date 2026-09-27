@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  cdts:
+  zeit:
     build: .
-    container_name: cdts_runtime
+    container_name: zeit_runtime
     ports:
       - "8888:8888"
     volumes:

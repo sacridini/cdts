@@ -65,7 +65,7 @@ pybind11::array_t<double> fit_phenology_batch(
     int n_jobs = -1,
     // Optional 2D [n_pixels, n_time] array of per-observation reliability
     // weights in [0, 1] (e.g. decoded from a MODIS/Sentinel-2 QC band via
-    // cdts.qc). When provided, feeds the Whittaker/HANTS smoothers and
+    // zeit.qc). When provided, feeds the Whittaker/HANTS smoothers and
     // seeds the iterative wTSM curve-fit reweighting, instead of every
     // observation starting at an implicit weight of 1. Pass None/omit to
     // keep the previous behaviour.

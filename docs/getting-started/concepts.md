@@ -1,6 +1,6 @@
 # Core Concepts
 
-<p class="lead">A few conventions run through the whole library. Learn them once and every tutorial and API page will read the same way. If something in CDTS surprises you, the answer is most likely on this page.</p>
+<p class="lead">A few conventions run through the whole library. Learn them once and every tutorial and API page will read the same way. If something in Zeit surprises you, the answer is most likely on this page.</p>
 
 ## Images become time series
 
@@ -11,19 +11,19 @@ A satellite revisits the same place again and again. Stack the images of one are
   <figcaption>Real Landsat NDVI over Rondônia, Brazil. The circled pixel stays at about 0.8 while it is forest, then drops to 0.3–0.5 after being cleared in 2003. <em>Data: annual Landsat NDVI composites exported from <a href="https://github.com/eMapR/LT-GEE">LT-GEE</a> on Google Earth Engine.</em></figcaption>
 </figure>
 
-Nearly every algorithm in CDTS works **one pixel at a time**. It reads a pixel's time series, fits a model to it, and returns a few numbers (a break date, a trend slope, a class). Run over every pixel, those numbers become maps. Because pixels are independent, the work splits cleanly across CPU cores and across machines.
+Nearly every algorithm in Zeit works **one pixel at a time**. It reads a pixel's time series, fits a model to it, and returns a few numbers (a break date, a trend slope, a class). Run over every pixel, those numbers become maps. Because pixels are independent, the work splits cleanly across CPU cores and across machines.
 
 ## Array shapes
 
 | What | Shape | Notes |
 | :--- | :--- | :--- |
 | A single pixel | `(time,)` | 1-D NumPy array or list. |
-| A single-band cube | **`(time, rows, cols)`** | The default input for almost everything. A GeoTIFF with one band per date, read with `rasterio` or `cdts.io.load_raster`, has this shape. |
+| A single-band cube | **`(time, rows, cols)`** | The default input for almost everything. A GeoTIFF with one band per date, read with `rasterio` or `zeit.io.load_raster`, has this shape. |
 | A multi-band cube | `(time, band, rows, cols)` | What `build_time_series` returns (as an xarray `DataArray`). CCDC's array API uses `(band, time, rows, cols)`, see its tutorial. |
 | Per-pixel results | `(metric, rows, cols)` | Several outputs stacked on a first axis. The xarray accessors label it with a `metric` coordinate, so you can write `result.sel(metric="slope")`. |
 
 !!! warning "Two exceptions"
-    `cdts.twdtw.classify_twdtw` expects `(rows, cols, time)` with time **last**, and the deep-learning models follow PyTorch conventions (for example `(batch, channels, time)` for TempCNN). Their pages say so explicitly.
+    `zeit.twdtw.classify_twdtw` expects `(rows, cols, time)` with time **last**, and the deep-learning models follow PyTorch conventions (for example `(batch, channels, time)` for TempCNN). Their pages say so explicitly.
 
 ## Dates: each family has its own convention
 
@@ -54,7 +54,7 @@ days     = t.dayofyear.values + (t.year.values - base) * 365   # Phenology
 
 ## Values and scale factors
 
-Most surface-reflectance and index products are stored as integers scaled by **10,000** (so NDVI 0.73 is stored as 7300). CDTS keeps each reference algorithm's own assumptions:
+Most surface-reflectance and index products are stored as integers scaled by **10,000** (so NDVI 0.73 is stored as 7300). Zeit keeps each reference algorithm's own assumptions:
 
 - **CCDC and Tmask expect reflectance × 10,000.** Their thresholds (the lasso penalty, the cloud tests) are defined on that scale. Pass 0–1 floats and results will be wrong. Tmask has a `scale_factor` argument if your data is already 0–1.
 - **LandTrendr** works on any scale, but `min_magnitude` in `extract_events` is in the same units as your data (`1500` for NDVI × 10,000, `0.15` for plain NDVI).
@@ -74,19 +74,19 @@ Most algorithms are exposed at several levels. They all run the same C++ code; p
 flowchart LR
     A["One pixel<br/><code>run_landtrendr(years, values)</code>"] --> B["NumPy cube in memory<br/><code>run_landtrendr_array(years, stack)</code>"]
     B --> C["GeoTIFF bigger than RAM<br/><code>run_landtrendr_image(path, out_dir)</code>"]
-    B --> D["Xarray / Dask cube<br/><code>cube.cdts.run_landtrendr(years)</code>"]
-    C --> E["Shell / HPC job<br/><code>cdts landtrendr in.tif out/</code>"]
+    B --> D["Xarray / Dask cube<br/><code>cube.zeit.run_landtrendr(years)</code>"]
+    C --> E["Shell / HPC job<br/><code>zeit landtrendr in.tif out/</code>"]
 ```
 
 | Level | Use it when | Example |
 | :--- | :--- | :--- |
-| **Pixel** | Exploring, plotting, testing parameters on a few series | `cdts.landtrendr.run_landtrendr` |
-| **Array** | The cube fits in memory | `cdts.run_landtrendr_array` |
-| **Image file** | A GeoTIFF too big for memory. It is read and written in blocks. | `cdts.run_landtrendr_image` |
-| **Xarray accessor** | Lazy Dask cubes (STAC, Zarr), clusters, cloud storage | `cube.cdts.run_landtrendr(...)` |
-| **CLI** | Scripts, cron jobs and HPC schedulers, no Python needed | `cdts landtrendr ...` |
+| **Pixel** | Exploring, plotting, testing parameters on a few series | `zeit.landtrendr.run_landtrendr` |
+| **Array** | The cube fits in memory | `zeit.run_landtrendr_array` |
+| **Image file** | A GeoTIFF too big for memory. It is read and written in blocks. | `zeit.run_landtrendr_image` |
+| **Xarray accessor** | Lazy Dask cubes (STAC, Zarr), clusters, cloud storage | `cube.zeit.run_landtrendr(...)` |
+| **CLI** | Scripts, cron jobs and HPC schedulers, no Python needed | `zeit landtrendr ...` |
 
-The accessor becomes available on every xarray object once you `import cdts`. See the [Xarray accessor reference](../api/xarray.md) for the full list of methods.
+The accessor becomes available on every xarray object once you `import zeit`. See the [Xarray accessor reference](../api/xarray.md) for the full list of methods.
 
 ## Parallelism
 

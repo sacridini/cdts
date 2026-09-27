@@ -23,7 +23,7 @@
 
 namespace py = pybind11;
 
-namespace cdts {
+namespace zeit {
 namespace som {
 
 namespace {
@@ -31,13 +31,13 @@ namespace {
 // Keep exp()/pow() as scalar libm calls: an auto-vectorized SIMD variant
 // (e.g. MSVC's SVML-style __vdecl_exp) can differ from NumPy by an ulp.
 #if defined(_MSC_VER)
-#define CDTS_NOINLINE __declspec(noinline)
+#define ZEIT_NOINLINE __declspec(noinline)
 #else
-#define CDTS_NOINLINE __attribute__((noinline))
+#define ZEIT_NOINLINE __attribute__((noinline))
 #endif
 
-CDTS_NOINLINE double scalar_exp(double v) { return std::exp(v); }
-CDTS_NOINLINE double scalar_square(double v) { return std::pow(v, 2.0); }
+ZEIT_NOINLINE double scalar_exp(double v) { return std::exp(v); }
+ZEIT_NOINLINE double scalar_square(double v) { return std::pow(v, 2.0); }
 
 // Neurons accumulated together by one thread in the batch update.
 constexpr int kNeuronBlock = 8;
@@ -455,4 +455,4 @@ py::array_t<int> predict_bmus(
 }
 
 } // namespace som
-} // namespace cdts
+} // namespace zeit

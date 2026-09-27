@@ -1,58 +1,58 @@
 ---
-title: CDTS — Change detection and time series for satellite imagery
+title: Zeit — Change detection and time series for satellite imagery
 hide:
   - navigation
   - toc
   - path
 ---
 
-<div class="cdts-hero" markdown>
+<div class="zeit-hero" markdown>
 
 <div markdown>
 
-<img class="cdts-hero__logo" src="assets/logo-wide.png" alt="CDTS">
+<img class="zeit-hero__logo" src="assets/logo-wide.png" alt="Zeit">
 
 <h1>Find <span>when</span> and <span>where</span> the landscape changed.</h1>
 
-<p class="lead">CDTS is an ultra-fast Python library for analysing satellite image time series. Reference algorithms such as LandTrendr, CCDC and BFAST are re-engineered in parallel C++ and validated against their original implementations. Use them to detect deforestation, fires, regrowth, crop cycles and long-term trends, from one pixel on a laptop to a whole country on a Dask cluster.</p>
+<p class="lead">Zeit is an ultra-fast Python library for analysing satellite image time series. Reference algorithms such as LandTrendr, CCDC and BFAST are re-engineered in parallel C++ and validated against their original implementations. Use them to detect deforestation, fires, regrowth, crop cycles and long-term trends, from one pixel on a laptop to a whole country on a Dask cluster.</p>
 
 [Get started](getting-started/quickstart.md){ .md-button .md-button--primary }
-[See what it can do](#what-you-can-do-with-cdts){ .md-button }
-[:fontawesome-brands-github: GitHub](https://github.com/sacridini/cdts){ .md-button }
+[See what it can do](#what-you-can-do-with-zeit){ .md-button }
+[:fontawesome-brands-github: GitHub](https://github.com/sacridini/zeit){ .md-button }
 
-<div class="cdts-hero__install" markdown>
+<div class="zeit-hero__install" markdown>
 
 ```bash
-pip install cdts
+pip install zeit
 ```
 
 </div>
 
 </div>
 
-<figure class="cdts-hero__figure" markdown>
+<figure class="zeit-hero__figure" markdown>
   ![Map of the year of forest loss in Rondônia, Brazil, detected by LandTrendr](assets/figures/hero_loss_year.webp)
   <figcaption>40 years of Landsat NDVI (1985–2024) over Rondônia, Brazil. Each colored pixel shows the year of its largest vegetation loss, found by <a href="tutorials/landtrendr/">LandTrendr</a>. The run covered 2.8 million pixels and took about 5 seconds on a desktop CPU. <em>Data: annual Landsat NDVI composites exported from <a href="https://github.com/eMapR/LT-GEE">LT-GEE</a> on Google Earth Engine.</em></figcaption>
 </figure>
 
 </div>
 
-## What is CDTS?
+## What is Zeit?
 
 Every satellite pixel has a history. Stack images of the same place over time and each pixel becomes a **time series**: a line that stays flat while a forest stands, drops when it is cleared, and climbs back as it regrows. Most land-change questions come down to reading those lines. Did something change? When? How much? Was it sudden or gradual?
 
 <figure markdown>
   ![Three NDVI snapshots of the same area in 1990, 2000 and 2020, and the NDVI time series of one pixel that was cleared in 2003](assets/figures/concept_pixel_time_series.webp)
-  <figcaption>The circled pixel was forest until 2002, then was cleared. Seen as a time series, the event is obvious. CDTS finds events like this in every pixel of an image. <em>Data: annual Landsat NDVI composites exported from <a href="https://github.com/eMapR/LT-GEE">LT-GEE</a> on Google Earth Engine.</em></figcaption>
+  <figcaption>The circled pixel was forest until 2002, then was cleared. Seen as a time series, the event is obvious. Zeit finds events like this in every pixel of an image. <em>Data: annual Landsat NDVI composites exported from <a href="https://github.com/eMapR/LT-GEE">LT-GEE</a> on Google Earth Engine.</em></figcaption>
 </figure>
 
-CDTS gives you the standard scientific methods for reading these time series, plus the plumbing around them. It can pull imagery from cloud catalogs, mask clouds, fill gaps, run the analysis in parallel, and write maps back out as GeoTIFF or Zarr.
+Zeit gives you the standard scientific methods for reading these time series, plus the plumbing around them. It can pull imagery from cloud catalogs, mask clouds, fill gaps, run the analysis in parallel, and write maps back out as GeoTIFF or Zarr.
 
 <span class="kicker">Gallery</span>
 
-## What you can do with CDTS
+## What you can do with Zeit
 
-Every image below was produced by CDTS itself. Click one to open its tutorial.
+Every image below was produced by Zeit itself. Click one to open its tutorial.
 
 <div class="gallery" markdown>
 
@@ -105,7 +105,7 @@ Every image below was produced by CDTS itself. Click one to open its tutorial.
 
 <span class="kicker">Workflow</span>
 
-## How a CDTS analysis fits together
+## How a Zeit analysis fits together
 
 <div class="steps" markdown>
 
@@ -130,7 +130,7 @@ Mask clouds, composite to a regular time step, smooth noise.
 
 Run change detection, trends, phenology or a classifier.
 
-`run_landtrendr_array` · `.cdts.run_ccdc`
+`run_landtrendr_array` · `.zeit.run_ccdc`
 </div>
 
 <div markdown>
@@ -149,45 +149,45 @@ The same analysis in three styles. Pick the one that fits your data:
 
     ```python
     import numpy as np
-    import cdts
+    import zeit
 
     years = np.arange(1985, 2025)
-    stack, profile = cdts.io.load_raster("ndvi_1985_2024.tif")   # (time, rows, cols)
+    stack, profile = zeit.io.load_raster("ndvi_1985_2024.tif")   # (time, rows, cols)
 
-    vertices = cdts.run_landtrendr_array(years, stack, modifier=-1.0)  # -1: look for drops
-    loss = cdts.extract_events(vertices, event_type="loss", min_magnitude=2000)
+    vertices = zeit.run_landtrendr_array(years, stack, modifier=-1.0)  # -1: look for drops
+    loss = zeit.extract_events(vertices, event_type="loss", min_magnitude=2000)
 
-    cdts.save_raster(loss["yod"], "year_of_loss.tif",
+    zeit.save_raster(loss["yod"], "year_of_loss.tif",
                      crs=profile["crs"], transform=profile["transform"], nodata=0)
     ```
 
 === "Xarray / Dask cube"
 
     ```python
-    import cdts  # registers the .cdts accessor on xarray objects
+    import zeit  # registers the .zeit accessor on xarray objects
 
-    cube = cdts.build_time_series(
+    cube = zeit.build_time_series(
         source="earth_search", collection="sentinel-2-l2a",
         bbox=[-63.2, -10.2, -63.0, -10.0],
         start_date="2019-01-01", end_date="2024-12-31",
         bands=["red", "nir"], apply_cloud_mask=True,
     )
     ndvi = (cube.sel(band="nir") - cube.sel(band="red")) / (cube.sel(band="nir") + cube.sel(band="red"))
-    ndvi_16d = cdts.regularize_time_series(ndvi, freq="16D", method="median")
+    ndvi_16d = zeit.regularize_time_series(ndvi, freq="16D", method="median")
 
-    trend = ndvi_16d.cdts.run_mann_kendall(method="seasonal", period=23)
-    trend.cdts.to_zarr_optimized("ndvi_trend.zarr")   # computed chunk by chunk, in parallel
+    trend = ndvi_16d.zeit.run_mann_kendall(method="seasonal", period=23)
+    trend.zeit.to_zarr_optimized("ndvi_trend.zarr")   # computed chunk by chunk, in parallel
     ```
 
 === "Command line"
 
     ```bash
     # No Python needed: every core algorithm is also a CLI subcommand.
-    cdts landtrendr ndvi_1985_2024.tif results/ --start-year 1985 --event-type loss --min-mag 2000
-    cdts mmu-filter results/lt_event_yod.tif results/lt_event_yod_clean.tif --mmu-pixels 11
+    zeit landtrendr ndvi_1985_2024.tif results/ --start-year 1985 --event-type loss --min-mag 2000
+    zeit mmu-filter results/lt_event_yod.tif results/lt_event_yod_clean.tif --mmu-pixels 11
     ```
 
-<span class="kicker">Why CDTS</span>
+<span class="kicker">Why Zeit</span>
 
 ## Built for trustworthy results at scale
 
@@ -220,7 +220,7 @@ The same analysis in three styles. Pick the one that fits your data:
 
     ---
 
-    The `.cdts` xarray accessor maps every algorithm over Dask chunks, so the same script runs on one machine or a cluster.
+    The `.zeit` xarray accessor maps every algorithm over Dask chunks, so the same script runs on one machine or a cluster.
 
     [:octicons-arrow-right-24: Scaling up](tutorials/parallel-cloud-processing.md)
 
@@ -238,7 +238,7 @@ The same analysis in three styles. Pick the one that fits your data:
 
 <div class="grid cards two" markdown>
 
--   :material-rocket-launch-outline:{ .lg .middle } **New to CDTS?**
+-   :material-rocket-launch-outline:{ .lg .middle } **New to Zeit?**
 
     ---
 

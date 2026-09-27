@@ -343,7 +343,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "cdts_validation_results.csv");
+            link.setAttribute("download", "zeit_validation_results.csv");
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
@@ -462,7 +462,7 @@ def generate_landtrendr_accuracy_dashboard(
         Points to validate. Can be a path to a vector file (e.g. '.shp', '.gpkg'), a GeoDataFrame, 
         or a list of (lon, lat) tuples.
     lt_results : xarray.DataArray or xarray.Dataset, optional
-        The output from `cdts.metrics.extract_events` or a LandTrendr process. If provided, 
+        The output from `zeit.metrics.extract_events` or a LandTrendr process. If provided, 
         the dashboard will automatically read predicted YOD and fitted curves.
     output_html : str
         Path to save the generated HTML file.

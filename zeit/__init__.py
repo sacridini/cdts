@@ -33,12 +33,12 @@ from .io import save_raster, get_georef
 from .validation import generate_landtrendr_accuracy_dashboard
 
 try:
-    import cdts.xarray_api # This registers the xarray accessor automatically
+    import zeit.xarray_api # This registers the xarray accessor automatically
 except ImportError:
     pass
 
 try:
-    import cdts.ai
+    import zeit.ai
 except ImportError:
     pass
 

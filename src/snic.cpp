@@ -21,7 +21,7 @@
 
 namespace py = pybind11;
 
-namespace cdts {
+namespace zeit {
 namespace snic {
 
 namespace {
@@ -315,4 +315,4 @@ py::tuple snic_segment(
 }
 
 } // namespace snic
-} // namespace cdts
+} // namespace zeit

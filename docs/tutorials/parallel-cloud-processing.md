@@ -1,10 +1,10 @@
 # Parallel & Cloud Processing
 
-<p class="lead">The same CDTS code runs on one laptop core, on every core of a workstation, or on a cluster of machines. This page explains the two levels of parallelism, how to set up a Dask cluster, and how to write results that many machines can produce at once.</p>
+<p class="lead">The same Zeit code runs on one laptop core, on every core of a workstation, or on a cluster of machines. This page explains the two levels of parallelism, how to set up a Dask cluster, and how to write results that many machines can produce at once.</p>
 
 <div class="glance" markdown>
 <div><span class="k">Level 1</span><span class="v">C++ threads (OpenMP) inside one process: <code>n_jobs</code></span></div>
-<div><span class="k">Level 2</span><span class="v">Dask chunks across processes and machines: the <code>.cdts</code> accessor</span></div>
+<div><span class="k">Level 2</span><span class="v">Dask chunks across processes and machines: the <code>.zeit</code> accessor</span></div>
 <div><span class="k">Storage</span><span class="v">Zarr for parallel writes, GeoTIFF for final products</span></div>
 <div><span class="k">Rule</span><span class="v">Chunk in space, never in time</span></div>
 </div>
@@ -13,17 +13,17 @@
 
 **Threads within one machine.** Every algorithm's per-pixel loop runs in C++ with OpenMP. `n_jobs=-1` (the default) uses all cores but one, and needs nothing else: `run_landtrendr_array`, `run_ccdc_array` and friends are already parallel.
 
-**Chunks across processes or machines.** For data larger than memory, or more machines, wrap the data in a Dask-backed xarray cube and call the algorithm through the `.cdts` accessor. CDTS maps the C++ code over spatial chunks, and Dask schedules those chunks on its workers.
+**Chunks across processes or machines.** For data larger than memory, or more machines, wrap the data in a Dask-backed xarray cube and call the algorithm through the `.zeit` accessor. Zeit maps the C++ code over spatial chunks, and Dask schedules those chunks on its workers.
 
 ```python
 import xarray as xr
-import cdts   # registers the .cdts accessor
+import zeit   # registers the .zeit accessor
 
 cube = xr.open_zarr("s3://my-bucket/annual_ndvi.zarr")["ndvi"]        # (time, y, x), lazy
 cube = cube.chunk({"time": -1, "y": 512, "x": 512})                   # whole history per chunk
 
-trend = cube.cdts.run_mann_kendall(method="hamed_rao", n_jobs=1)      # still lazy
-trend.cdts.to_zarr_optimized("s3://my-bucket/ndvi_trend.zarr")        # computes, in parallel
+trend = cube.zeit.run_mann_kendall(method="hamed_rao", n_jobs=1)      # still lazy
+trend.zeit.to_zarr_optimized("s3://my-bucket/ndvi_trend.zarr")        # computes, in parallel
 ```
 
 !!! warning "Chunk in space, never in time"
@@ -53,7 +53,7 @@ On the machine that will coordinate:
 dask scheduler                 # prints its address, e.g. tcp://192.168.1.10:8786
 ```
 
-On every other machine (with CDTS installed in the same Python version):
+On every other machine (with Zeit installed in the same Python version):
 
 ```bash
 dask worker tcp://192.168.1.10:8786 --nworkers 4 --nthreads 1 --memory-limit 8GB
@@ -76,20 +76,20 @@ Dask has launchers for most platforms: `dask-kubernetes` (Kubernetes), `dask-clo
 from dask_kubernetes.operator import KubeCluster
 from dask.distributed import Client
 
-cluster = KubeCluster(name="cdts", image="ghcr.io/dask/dask:latest", n_workers=20)
+cluster = KubeCluster(name="zeit", image="ghcr.io/dask/dask:latest", n_workers=20)
 client = Client(cluster)
 ```
 
-Workers need CDTS installed: use the [CDTS Docker image](../getting-started/docker.md) or add `pip install cdts` to the worker image.
+Workers need Zeit installed: use the [Zeit Docker image](../getting-started/docker.md) or add `pip install zeit` to the worker image.
 
 ## Writing results: Zarr
 
 When many workers write at once, a single GeoTIFF becomes a bottleneck (or gets corrupted). **Zarr** stores an array as a folder of independently compressed chunks, so every worker writes its own piece, locally or straight to S3 / Google Cloud Storage.
 
-`.cdts.to_zarr_optimized()` rechunks the result (512 × 512 by default), writes it and consolidates the metadata so it reads fast from object storage:
+`.zeit.to_zarr_optimized()` rechunks the result (512 × 512 by default), writes it and consolidates the metadata so it reads fast from object storage:
 
 ```python
-result.cdts.to_zarr_optimized("gs://my-bucket/result.zarr")
+result.zeit.to_zarr_optimized("gs://my-bucket/result.zarr")
 ```
 
 !!! tip "Don't `.compute()` a large result"
@@ -103,7 +103,7 @@ LandTrendr over a large annual NDVI cube stored as Zarr, on a cluster:
 import numpy as np
 import xarray as xr
 from dask.distributed import Client
-import cdts
+import zeit
 
 client = Client("tcp://192.168.1.10:8786")
 
@@ -113,11 +113,11 @@ years = np.arange(1985, 1985 + ndvi.sizes["time"])
 
 # The accessor uses the default orientation (+1): flip NDVI so that a loss
 # becomes a rise, as in the LandTrendr tutorial.
-vertices = (-ndvi).cdts.run_landtrendr(years=years, max_segments=6, n_jobs=1)
-vertices.cdts.to_zarr_optimized("gs://my-bucket/landtrendr_vertices.zarr")
+vertices = (-ndvi).zeit.run_landtrendr(years=years, max_segments=6, n_jobs=1)
+vertices.zeit.to_zarr_optimized("gs://my-bucket/landtrendr_vertices.zarr")
 ```
 
-Event maps are then extracted from the saved vertices, block by block, with `cdts.extract_events(..., event_type="gain")` on the flipped values. The dashboard (`client.dashboard_link`, port 8787 by default) shows progress, memory and CPU for every worker.
+Event maps are then extracted from the saved vertices, block by block, with `zeit.extract_events(..., event_type="gain")` on the flipped values. The dashboard (`client.dashboard_link`, port 8787 by default) shows progress, memory and CPU for every worker.
 
 ## Troubleshooting a multi-machine cluster
 
@@ -144,13 +144,13 @@ The scheduler/worker wire protocol assumes matching (or very close) `dask`/`dist
 python -c "import sys, dask, distributed; print(sys.version, dask.__version__, distributed.__version__)"
 ```
 
-...and make sure it's close to what the scheduler machine reports. `cdts`'s published PyPI wheels currently cover Python 3.9–3.12 (Windows, Linux, macOS arm64) — there is no prebuilt 3.13 wheel yet, so standardize on a **Python 3.12** environment (venv or conda) on every machine to avoid an accidental from-source build.
+...and make sure it's close to what the scheduler machine reports. `zeit`'s published PyPI wheels currently cover Python 3.9–3.12 (Windows, Linux, macOS arm64) — there is no prebuilt 3.13 wheel yet, so standardize on a **Python 3.12** environment (venv or conda) on every machine to avoid an accidental from-source build.
 
-### macOS: a worker crash-loops silently the moment a task touches `cdts`
+### macOS: a worker crash-loops silently the moment a task touches `zeit`
 
-**Symptom:** `dask worker` starts and registers with the scheduler fine. But as soon as a real task imports `cdts` (e.g. the first `.cdts.run_landtrendr()` call), the worker process vanishes and Dask's Nanny silently respawns it with a new port — forever. No Python traceback reaches the scheduler or client; calling `client.run(...)` against that worker just raises `CommClosedError: ... Stream is closed`.
+**Symptom:** `dask worker` starts and registers with the scheduler fine. But as soon as a real task imports `zeit` (e.g. the first `.zeit.run_landtrendr()` call), the worker process vanishes and Dask's Nanny silently respawns it with a new port — forever. No Python traceback reaches the scheduler or client; calling `client.run(...)` against that worker just raises `CommClosedError: ... Stream is closed`.
 
-**Cause:** `cdts` depends on `torch`, and on macOS both `torch` and cdts's own compiled C++ extension (`cdts._core`) link their own copy of the OpenMP runtime (`libomp`/`libiomp`). Loading both inside the same process aborts the whole process (`OMP: Error #15: Initializing libomp.dylib, but found libomp.dylib already initialized`) instead of raising a catchable Python exception — which is exactly what a Nanny-managed silent restart loop looks like from the outside.
+**Cause:** `zeit` depends on `torch`, and on macOS both `torch` and Zeit's own compiled C++ extension (`zeit._core`) link their own copy of the OpenMP runtime (`libomp`/`libiomp`). Loading both inside the same process aborts the whole process (`OMP: Error #15: Initializing libomp.dylib, but found libomp.dylib already initialized`) instead of raising a catchable Python exception — which is exactly what a Nanny-managed silent restart loop looks like from the outside.
 
 **Fix:** set these two environment variables before launching the worker on macOS:
 
@@ -160,20 +160,20 @@ KMP_DUPLICATE_LIB_OK=TRUE OMP_NUM_THREADS=1 dask worker tcp://<scheduler-ip>:878
 
 If a worker is still crash-looping and you need to see the actual OS-level error, look at the raw terminal where `dask worker` runs directly — `Segmentation fault`, `Illegal instruction`, or the `OMP: Error #15` line only ever prints there, never through the Dask protocol.
 
-### `dask worker` can't find `cdts` even though you just installed it
+### `dask worker` can't find `zeit` even though you just installed it
 
-If `pip install cdts` (or `pip install -e .`) reported success but a worker still throws `ModuleNotFoundError: No module named 'cdts'`, the `dask` command on your `PATH` is almost certainly resolving to a *different* Python installation (a different conda env, a system Python, a pyenv shim) than the one you installed `cdts` into.
+If `pip install zeit` (or `pip install -e .`) reported success but a worker still throws `ModuleNotFoundError: No module named 'zeit'`, the `dask` command on your `PATH` is almost certainly resolving to a *different* Python installation (a different conda env, a system Python, a pyenv shim) than the one you installed `zeit` into.
 
 Force it explicitly — activate the right environment, then launch via `python -m dask` instead of the bare `dask` binary, so it always uses the currently active interpreter:
 
 ```bash
-conda activate cdts-worker   # or: source your-venv/bin/activate
+conda activate zeit-worker   # or: source your-venv/bin/activate
 python -m dask worker tcp://<scheduler-ip>:8786 --nworkers <n> --nthreads 1
 ```
 
 ### Sanity-check every worker before submitting real work
 
-From the client/head node, verify `cdts` actually imports on every connected worker *before* kicking off a real job — it's much faster to catch a broken worker this way than to debug a stuck/slow distributed run:
+From the client/head node, verify `zeit` actually imports on every connected worker *before* kicking off a real job — it's much faster to catch a broken worker this way than to debug a stuck/slow distributed run:
 
 ```python
 from dask.distributed import Client
@@ -183,7 +183,7 @@ client = Client("tcp://<scheduler-ip>:8786")
 def check():
     import socket, sys
     try:
-        from cdts.raster import run_landtrendr_array
+        from zeit.raster import run_landtrendr_array
         return (socket.gethostname(), sys.executable, "ok")
     except Exception as e:
         return (socket.gethostname(), sys.executable, repr(e))

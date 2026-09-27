@@ -3,9 +3,9 @@ import xarray as xr
 import dask.array as da
 import pytest
 
-from cdts._core.bfastmonitor import bfast_monitor, fit_bfast_monitor_batch
-from cdts.bfast import run_bfast_monitor_dask, N_BFM_METRICS, BFM_METRIC_NAMES
-import cdts.xarray_api  # noqa: F401 - registers the .cdts accessor
+from zeit._core.bfastmonitor import bfast_monitor, fit_bfast_monitor_batch
+from zeit.bfast import run_bfast_monitor_dask, N_BFM_METRICS, BFM_METRIC_NAMES
+import zeit.xarray_api  # noqa: F401 - registers the .zeit accessor
 
 FREQ = 23  # 16-day composites/year, matches the MODIS-style annual cycle used elsewhere in the test suite
 
@@ -14,7 +14,7 @@ FREQ = 23  # 16-day composites/year, matches the MODIS-style annual cycle used e
 # mode this port implements) has a noticeably higher false-positive rate in
 # practice than the nominal `alpha` suggests - confirmed to be a property of
 # bfastmonitor itself (R showed ~44% "breaks" on 50 pure-noise draws at the
-# settings used below, cdts showed ~42%), not a port bug. R's default
+# settings used below, zeit showed ~42%), not a port bug. R's default
 # history="ROC" (not yet ported) mitigates this by auto-trimming unstable
 # history. Because of this, "no break expected" tests below use specific
 # seeds confirmed not to trigger a spurious break, rather than an arbitrary
@@ -153,7 +153,7 @@ def test_xarray_accessor_run_bfast_monitor():
     data = da.from_array(block, chunks=(time_steps, 3, 3))
 
     ds = xr.DataArray(data, dims=["time", "y", "x"], coords={"y": np.arange(rows), "x": np.arange(cols)})
-    res = ds.cdts.run_bfast_monitor(start_time=2000.0, monitor_start_time=2000.0 + 60.0 / FREQ, frequency=FREQ)
+    res = ds.zeit.run_bfast_monitor(start_time=2000.0, monitor_start_time=2000.0 + 60.0 / FREQ, frequency=FREQ)
 
     assert isinstance(res, xr.DataArray)
     assert res.dims == ("metric", "y", "x")

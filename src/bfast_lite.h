@@ -18,7 +18,7 @@
 // bfastmonitor, this needs no critical-value table - the DP directly
 // minimizes a penalized RSS.
 
-namespace cdts {
+namespace zeit {
 namespace bfastlite {
 
 struct BFLResult {
@@ -54,4 +54,4 @@ pybind11::array_t<double> fit_bfast_lite_batch(
     int n_jobs = -1);
 
 } // namespace bfastlite
-} // namespace cdts
+} // namespace zeit

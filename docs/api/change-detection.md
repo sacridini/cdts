@@ -8,9 +8,9 @@ Tutorial: [LandTrendr](../tutorials/landtrendr.md).
 
 ### `run_landtrendr_array` { .api }
 
-<!-- sig: cdts.raster.run_landtrendr_array -->
+<!-- sig: zeit.raster.run_landtrendr_array -->
 ```python
-cdts.raster.run_landtrendr_array(
+zeit.raster.run_landtrendr_array(
     years, raster_stack, max_segments=6, pval_threshold=0.05,
     n_jobs=-1, recovery_threshold=0.25, prevent_fast_recovery=True,
     spike_threshold=0.9, best_model_proportion=1.25,
@@ -19,7 +19,7 @@ cdts.raster.run_landtrendr_array(
 )
 ```
 
-Segments every pixel of an in-memory stack in parallel (C++ / OpenMP). Also exported as `cdts.run_landtrendr_array`.
+Segments every pixel of an in-memory stack in parallel (C++ / OpenMP). Also exported as `zeit.run_landtrendr_array`.
 
 <div class="params" markdown>
 
@@ -45,21 +45,21 @@ Segments every pixel of an in-memory stack in parallel (C++ / OpenMP). Also expo
 **Returns** `vertices`, a `(2 × (max_segments + 1), rows, cols)` float32 array: vertex years in the first half, fitted values in the second (`0` for unused slots). With `return_rmse=True`, returns `(vertices, rmse)`.
 
 ```python
-vertices, rmse = cdts.run_landtrendr_array(years, stack, modifier=-1.0, return_rmse=True)
+vertices, rmse = zeit.run_landtrendr_array(years, stack, modifier=-1.0, return_rmse=True)
 ```
 
 ### `extract_events` { .api }
 
-<!-- sig: cdts.metrics.extract_events -->
+<!-- sig: zeit.metrics.extract_events -->
 ```python
-cdts.metrics.extract_events(
+zeit.metrics.extract_events(
     vertices_stack, event_type="loss", sort_by="greatest",
     min_magnitude=0.0, min_duration=1, pre_val_threshold=0.0,
     rmse_map=None,
 )
 ```
 
-Turns LandTrendr vertices into maps of one event per pixel. Also exported as `cdts.extract_events`.
+Turns LandTrendr vertices into maps of one event per pixel. Also exported as `zeit.extract_events`.
 
 <div class="params" markdown>
 
@@ -78,15 +78,15 @@ Turns LandTrendr vertices into maps of one event per pixel. Also exported as `cd
 **Returns** a dict of `(rows, cols)` arrays: `yod` (year of the vertex where the event starts, i.e. the last year before it; `0` = none), `magnitude`, `duration`, `pre_val`, `post_val`, `rate`, and `dsnr` when `rmse_map` is given.
 
 ```python
-loss = cdts.extract_events(vertices, event_type="loss", min_magnitude=2000, rmse_map=rmse)
+loss = zeit.extract_events(vertices, event_type="loss", min_magnitude=2000, rmse_map=rmse)
 first_year_of_loss = np.where(loss["yod"] > 0, loss["yod"] + 1, 0)
 ```
 
 ### `run_landtrendr_image` { .api }
 
-<!-- sig: cdts.raster.run_landtrendr_image -->
+<!-- sig: zeit.raster.run_landtrendr_image -->
 ```python
-cdts.raster.run_landtrendr_image(
+zeit.raster.run_landtrendr_image(
     input_path, output_dir, start_year=2000, max_segments=6,
     chunk_size=512, n_jobs=-1, save_vertices=False, event_type="loss",
     sort_by="greatest", min_mag=0.0, min_dur=1, pre_val_thresh=0.0,
@@ -98,7 +98,7 @@ cdts.raster.run_landtrendr_image(
 )
 ```
 
-Runs LandTrendr and `extract_events` on a GeoTIFF (one band per year) block by block, so the file can be larger than memory. Writes `<prefix>_yod.tif`, `_magnitude`, `_duration`, `_pre_val`, `_post_val`, `_rate`, `_dsnr` and, optionally, `lt_vertices.tif`. Also exported as `cdts.run_landtrendr_image`; CLI: `cdts landtrendr`.
+Runs LandTrendr and `extract_events` on a GeoTIFF (one band per year) block by block, so the file can be larger than memory. Writes `<prefix>_yod.tif`, `_magnitude`, `_duration`, `_pre_val`, `_post_val`, `_rate`, `_dsnr` and, optionally, `lt_vertices.tif`. Also exported as `zeit.run_landtrendr_image`; CLI: `zeit landtrendr`.
 
 <div class="params" markdown>
 
@@ -122,14 +122,14 @@ Runs LandTrendr and `extract_events` on a GeoTIFF (one band per year) block by b
 </div>
 
 ```python
-cdts.run_landtrendr_image("ndvi_1985_2024.tif", "results/", start_year=1985, min_mag=2000)
+zeit.run_landtrendr_image("ndvi_1985_2024.tif", "results/", start_year=1985, min_mag=2000)
 ```
 
 ### `run_landtrendr` { .api }
 
-<!-- sig: cdts.landtrendr.run_landtrendr -->
+<!-- sig: zeit.landtrendr.run_landtrendr -->
 ```python
-cdts.landtrendr.run_landtrendr(
+zeit.landtrendr.run_landtrendr(
     years, values, max_segments=6, pval_threshold=0.05,
     recovery_threshold=0.25, prevent_fast_recovery=True,
     spike_threshold=0.9, best_model_proportion=1.25,
@@ -137,7 +137,7 @@ cdts.landtrendr.run_landtrendr(
 )
 ```
 
-LandTrendr for a single series. Useful for exploring parameters and plotting. Also exported as `cdts.run_landtrendr`.
+LandTrendr for a single series. Useful for exploring parameters and plotting. Also exported as `zeit.run_landtrendr`.
 
 <div class="params" markdown>
 
@@ -152,21 +152,21 @@ LandTrendr for a single series. Useful for exploring parameters and plotting. Al
 **Returns** a list of vertices, `[{"year": 1985, "value": 7972.0}, ...]`.
 
 ```python
-from cdts.landtrendr import run_landtrendr
+from zeit.landtrendr import run_landtrendr
 
 run_landtrendr(years, values, modifier=-1.0)
 ```
 
 ### `apply_vertices` { .api }
 
-<!-- sig: cdts.landtrendr.apply_vertices -->
+<!-- sig: zeit.landtrendr.apply_vertices -->
 ```python
-cdts.landtrendr.apply_vertices(
+zeit.landtrendr.apply_vertices(
     vertex_years, other_band_years, other_band_values,
 )
 ```
 
-"Fit to vertices": describes another band with the vertex years found on the primary index, by interpolating that band at those years. Also exported as `cdts.apply_vertices`.
+"Fit to vertices": describes another band with the vertex years found on the primary index, by interpolating that band at those years. Also exported as `zeit.apply_vertices`.
 
 <div class="params" markdown>
 
@@ -180,7 +180,7 @@ cdts.landtrendr.apply_vertices(
 
 ```python
 vertices = run_landtrendr(years, nbr, modifier=-1.0)
-ftv = cdts.apply_vertices([v["year"] for v in vertices], years, swir1)
+ftv = zeit.apply_vertices([v["year"] for v in vertices], years, swir1)
 ```
 
 ## CCDC
@@ -189,9 +189,9 @@ Tutorial: [CCDC](../tutorials/ccdc.md). All CCDC functions expect **surface refl
 
 ### `run_ccdc` { .api }
 
-<!-- sig: cdts.ccdc.run_ccdc -->
+<!-- sig: zeit.ccdc.run_ccdc -->
 ```python
-cdts.ccdc.run_ccdc(
+zeit.ccdc.run_ccdc(
     dates, values, qa, min_obs=12, conseq_anom=6,
     chi2_prob_threshold=0.99, tmax_cg_prob_threshold=0.999999,
     detection_bands=None, num_c=8, tmask_bands=None,
@@ -226,15 +226,15 @@ CCDC for a single pixel.
 
 ### `run_ccdc_array` { .api }
 
-<!-- sig: cdts.raster.run_ccdc_array -->
+<!-- sig: zeit.raster.run_ccdc_array -->
 ```python
-cdts.raster.run_ccdc_array(
+zeit.raster.run_ccdc_array(
     dates, raster_stack, qa_stack, max_segments=6, n_jobs=-1,
     return_coefs=True, conseq_anom=6, **ccdc_kwargs,
 )
 ```
 
-CCDC for every pixel of an in-memory stack, in parallel. Also exported as `cdts.run_ccdc_array`.
+CCDC for every pixel of an in-memory stack, in parallel. Also exported as `zeit.run_ccdc_array`.
 
 <div class="params" markdown>
 
@@ -255,16 +255,16 @@ CCDC for every pixel of an in-memory stack, in parallel. Also exported as `cdts.
 
 ### `run_ccdc_image` { .api }
 
-<!-- sig: cdts.raster.run_ccdc_image -->
+<!-- sig: zeit.raster.run_ccdc_image -->
 ```python
-cdts.raster.run_ccdc_image(
+zeit.raster.run_ccdc_image(
     input_path, output_dir, dates, num_bands=6, qa_band_idx=-1,
     max_segments=6, chunk_size=512, n_jobs=-1, prefix="ccdc_break",
     return_coefs=True, conseq_anom=6,
 )
 ```
 
-CCDC on a date-interleaved GeoTIFF (all bands of date 1, then of date 2, …), block by block. Writes `<prefix>_coefs.tif` with `max_segments × (3 + 9 × num_bands)` bands. Also exported as `cdts.run_ccdc_image`; CLI: `cdts ccdc`.
+CCDC on a date-interleaved GeoTIFF (all bands of date 1, then of date 2, …), block by block. Writes `<prefix>_coefs.tif` with `max_segments × (3 + 9 × num_bands)` bands. Also exported as `zeit.run_ccdc_image`; CLI: `zeit ccdc`.
 
 <div class="params" markdown>
 
@@ -286,14 +286,14 @@ CCDC on a date-interleaved GeoTIFF (all bands of date 1, then of date 2, …), b
 
 ### `predict_synthetic_image` { .api }
 
-<!-- sig: cdts.ccdc.predict_synthetic_image -->
+<!-- sig: zeit.ccdc.predict_synthetic_image -->
 ```python
-cdts.ccdc.predict_synthetic_image(
+zeit.ccdc.predict_synthetic_image(
     ccdc_coefs_stack, target_julian_day, num_bands=6,
 )
 ```
 
-Evaluates the CCDC model active on a given date for every pixel, giving a cloud-free image for any day. Also exported as `cdts.predict_synthetic_image`.
+Evaluates the CCDC model active on a given date for every pixel, giving a cloud-free image for any day. Also exported as `zeit.predict_synthetic_image`.
 
 <div class="params" markdown>
 
@@ -309,14 +309,14 @@ Evaluates the CCDC model active on a given date for every pixel, giving a cloud-
 
 ```python
 from datetime import date
-img = cdts.predict_synthetic_image(results, date(2019, 7, 15).toordinal())
+img = zeit.predict_synthetic_image(results, date(2019, 7, 15).toordinal())
 ```
 
 ### `predict` { .api }
 
-<!-- sig: cdts.ccdc.predict -->
+<!-- sig: zeit.ccdc.predict -->
 ```python
-cdts.ccdc.predict(coefs, dates)
+zeit.ccdc.predict(coefs, dates)
 ```
 
 Evaluates one band's 8 coefficients (from `run_ccdc`'s `coefs`) at any ordinal day or days.
@@ -336,9 +336,9 @@ All three take a regular series: observation `i` is at `start_time + i / frequen
 
 ### `run_bfast_monitor_dask` { .api }
 
-<!-- sig: cdts.bfast.run_bfast_monitor_dask -->
+<!-- sig: zeit.bfast.run_bfast_monitor_dask -->
 ```python
-cdts.bfast.run_bfast_monitor_dask(
+zeit.bfast.run_bfast_monitor_dask(
     arr, start_time, monitor_start_time, frequency, order=3, h=0.25,
     period=10, alpha=0.05, min_valid=10, n_jobs=-1,
 )
@@ -363,13 +363,13 @@ Near-real-time monitoring (`bfastmonitor`, OLS-MOSUM, `history="all"`) for each 
 
 </div>
 
-**Returns** `(7, y, x)`: `breakpoint`, `breakpoint_idx`, `magnitude`, `sigma`, `n_history`, `has_break`, `valid` (`cdts.bfast.BFM_METRIC_NAMES`).
+**Returns** `(7, y, x)`: `breakpoint`, `breakpoint_idx`, `magnitude`, `sigma`, `n_history`, `has_break`, `valid` (`zeit.bfast.BFM_METRIC_NAMES`).
 
 ### `run_bfast_lite_dask` { .api }
 
-<!-- sig: cdts.bfast.run_bfast_lite_dask -->
+<!-- sig: zeit.bfast.run_bfast_lite_dask -->
 ```python
-cdts.bfast.run_bfast_lite_dask(
+zeit.bfast.run_bfast_lite_dask(
     arr, start_time, frequency, order=3, h=0.15, max_breaks_output=5,
     min_valid=20, n_jobs=-1,
 )
@@ -391,13 +391,13 @@ Optimal multiple breakpoints (`bfastlite`, LWZ criterion) for each pixel.
 
 </div>
 
-**Returns** `(5 + max_breaks_output, y, x)`: `n_breaks`, `rss`, `lwz`, `n_valid`, `valid`, `breakpoint_idx_1…` (`cdts.bfast.bfl_metric_names(max_breaks_output)`).
+**Returns** `(5 + max_breaks_output, y, x)`: `n_breaks`, `rss`, `lwz`, `n_valid`, `valid`, `breakpoint_idx_1…` (`zeit.bfast.bfl_metric_names(max_breaks_output)`).
 
 ### `run_bfast_dask` { .api }
 
-<!-- sig: cdts.bfast.run_bfast_dask -->
+<!-- sig: zeit.bfast.run_bfast_dask -->
 ```python
-cdts.bfast.run_bfast_dask(
+zeit.bfast.run_bfast_dask(
     arr, start_time, frequency, order=3, h=0.15, max_breaks_trend=5,
     max_breaks_season=5, max_iter=10, level=0.05, min_valid=20,
     n_jobs=-1,
@@ -422,13 +422,13 @@ Classic iterative BFAST (trend and seasonal breaks) for each pixel.
 
 </div>
 
-**Returns** `n_trend_breaks`, `n_season_breaks`, `magnitude`, `time`, `n_iter`, `n_valid`, `valid`, then the trend and season break indices (`cdts.bfast.bf_metric_names(max_breaks_trend, max_breaks_season)`).
+**Returns** `n_trend_breaks`, `n_season_breaks`, `magnitude`, `time`, `n_iter`, `n_valid`, `valid`, then the trend and season break indices (`zeit.bfast.bf_metric_names(max_breaks_trend, max_breaks_season)`).
 
 ### GeoTIFF versions
 
 `run_bfast_monitor_image`, `run_bfast_lite_image` and `run_bfast_image` take the same parameters as their Dask counterparts, with `input_path`, `output_dir`, `chunk_size` and `prefix` instead of `arr`. The input has one band per time step; the output is `<output_dir>/<prefix>.tif` with one band per metric (band descriptions set to the metric names). All three are exported at the top level and available in the [CLI](../cli.md).
 
 ```python
-cdts.run_bfast_monitor_image("ndvi_16d.tif", "results/", start_time=2010.0,
+zeit.run_bfast_monitor_image("ndvi_16d.tif", "results/", start_time=2010.0,
                              monitor_start_time=2022.0, frequency=23)
 ```

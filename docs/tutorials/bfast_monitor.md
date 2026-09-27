@@ -30,11 +30,11 @@ Because the test accumulates evidence, a single cloudy outlier does not trigger 
 ### 1. Prepare a regular series
 
 ```python
-import cdts
+import zeit
 
 # cube from build_time_series(...), see "STAC Data Cubes"
 ndvi = (cube.sel(band="nir") - cube.sel(band="red")) / (cube.sel(band="nir") + cube.sel(band="red"))
-ndvi_16d = cdts.regularize_time_series(ndvi, freq="16D", method="median")   # (time, y, x)
+ndvi_16d = zeit.regularize_time_series(ndvi, freq="16D", method="median")   # (time, y, x)
 ndvi_16d = ndvi_16d.chunk({"time": -1, "y": 256, "x": 256})
 ```
 
@@ -43,7 +43,7 @@ ndvi_16d = ndvi_16d.chunk({"time": -1, "y": 256, "x": 256})
 ### 2. Monitor
 
 ```python
-result = ndvi_16d.cdts.run_bfast_monitor(
+result = ndvi_16d.zeit.run_bfast_monitor(
     start_time=2010.0,          # time of the first observation
     monitor_start_time=2022.0,  # history before, monitoring from here on
     frequency=23,
@@ -83,7 +83,7 @@ The same function works on a plain Dask array shaped `(time, y, x)`:
 
 ```python
 import dask.array as da
-from cdts.bfast import run_bfast_monitor_dask, BFM_METRIC_NAMES
+from zeit.bfast import run_bfast_monitor_dask, BFM_METRIC_NAMES
 
 arr = da.from_array(ndvi_numpy, chunks=(-1, 256, 256))
 out = run_bfast_monitor_dask(arr, start_time=2010.0, monitor_start_time=2022.0,
@@ -91,7 +91,7 @@ out = run_bfast_monitor_dask(arr, start_time=2010.0, monitor_start_time=2022.0,
 breaks = out[BFM_METRIC_NAMES.index("breakpoint")]
 ```
 
-For GeoTIFFs larger than memory, use `cdts.run_bfast_monitor_image` or the [`cdts bfast-monitor`](../cli.md#3-bfast-monitor-bfast-monitor) command.
+For GeoTIFFs larger than memory, use `zeit.run_bfast_monitor_image` or the [`zeit bfast-monitor`](../cli.md#3-bfast-monitor-bfast-monitor) command.
 
 ## Parameters
 
@@ -111,7 +111,7 @@ For GeoTIFFs larger than memory, use `cdts.run_bfast_monitor_image` or the [`cdt
 ## Good practice
 
 !!! warning "Choose a genuinely stable history"
-    This port uses `history="all"`: the whole pre-monitoring period is assumed stable. If that history contains a disturbance, the model is wrong and false alarms follow. In tests on pure noise at `alpha=0.05`, R's own `bfastmonitor(history="all")` flagged about 44% of series, and CDTS matched it (about 42%). Pick a disturbance-free history window, require a minimum `magnitude`, and treat single-pixel detections with caution.
+    This port uses `history="all"`: the whole pre-monitoring period is assumed stable. If that history contains a disturbance, the model is wrong and false alarms follow. In tests on pure noise at `alpha=0.05`, R's own `bfastmonitor(history="all")` flagged about 44% of series, and Zeit matched it (about 42%). Pick a disturbance-free history window, require a minimum `magnitude`, and treat single-pixel detections with caution.
 
 - Use at least 2–3 years of history so the seasonal cycle is well estimated.
 - Combine with a spatial filter (for example `apply_mmu_filter`) to drop isolated alerts.

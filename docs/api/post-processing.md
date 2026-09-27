@@ -6,12 +6,12 @@
 
 ### `apply_mmu_filter` { .api }
 
-<!-- sig: cdts.spatial.apply_mmu_filter -->
+<!-- sig: zeit.spatial.apply_mmu_filter -->
 ```python
-cdts.spatial.apply_mmu_filter(input_path, output_path, mmu_pixels=11)
+zeit.spatial.apply_mmu_filter(input_path, output_path, mmu_pixels=11)
 ```
 
-Minimum mapping unit filter for a single-band GeoTIFF on disk: connected patches of non-nodata pixels smaller than `mmu_pixels` are set to nodata. Removes the salt-and-pepper noise of per-pixel change maps. Also exported as `cdts.apply_mmu_filter`; CLI: `cdts mmu-filter`.
+Minimum mapping unit filter for a single-band GeoTIFF on disk: connected patches of non-nodata pixels smaller than `mmu_pixels` are set to nodata. Removes the salt-and-pepper noise of per-pixel change maps. Also exported as `zeit.apply_mmu_filter`; CLI: `zeit mmu-filter`.
 
 <div class="params" markdown>
 
@@ -24,17 +24,17 @@ Minimum mapping unit filter for a single-band GeoTIFF on disk: connected patches
 </div>
 
 ```python
-cdts.apply_mmu_filter("results/loss_year.tif", "results/loss_year_mmu.tif", mmu_pixels=11)
+zeit.apply_mmu_filter("results/loss_year.tif", "results/loss_year_mmu.tif", mmu_pixels=11)
 ```
 
 ### `apply_majority_filter` { .api }
 
-<!-- sig: cdts.spatial.apply_majority_filter -->
+<!-- sig: zeit.spatial.apply_majority_filter -->
 ```python
-cdts.spatial.apply_majority_filter(image, size=3)
+zeit.spatial.apply_majority_filter(image, size=3)
 ```
 
-Replaces each pixel of a class map with the most common class in its neighbourhood. Also exported as `cdts.apply_majority_filter`.
+Replaces each pixel of a class map with the most common class in its neighbourhood. Also exported as `zeit.apply_majority_filter`.
 
 <div class="params" markdown>
 
@@ -47,12 +47,12 @@ Replaces each pixel of a class map with the most common class in its neighbourho
 
 ### `apply_bayesian_filter` { .api }
 
-<!-- sig: cdts.spatial.apply_bayesian_filter -->
+<!-- sig: zeit.spatial.apply_bayesian_filter -->
 ```python
-cdts.spatial.apply_bayesian_filter(probs, window_size=3)
+zeit.spatial.apply_bayesian_filter(probs, window_size=3)
 ```
 
-Smooths per-class probabilities spatially, then takes the most likely class. Unlike the majority filter, confident pixels resist being overruled by their neighbours. Import from `cdts.spatial`.
+Smooths per-class probabilities spatially, then takes the most likely class. Unlike the majority filter, confident pixels resist being overruled by their neighbours. Import from `zeit.spatial`.
 
 <div class="params" markdown>
 
@@ -69,14 +69,14 @@ Smooths per-class probabilities spatially, then takes the most likely class. Unl
 
 ### `train_ccdc_classifier` { .api }
 
-<!-- sig: cdts.classify.train_ccdc_classifier -->
+<!-- sig: zeit.classify.train_ccdc_classifier -->
 ```python
-cdts.classify.train_ccdc_classifier(
+zeit.classify.train_ccdc_classifier(
     X_train, y_train, n_estimators=100, random_state=42,
 )
 ```
 
-Trains a scikit-learn random forest on CCDC features. Also exported as `cdts.train_ccdc_classifier`.
+Trains a scikit-learn random forest on CCDC features. Also exported as `zeit.train_ccdc_classifier`.
 
 <div class="params" markdown>
 
@@ -93,14 +93,14 @@ Trains a scikit-learn random forest on CCDC features. Also exported as `cdts.tra
 
 ### `classify_ccdc_stack` { .api }
 
-<!-- sig: cdts.classify.classify_ccdc_stack -->
+<!-- sig: zeit.classify.classify_ccdc_stack -->
 ```python
-cdts.classify.classify_ccdc_stack(
+zeit.classify.classify_ccdc_stack(
     clf, coef_stack_path, output_path, chunk_size=512,
 )
 ```
 
-Applies a classifier to every pixel of a CCDC coefficient GeoTIFF (for example from `run_ccdc_image`), block by block, and writes a `uint8` class map. Pixels whose first two bands are both zero are left as `0`. Also exported as `cdts.classify_ccdc_stack`.
+Applies a classifier to every pixel of a CCDC coefficient GeoTIFF (for example from `run_ccdc_image`), block by block, and writes a `uint8` class map. Pixels whose first two bands are both zero are left as `0`. Also exported as `zeit.classify_ccdc_stack`.
 
 <div class="params" markdown>
 
@@ -114,7 +114,7 @@ Applies a classifier to every pixel of a CCDC coefficient GeoTIFF (for example f
 </div>
 
 ```python
-from cdts.classify import train_ccdc_classifier, classify_ccdc_stack
+from zeit.classify import train_ccdc_classifier, classify_ccdc_stack
 
 clf = train_ccdc_classifier(X_train, y_train)
 classify_ccdc_stack(clf, "results/ccdc_break_coefs.tif", "results/land_cover.tif")
@@ -124,14 +124,14 @@ classify_ccdc_stack(clf, "results/ccdc_break_coefs.tif", "results/land_cover.tif
 
 ### `extract_water_mask` { .api }
 
-<!-- sig: cdts.masks.extract_water_mask -->
+<!-- sig: zeit.masks.extract_water_mask -->
 ```python
-cdts.masks.extract_water_mask(
+zeit.masks.extract_water_mask(
     ccdc_coefs_stack, green_band_idx, swir_band_idx,
 )
 ```
 
-Persistent water mask from the first CCDC model of each pixel: water is brighter in Green than in SWIR and dark in SWIR. Also exported as `cdts.extract_water_mask`.
+Persistent water mask from the first CCDC model of each pixel: water is brighter in Green than in SWIR and dark in SWIR. Also exported as `zeit.extract_water_mask`.
 
 <div class="params" markdown>
 
@@ -152,16 +152,16 @@ Persistent water mask from the first CCDC model of each pixel: water is brighter
 
 ### `generate_landtrendr_accuracy_dashboard` { .api }
 
-<!-- sig: cdts.validation.generate_landtrendr_accuracy_dashboard -->
+<!-- sig: zeit.validation.generate_landtrendr_accuracy_dashboard -->
 ```python
-cdts.validation.generate_landtrendr_accuracy_dashboard(
+zeit.validation.generate_landtrendr_accuracy_dashboard(
     cube, points, lt_results=None,
     output_html="lt_accuracy_dashboard.html", window_size=25,
     year_dim="time",
 )
 ```
 
-Builds a self-contained HTML page for reviewing LandTrendr results at reference points. For each point it shows the index trajectory, the fitted segments, and true-colour image chips for every year, and lets you record the observed year of change. It computes agreement (including Kappa) live and exports the labels as CSV. Also exported as `cdts.generate_landtrendr_accuracy_dashboard`.
+Builds a self-contained HTML page for reviewing LandTrendr results at reference points. For each point it shows the index trajectory, the fitted segments, and true-colour image chips for every year, and lets you record the observed year of change. It computes agreement (including Kappa) live and exports the labels as CSV. Also exported as `zeit.generate_landtrendr_accuracy_dashboard`.
 
 <div class="params" markdown>
 
@@ -177,7 +177,7 @@ Builds a self-contained HTML page for reviewing LandTrendr results at reference 
 </div>
 
 ```python
-cdts.generate_landtrendr_accuracy_dashboard(
+zeit.generate_landtrendr_accuracy_dashboard(
     cube=annual_cube,
     points="data/validation_points.shp",
     lt_results=events_ds,

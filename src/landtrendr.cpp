@@ -79,7 +79,7 @@ double f_pval(double f_stat, double df1, double df2) {
 // Core Algorithm Logic
 // -------------------------------------------------------------
 
-namespace cdts {
+namespace zeit {
 namespace landtrendr {
 
 // Single-index version of find_correction.pro's per-point formula -- shared
@@ -1039,5 +1039,5 @@ pybind11::tuple fit_trajectory_batch(
 }
 
 } // namespace landtrendr
-} // namespace cdts
+} // namespace zeit
 

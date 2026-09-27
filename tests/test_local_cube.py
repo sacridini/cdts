@@ -7,7 +7,7 @@ import rasterio
 from rasterio.transform import from_origin
 import xarray as xr
 
-from cdts.local import build_local_cube
+from zeit.local import build_local_cube
 
 @pytest.fixture
 def dummy_tif_dir():

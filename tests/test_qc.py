@@ -1,6 +1,6 @@
 import numpy as np
 
-from cdts.qc import qc_modis_summary, qc_modis_state, qc_sentinel2_scl
+from zeit.qc import qc_modis_summary, qc_modis_state, qc_sentinel2_scl
 
 
 def test_qc_modis_summary_levels():

@@ -28,7 +28,7 @@ Why not a linear regression? Ordinary least squares assumes normal, independent 
 The slope is expressed **per time step**. With one observation per year, it is directly "change per year":
 
 ```python
-import cdts
+import zeit
 
 # ndvi: (time, y, x) DataArray from build_time_series, any cadence
 annual_max = ndvi.groupby("time.year").max().rename({"year": "time"})   # (years, y, x)
@@ -40,7 +40,7 @@ A yearly maximum or growing-season median are common choices.
 ### 2. Run the test
 
 ```python
-result = annual_max.cdts.run_mann_kendall(method="hamed_rao", alpha=0.05).compute()
+result = annual_max.zeit.run_mann_kendall(method="hamed_rao", alpha=0.05).compute()
 
 slope = result.sel(metric="slope")               # NDVI change per year
 significant = result.sel(metric="h") == 1        # significant at alpha
@@ -51,8 +51,8 @@ greening = significant & (result.sel(metric="trend") == 1)
 ### 3. Save the maps
 
 ```python
-cdts.save_raster(slope.values.astype("float32"), "results/ndvi_slope.tif", reference_cube=annual_max)
-cdts.save_raster(browning.values.astype("uint8"), "results/browning.tif", reference_cube=annual_max)
+zeit.save_raster(slope.values.astype("float32"), "results/ndvi_slope.tif", reference_cube=annual_max)
+zeit.save_raster(browning.values.astype("uint8"), "results/browning.tif", reference_cube=annual_max)
 ```
 
 ## Which variant should I use?
@@ -66,7 +66,7 @@ cdts.save_raster(browning.values.astype("uint8"), "results/browning.tif", refere
 
 ```python
 # 16-day composites tested directly: 23 observations per year
-trend = ndvi_16d.cdts.run_mann_kendall(method="seasonal", period=23)
+trend = ndvi_16d.zeit.run_mann_kendall(method="seasonal", period=23)
 ```
 
 !!! warning "Units of the slope"
@@ -91,18 +91,18 @@ Pixels with fewer than `min_valid` (default 4) non-NaN values are all `NaN`.
 
 ```python
 # Plain Dask array, shape (time, y, x) -> (9, y, x)
-from cdts.trend import run_mann_kendall_dask, MK_METRIC_NAMES
+from zeit.trend import run_mann_kendall_dask, MK_METRIC_NAMES
 out = run_mann_kendall_dask(dask_array, method="hamed_rao").compute()
 
 # One series, for testing
-from cdts._core.mannkendall import mk_test_single, MKMethod
+from zeit._core.mannkendall import mk_test_single, MKMethod
 trend, h, p, z, tau, s, var_s, slope, intercept = mk_test_single(
     [0.41, 0.44, 0.39, 0.47, 0.52, 0.49, 0.55, 0.58, 0.61, 0.60],
     method=int(MKMethod.HAMED_RAO), alpha=0.05,
 )
 ```
 
-For GeoTIFFs larger than memory: `cdts.run_mann_kendall_image`, or [`cdts mann-kendall`](../cli.md#6-mann-kendall-trend-test-mann-kendall) from the shell.
+For GeoTIFFs larger than memory: `zeit.run_mann_kendall_image`, or [`zeit mann-kendall`](../cli.md#6-mann-kendall-trend-test-mann-kendall) from the shell.
 
 ## Good practice
 

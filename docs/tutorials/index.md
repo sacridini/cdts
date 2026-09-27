@@ -1,6 +1,6 @@
 # User Guide
 
-<p class="lead">Step-by-step tutorials for every part of CDTS. Each one starts with what the method is for and a real output, explains how it works in plain language, then walks through the code and how to read the results.</p>
+<p class="lead">Step-by-step tutorials for every part of Zeit. Each one starts with what the method is for and a real output, explains how it works in plain language, then walks through the code and how to read the results.</p>
 
 !!! tip "New here?"
     Do the [Quickstart](../getting-started/quickstart.md) first, and skim [Core Concepts](../getting-started/concepts.md) for the conventions (array shapes, dates, scale factors) that every tutorial uses. Unsure which method fits your question? See [Choosing an Algorithm](../getting-started/choosing-an-algorithm.md).

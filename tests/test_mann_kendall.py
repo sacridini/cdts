@@ -3,9 +3,9 @@ import xarray as xr
 import dask.array as da
 import pytest
 
-from cdts._core.mannkendall import fit_mann_kendall_batch, mk_test_single, MKMethod
-from cdts.trend import run_mann_kendall_dask, N_MK_METRICS, MK_METRIC_NAMES
-import cdts.xarray_api  # noqa: F401 - registers the .cdts accessor
+from zeit._core.mannkendall import fit_mann_kendall_batch, mk_test_single, MKMethod
+from zeit.trend import run_mann_kendall_dask, N_MK_METRICS, MK_METRIC_NAMES
+import zeit.xarray_api  # noqa: F401 - registers the .zeit accessor
 
 pymannkendall = pytest.importorskip(
     "pymannkendall",
@@ -155,7 +155,7 @@ def test_xarray_accessor_run_mann_kendall():
     data = da.from_array(block, chunks=(time_steps, 5, 5))
 
     ds = xr.DataArray(data, dims=["time", "y", "x"], coords={"y": np.arange(rows), "x": np.arange(cols)})
-    res = ds.cdts.run_mann_kendall(method="hamed_rao")
+    res = ds.zeit.run_mann_kendall(method="hamed_rao")
 
     assert isinstance(res, xr.DataArray)
     assert res.dims == ("metric", "y", "x")

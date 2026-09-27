@@ -11,7 +11,7 @@ The Siamese Change Detector is a **bi-temporal** architecture: given two co-regi
 
 > Daudt, R. C., Le Saux, B., & Boulch, A. (2018). *Fully convolutional siamese networks for change detection*. **2018 25th IEEE International Conference on Image Processing (ICIP)** (pp. 4063–4067). [https://doi.org/10.1109/ICIP.2018.8451652](https://doi.org/10.1109/ICIP.2018.8451652)
 
-Unlike [LightTAE](ltae.md), [TempCNN](tempcnn.md), and [UTAE](utae.md) — which were ported layer-for-layer and rigorously cross-validated against reference implementations (`sits` or the official UTAE repo) — `cdts.ai.SiameseChangeDetector` is a **compact, independent implementation** of the general Siamese/twin-encoder change-detection pattern, not a line-for-line port of a specific published codebase. Treat it as a solid, ready-to-train baseline architecture for two-date change detection rather than a bit-exact reproduction of any one paper's exact numbers.
+Unlike [LightTAE](ltae.md), [TempCNN](tempcnn.md), and [UTAE](utae.md) — which were ported layer-for-layer and rigorously cross-validated against reference implementations (`sits` or the official UTAE repo) — `zeit.ai.SiameseChangeDetector` is a **compact, independent implementation** of the general Siamese/twin-encoder change-detection pattern, not a line-for-line port of a specific published codebase. Treat it as a solid, ready-to-train baseline architecture for two-date change detection rather than a bit-exact reproduction of any one paper's exact numbers.
 
 ## How It Works
 
@@ -45,7 +45,7 @@ y_train = torch.tensor(np.load("change_masks.npy"), dtype=torch.long)
 ## Instantiating the Model
 
 ```python
-from cdts.ai import SiameseChangeDetector
+from zeit.ai import SiameseChangeDetector
 
 model = SiameseChangeDetector(
     in_channels=6,     # spectral bands per image
@@ -58,13 +58,13 @@ model = model.to(device)
 
 ## Loss Functions
 
-Two natural options from `cdts.ai.losses`, depending on how you want to train:
+Two natural options from `zeit.ai.losses`, depending on how you want to train:
 
 - **`FocalLoss`** / **`TverskyLoss`**: apply directly to the classifier's `(B, num_classes, H, W)` output logits vs. the `(B, H, W)` label map — the standard approach if you're training the full pipeline (encoders + decoder + classifier) end-to-end as a segmentation problem. Both handle the severe class imbalance typical of change detection (changed pixels are usually a small minority).
 - **`ContrastiveSiameseLoss`**: operates directly on the two *encoder* feature maps (`feat_t0`, `feat_t1` from `forward_once`) rather than the final classifier output — it pulls feature vectors together for unchanged pixels and pushes them apart (up to a margin) for changed pixels. Use this if you want to train the twin encoder as a metric-learning problem (e.g. for downstream thresholding or few-shot change detection), separately from or in addition to the classifier head.
 
 ```python
-from cdts.ai.losses import FocalLoss, ContrastiveSiameseLoss
+from zeit.ai.losses import FocalLoss, ContrastiveSiameseLoss
 
 criterion = FocalLoss(alpha=0.25, gamma=2.0)
 # or, to also supervise the encoder features directly:

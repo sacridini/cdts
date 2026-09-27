@@ -18,7 +18,7 @@ Earth Engine requires the user to authenticate their machine with Google Cloud P
 
 ## Choosing the area (`roi`)
 
-You never need to build Earth Engine objects yourself. The `roi` argument accepts local, offline inputs, and `cdts` converts them internally:
+You never need to build Earth Engine objects yourself. The `roi` argument accepts local, offline inputs, and `zeit` converts them internally:
 
 ```python
 roi = "217/076"                              # a Landsat WRS-2 path/row: the tile's footprint
@@ -31,7 +31,7 @@ roi = geopandas.read_file("area.gpkg")       # an in-memory GeoDataFrame (or a s
 
 Files in any CRS are reprojected to lon/lat. For vector and raster inputs, the download covers their **bounding box**. To keep only the pixels inside a polygon, mask the result locally afterwards, for example with `rasterio.mask`.
 
-**Sentinel-2 tiles** follow the MGRS grid: 109.8 km × 109.8 km squares in the tile's UTM zone, overlapping their neighbours by 9.8 km. `cdts` computes the footprint from the id alone, with no Earth Engine lookup. The calculation matches real Sentinel-2 scene footprints to within about 50 m. Tiles that straddle the 180° meridian can't be expressed as a lon/lat box and raise an error; pass a bbox for one side instead.
+**Sentinel-2 tiles** follow the MGRS grid: 109.8 km × 109.8 km squares in the tile's UTM zone, overlapping their neighbours by 9.8 km. `zeit` computes the footprint from the id alone, with no Earth Engine lookup. The calculation matches real Sentinel-2 scene footprints to within about 50 m. Tiles that straddle the 180° meridian can't be expressed as a lon/lat box and raise an error; pass a bbox for one side instead.
 
 **Landsat WRS-2 path/rows** are looked up from a Landsat Collection 2 scene on that path/row, which takes one quick Earth Engine query.
 
@@ -40,15 +40,15 @@ Files in any CRS are reprojected to lon/lat. For vector and raster inputs, the d
 
 ## Downloading: `method="auto"` (default)
 
-For most areas you don't need to choose a method. With the default `method='auto'`, `cdts` plans each image before downloading it and picks the fastest route that will work:
+For most areas you don't need to choose a method. With the default `method='auto'`, `zeit` plans each image before downloading it and picks the fastest route that will work:
 
-- **Direct tiled download** for images up to `max_direct_mb` (4 GB raw by default). `cdts` fixes a single pixel grid for the whole region, splits it into tiles sized in *bytes* rather than degrees, and fetches them concurrently with `ee.data.computePixels`. Each tile is written straight into its place in the output GeoTIFF, so tiles line up exactly with no seams and there is no mosaicking step. Tiles are split in space first; deep stacks such as a `'dense'` time series with hundreds of bands are also split by band, so they stay under Earth Engine's per-request limits (32 MB, 1024 bands).
+- **Direct tiled download** for images up to `max_direct_mb` (4 GB raw by default). `zeit` fixes a single pixel grid for the whole region, splits it into tiles sized in *bytes* rather than degrees, and fetches them concurrently with `ee.data.computePixels`. Each tile is written straight into its place in the output GeoTIFF, so tiles line up exactly with no seams and there is no mosaicking step. Tiles are split in space first; deep stacks such as a `'dense'` time series with hundreds of bands are also split by band, so they stay under Earth Engine's per-request limits (32 MB, 1024 bands).
 - **Google Drive export** (see [Large areas](#large-areas-export-to-google-drive)) for images above that size, or when a tile hits an Earth Engine *interactive* compute limit (user memory limit, computation timeout), which retrying the same request cannot fix.
 
-Concurrency adapts to your account. Earth Engine limits concurrent interactive requests per account (about 40 on a standard tier, only 2–3 for a project in noncommercial *Restricted Mode*). `cdts` starts with 4 concurrent requests, ramps up while requests succeed, and halves on every `HTTP 429`, so it settles just under whatever limit your account actually has.
+Concurrency adapts to your account. Earth Engine limits concurrent interactive requests per account (about 40 on a standard tier, only 2–3 for a project in noncommercial *Restricted Mode*). `zeit` starts with 4 concurrent requests, ramps up while requests succeed, and halves on every `HTTP 429`, so it settles just under whatever limit your account actually has.
 
 ```python
-from cdts.gee import download_gee_timeseries
+from zeit.gee import download_gee_timeseries
 
 # Bounding box [min_lon, min_lat, max_lon, max_lat]
 my_roi = [-47.95, -15.85, -47.85, -15.75]
@@ -67,7 +67,7 @@ download_gee_timeseries(
 To download a single `ee.Image` you built yourself, use `download_gee_image` directly. It accepts the same `method` and exposes the tuning knobs:
 
 ```python
-from cdts.gee.downloader import download_gee_image
+from zeit.gee.downloader import download_gee_image
 
 download_gee_image(
     image, roi, 'out.tif',
@@ -84,10 +84,10 @@ Masked pixels are written with the GeoTIFF nodata value Earth Engine uses for th
 
 For state-level or national-scale analyses, downloading data directly over the internet in real-time might fail due to API payload limits or simply take too long.
 
-In these cases, pass `method='drive'`. The `cdts` package will set up everything and dispatch a Task directly to Google's servers. Google will silently process and save the final file in the cloud inside your **Google Drive**, under the `CDTS_Downloads` folder.
+In these cases, pass `method='drive'`. The `zeit` package will set up everything and dispatch a Task directly to Google's servers. Google will silently process and save the final file in the cloud inside your **Google Drive**, under the `Zeit_Downloads` folder.
 
 ```python
-from cdts.gee import download_gee_timeseries
+from zeit.gee import download_gee_timeseries
 
 # Example: Bounding box of a larger region
 state_roi = [-53.11, -25.31, -44.15, -19.78]
@@ -108,15 +108,15 @@ download_gee_timeseries(
 
 ## Worked example: a full Landsat tile, 1985–2025, ready for LandTrendr
 
-This is the complete path from "I have a WRS-2 path/row" to LandTrendr disturbance maps, all through `cdts`. It uses no Earth Engine objects in your code and needs no local satellite data.
+This is the complete path from "I have a WRS-2 path/row" to LandTrendr disturbance maps, all through `zeit`. It uses no Earth Engine objects in your code and needs no local satellite data.
 
 LandTrendr works on **one spectral index per year**. NBR is the standard choice for forest loss. The pipeline has three steps: download the annual composites as NBR, stack the years into one multi-band GeoTIFF, then run LandTrendr out-of-core.
 
 ```python
 import numpy as np
 import rasterio
-from cdts.gee import download_gee_timeseries
-from cdts.raster import run_landtrendr_image
+from zeit.gee import download_gee_timeseries
+from zeit.raster import run_landtrendr_image
 
 years = range(1985, 2026)
 
@@ -162,9 +162,9 @@ run_landtrendr_image(
     2. **`no_data_value`.** `run_landtrendr_image` defaults to `0.0`, which would discard pixels whose NBR is exactly 0. Pass a value that can't occur, such as `-9999.0`.
     3. **2012 has gaps.** Landsat 5 stopped in November 2011 and Landsat 8 started in April 2013, so 2012 relies on Landsat 7 SLC-off alone and has striping gaps. LandTrendr tolerates missing years (`min_observations_needed=6` by default), so this is expected, not an error.
 
-**Resuming.** A download never leaves a partial file at its final path, so re-running the same call is safe. For fine-grained control, loop over the years yourself with `download_gee_image` and skip years whose file already exists. The composites come from `cdts.gee.composites.create_annual_medoid` on the collection from `cdts.gee.harmonization.get_harmonized_collection`.
+**Resuming.** A download never leaves a partial file at its final path, so re-running the same call is safe. For fine-grained control, loop over the years yourself with `download_gee_image` and skip years whose file already exists. The composites come from `zeit.gee.composites.create_annual_medoid` on the collection from `zeit.gee.harmonization.get_harmonized_collection`.
 
-**Tile extent.** For `roi="217/076"`, `cdts` looks up the tile's footprint from a Landsat Collection 2 scene and downloads its bounding box, about 2.2° × 2.0° (~8,070 × 7,330 px at 30 m). Scenes from neighbouring paths/rows that overlap the box are also used, which fills the box corners and adds observations in the overlap zones.
+**Tile extent.** For `roi="217/076"`, `zeit` looks up the tile's footprint from a Landsat Collection 2 scene and downloads its bounding box, about 2.2° × 2.0° (~8,070 × 7,330 px at 30 m). Scenes from neighbouring paths/rows that overlap the box are also used, which fills the box corners and adds observations in the overlap zones.
 
 ## How long will a download take?
 
@@ -175,7 +175,7 @@ Time is dominated by Earth Engine's server-side compute, not by your connection 
 | Standard tier (paid or noncommercial within quota) | about 40 |
 | Noncommercial project in **Restricted Mode** (quota exceeded) | about 2 |
 
-`cdts` discovers the limit on its own. It starts with 4 concurrent requests, ramps up to `sub_tile_workers` while requests succeed, and backs off on every `HTTP 429`. You'll see `EE throttled concurrency: finished at 2/16 concurrent requests` when the account is limited. When Earth Engine initializes, it prints a warning if your project is in Restricted Mode.
+`zeit` discovers the limit on its own. It starts with 4 concurrent requests, ramps up to `sub_tile_workers` while requests succeed, and backs off on every `HTTP 429`. You'll see `EE throttled concurrency: finished at 2/16 concurrent requests` when the account is limited. When Earth Engine initializes, it prints a warning if your project is in Restricted Mode.
 
 Times below are for annual medoid composites on WRS-2 217/076 (year 2020). The rows marked *measured* were timed on a Restricted Mode account; everything else is extrapolated from them. Years before 1999 have only Landsat 5 and compute faster, so treat totals as orders of magnitude:
 
@@ -210,7 +210,7 @@ Every file written by the direct download has:
 
 ## What happens on the server
 
-When using `composite_type='annual'` (the current `cdts` default for LandTrendr integration):
+When using `composite_type='annual'` (the current `zeit` default for LandTrendr integration):
 
 1. **Sensor Fusion:** The function fetches Landsat 5, 7, 8, and 9 collections (Surface Reflectance Collection 2).
 2. **Harmonization:** Values from Landsat 8 and 9 (OLI) are mathematically converted to their ETM+ equivalents using coefficients from Roy et al. (2016) (see [References](#references)). This ensures a perfect time series, free from sensor biases.

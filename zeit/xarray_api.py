@@ -2,10 +2,10 @@ import xarray as xr
 import dask.array as da
 import numpy as np
 from typing import Optional, Any
-from cdts.raster import run_ccdc_array, run_landtrendr_array
+from zeit.raster import run_ccdc_array, run_landtrendr_array
 
-@xr.register_dataarray_accessor("cdts")
-class CDTSAccessor:
+@xr.register_dataarray_accessor("zeit")
+class ZeitAccessor:
     def __init__(self, xarray_obj: xr.DataArray) -> None:
         self._obj = xarray_obj
 
@@ -13,7 +13,7 @@ class CDTSAccessor:
         """
         Runs CCDC on an xarray DataArray using Dask for out-of-core and parallel execution.
         Assumes DataArray shape: (bands, time, y, x), surface reflectance x 10000,
-        with qa_stack as Fmask codes (see cdts.ccdc.run_ccdc). Output parameters
+        with qa_stack as Fmask codes (see zeit.ccdc.run_ccdc). Output parameters
         per segment: t_start, t_end, t_break, then per band rmse and 8 coefficients.
         
         Strategy A: Dask handles cross-node distribution (map_blocks), OpenMP handles multi-core within the node (n_jobs=-1).
@@ -115,7 +115,7 @@ weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
 
         weights: optional (time, y, x) array/DataArray of per-observation
         reliability weights in [0, 1], aligned with this DataArray (e.g. built
-        with cdts.qc.qc_modis_summary/qc_modis_state/qc_sentinel2_scl from a
+        with zeit.qc.qc_modis_summary/qc_modis_state/qc_sentinel2_scl from a
         QA band). Low-quality observations are down-weighted in the Whittaker/
         HANTS smoothing and in the iterative curve fit instead of being
         treated as equally trustworthy as clear observations.
@@ -125,7 +125,7 @@ weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
         (mirrors phenofit's season_mov r_max relaxation) before giving up on
         that pixel. Set False to disable for stricter/faster behaviour.
         """
-        from cdts.phenology import run_phenology_dask
+        from zeit.phenology import run_phenology_dask
 
         arr = self._obj.data
         if not isinstance(arr, da.Array):
@@ -186,7 +186,7 @@ weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
         Pixel-wise Mann-Kendall trend test + Theil-Sen slope across the time
         dimension. Assumes DataArray shape: (time, y, x).
         Returns a DataArray with dim "metric": trend, h, p, z, tau, s,
-        var_s, slope, intercept (see cdts.trend.MK_METRIC_NAMES).
+        var_s, slope, intercept (see zeit.trend.MK_METRIC_NAMES).
 
         method: "original", "hamed_rao" (default - autocorrelation-corrected,
         recommended for annual composites), "yue_wang" (alternative
@@ -198,7 +198,7 @@ weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
         calendar time (per full `period` cycle for method="seasonal") - use
         one observation per year, or `period=`, for a per-year trend.
         """
-        from cdts.trend import run_mann_kendall_dask, MK_METRIC_NAMES
+        from zeit.trend import run_mann_kendall_dask, MK_METRIC_NAMES
 
         arr = self._obj.data
         if not isinstance(arr, da.Array):
@@ -227,13 +227,13 @@ weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
         the time dimension. Assumes DataArray shape: (time, y, x).
         Returns a DataArray with dim "metric": breakpoint, breakpoint_idx,
         magnitude, sigma, n_history, has_break, valid (see
-        cdts.bfast.BFM_METRIC_NAMES).
+        zeit.bfast.BFM_METRIC_NAMES).
 
-        See cdts.bfast.run_bfast_monitor_dask for the full parameter
+        See zeit.bfast.run_bfast_monitor_dask for the full parameter
         documentation and scope notes (only type="OLS-MOSUM" and
         history="all" are implemented).
         """
-        from cdts.bfast import run_bfast_monitor_dask, BFM_METRIC_NAMES
+        from zeit.bfast import run_bfast_monitor_dask, BFM_METRIC_NAMES
 
         arr = self._obj.data
         if not isinstance(arr, da.Array):
@@ -262,13 +262,13 @@ weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
         time dimension. Assumes DataArray shape: (time, y, x). Returns a
         DataArray with dim "metric": n_breaks, rss, lwz, n_valid, valid,
         breakpoint_idx_1..breakpoint_idx_{max_breaks_output} (see
-        cdts.bfast.bfl_metric_names).
+        zeit.bfast.bfl_metric_names).
 
-        See cdts.bfast.run_bfast_lite_dask for the full parameter
+        See zeit.bfast.run_bfast_lite_dask for the full parameter
         documentation and scope notes (no STL decomposition; see
         run_bfast for the classic iterative bfast()).
         """
-        from cdts.bfast import run_bfast_lite_dask, bfl_metric_names
+        from zeit.bfast import run_bfast_lite_dask, bfl_metric_names
 
         arr = self._obj.data
         if not isinstance(arr, da.Array):
@@ -299,13 +299,13 @@ weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
         magnitude, time, n_iter, n_valid, valid,
         trend_breakpoint_idx_1..max_breaks_trend,
         season_breakpoint_idx_1..max_breaks_season (see
-        cdts.bfast.bf_metric_names).
+        zeit.bfast.bf_metric_names).
 
-        See cdts.bfast.run_bfast_dask for the full parameter documentation
+        See zeit.bfast.run_bfast_dask for the full parameter documentation
         and scope notes (season="harmonic" and breaks="BIC" only,
         decomp="stl" only).
         """
-        from cdts.bfast import run_bfast_dask, bf_metric_names
+        from zeit.bfast import run_bfast_dask, bf_metric_names
 
         arr = self._obj.data
         if not isinstance(arr, da.Array):
@@ -339,9 +339,9 @@ weights: Optional[Any] = None, season_retry: bool = True) -> xr.DataArray:
         Returns a Dataset with "labels" (y, x; -1 = unlabelled), the segment
         mean trajectories "means" (segment, *other dims), "centroid_row",
         "centroid_col" and "n_pixels" (segment). Arguments as in
-        cdts.segmentation.run_snic. The cube is loaded into memory.
+        zeit.segmentation.run_snic. The cube is loaded into memory.
         """
-        from cdts.segmentation import run_snic
+        from zeit.segmentation import run_snic
 
         obj = self._obj
         if obj.dims[-2:] != ("y", "x"):

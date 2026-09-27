@@ -40,9 +40,9 @@ A common layout is a GeoTIFF interleaved by date: for each date, 6 spectral band
 ```python
 import numpy as np
 from datetime import date
-import cdts
+import zeit
 
-data, profile = cdts.io.load_raster("landsat_dense_stack.tif", raster_check="ccdc")
+data, profile = zeit.io.load_raster("landsat_dense_stack.tif", raster_check="ccdc")
 
 dates = np.array([date.fromisoformat(d).toordinal()
                   for d in ["2008-01-05", "2008-01-21", "2008-02-06"]])  # one per acquisition
@@ -87,7 +87,7 @@ CCDC already runs its own Tmask screening internally to catch clouds the QA band
 Start with a single pixel to see what CCDC returns:
 
 ```python
-from cdts.ccdc import run_ccdc
+from zeit.ccdc import run_ccdc
 
 row, col = 200, 310
 models = run_ccdc(dates, reflectance[:, :, row, col], qa[:, row, col])
@@ -109,7 +109,7 @@ Each model is a dict with `t_start`, `t_end`, `t_break` (ordinal days, `0` if th
 ### 4. Run the whole stack
 
 ```python
-results = cdts.run_ccdc_array(
+results = zeit.run_ccdc_array(
     dates,
     reflectance.astype(np.float64),   # (band, time, rows, cols)
     qa,                               # (time, rows, cols)
@@ -145,7 +145,7 @@ def to_frac_year(ordinal):
 break_year = np.zeros(first_break.shape, dtype="float32")
 break_year[changed] = [to_frac_year(d) for d in first_break[changed]]
 
-cdts.save_raster(break_year, "results/ccdc_first_break.tif",
+zeit.save_raster(break_year, "results/ccdc_first_break.tif",
                  crs=profile["crs"], transform=profile["transform"], nodata=0)
 ```
 
@@ -154,20 +154,20 @@ cdts.save_raster(break_year, "results/ccdc_first_break.tif",
 Because each model describes the full seasonal cycle, you can evaluate it on any day, including days with no image at all. `predict_synthetic_image` picks the model active on that date for every pixel:
 
 ```python
-from cdts.ccdc import predict_synthetic_image
+from zeit.ccdc import predict_synthetic_image
 
 target = date(2019, 7, 15).toordinal()
 synthetic = predict_synthetic_image(results, target, num_bands=6)   # (6, rows, cols)
 ```
 
-This is a clean way to fill gaps or build seasonal mosaics. For one pixel, `cdts.ccdc.predict(coefs, dates)` evaluates one band's coefficients at any list of dates. That is how the curves in the figure above were drawn.
+This is a clean way to fill gaps or build seasonal mosaics. For one pixel, `zeit.ccdc.predict(coefs, dates)` evaluates one band's coefficients at any list of dates. That is how the curves in the figure above were drawn.
 
 ### 7. Classify the segments
 
 The coefficients of each model are compact descriptions of the land cover during that period. A classifier trained on coefficients at labelled points can label every segment:
 
 ```python
-from cdts.classify import train_ccdc_classifier, classify_ccdc_stack
+from zeit.classify import train_ccdc_classifier, classify_ccdc_stack
 
 clf = train_ccdc_classifier(X_train, y_train)       # X: coefficients at labelled points
 classify_ccdc_stack(clf, "results/ccdc_break_coefs.tif", "results/ccdc_classes.tif")
@@ -196,7 +196,7 @@ A model is only started once there are at least 12 clear observations spanning a
 **GeoTIFFs larger than memory.** `run_ccdc_image` processes a date-interleaved GeoTIFF block by block and writes the full `(segment × parameter)` stack to `<prefix>_coefs.tif`:
 
 ```python
-cdts.run_ccdc_image(
+zeit.run_ccdc_image(
     "landsat_dense_stack.tif", "results/",
     dates=dates,
     num_bands=7,        # bands per date in the file, including QA
@@ -205,14 +205,14 @@ cdts.run_ccdc_image(
 )
 ```
 
-The QA band must already hold Fmask codes (step 2). The same is available as [`cdts ccdc`](../cli.md#2-continuous-change-detection-ccdc).
+The QA band must already hold Fmask codes (step 2). The same is available as [`zeit ccdc`](../cli.md#2-continuous-change-detection-ccdc).
 
 **Dask cubes and clusters.** The accessor expects a `(band, time, y, x)` DataArray and a matching `(time, y, x)` QA array. Chunk only in space:
 
 ```python
 cube = reflectance_da.chunk({"band": -1, "time": -1, "y": 256, "x": 256})
-results = cube.cdts.run_ccdc(dates=dates, qa_stack=qa_da, max_segments=6, n_jobs=1)
-results.cdts.to_zarr_optimized("s3://my-bucket/ccdc.zarr")
+results = cube.zeit.run_ccdc(dates=dates, qa_stack=qa_da, max_segments=6, n_jobs=1)
+results.zeit.to_zarr_optimized("s3://my-bucket/ccdc.zarr")
 ```
 
 Use `n_jobs=1` when Dask already runs one task per core. See [Parallel & Cloud Processing](parallel-cloud-processing.md).
@@ -222,7 +222,7 @@ Use `n_jobs=1` when Dask already runs one task per core. See [Parallel & Cloud P
 - **Masking is everything.** A missed cloud looks like a change. Use the best QA you have. CCDC's internal Tmask catches most leftovers.
 - **Density matters.** CCDC shines with every clear Landsat image, or harmonised Landsat and Sentinel-2 (HLS). Annual composites are a job for LandTrendr.
 - **Detect fewer false breaks** by raising `conseq_anom`. This is what the COLD variant does to trade sensitivity for robustness.
-- **Validation.** CDTS reproduces the original MATLAB model for model: same dates, categories and observation counts, coefficients within about 1e-9. See [Algorithm Fidelity](../benchmarks/fidelity.md#2-ccdc-zhu-woodcock-2014).
+- **Validation.** Zeit reproduces the original MATLAB model for model: same dates, categories and observation counts, coefficients within about 1e-9. See [Algorithm Fidelity](../benchmarks/fidelity.md#2-ccdc-zhu-woodcock-2014).
 
 ## References
 

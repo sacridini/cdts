@@ -2,10 +2,10 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 from typing import Optional
-from cdts._core.phenology import fit_phenology_batch
+from zeit._core.phenology import fit_phenology_batch
 
 # 19 phenology date/derived metrics + R2 + RMSE (goodness-of-fit of the
-# fitted curve for that season, see cdts.qc and PhenologyMetrics in
+# fitted curve for that season, see zeit.qc and PhenologyMetrics in
 # src/phenology.h).
 N_METRICS = 21
 
@@ -36,7 +36,7 @@ def run_phenology_dask(
     a per-season R2 and RMSE of the fitted curve (indices 19 and 20).
 
     weights: optional (time, y, x) Dask array of per-observation reliability
-    weights in [0, 1] (e.g. from cdts.qc), aligned with `arr`. Feeds the
+    weights in [0, 1] (e.g. from zeit.qc), aligned with `arr`. Feeds the
     Whittaker/HANTS smoothers and seeds the iterative curve-fit reweighting
     instead of treating every observation as equally trustworthy.
     """

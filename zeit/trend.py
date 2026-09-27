@@ -2,7 +2,7 @@ import numpy as np
 import dask.array as da
 from typing import Optional
 
-from cdts._core.mannkendall import fit_mann_kendall_batch, MKMethod
+from zeit._core.mannkendall import fit_mann_kendall_batch, MKMethod
 
 # trend, h, p, z, tau, s, var_s, slope, intercept
 N_MK_METRICS = 9

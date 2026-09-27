@@ -7,7 +7,7 @@
 <div><span class="k">Reference</span><span class="v">Prithvi-100M (Jakubik et al., 2023) via HuggingFace</span></div>
 </div>
 
-`GeoFoundationViT` is a thin wrapper that lets you plug large, pretrained **geospatial foundation models** (Vision Transformers trained on massive satellite imagery corpora) into a `cdts` workflow, and fine-tune a lightweight classification/segmentation head on top for your own downstream task. Rather than training a model from scratch, you're doing **transfer learning** from a model that has already learned general-purpose visual representations of satellite imagery.
+`GeoFoundationViT` is a thin wrapper that lets you plug large, pretrained **geospatial foundation models** (Vision Transformers trained on massive satellite imagery corpora) into a `zeit` workflow, and fine-tune a lightweight classification/segmentation head on top for your own downstream task. Rather than training a model from scratch, you're doing **transfer learning** from a model that has already learned general-purpose visual representations of satellite imagery.
 
 By default it loads NASA/IBM's **Prithvi-100M** via HuggingFace `transformers`:
 
@@ -16,7 +16,7 @@ By default it loads NASA/IBM's **Prithvi-100M** via HuggingFace `transformers`:
 but any compatible HuggingFace geospatial ViT (e.g. SatMAE-style models) can be loaded by passing a different `model_id`.
 
 !!! note "A wrapper, not a port"
-    **Unlike** [LightTAE](ltae.md), [TempCNN](tempcnn.md), and [UTAE](utae.md) — which are `cdts`-native architectures ported and validated against reference implementations — `GeoFoundationViT` is a **wrapper around an external pretrained model**. Its behavior and output quality depend entirely on the backbone you load; there is no `cdts`-side numerical validation to speak of here, since correctness is inherited from the upstream model.
+    **Unlike** [LightTAE](ltae.md), [TempCNN](tempcnn.md), and [UTAE](utae.md) — which are `zeit`-native architectures ported and validated against reference implementations — `GeoFoundationViT` is a **wrapper around an external pretrained model**. Its behavior and output quality depend entirely on the backbone you load; there is no `zeit`-side numerical validation to speak of here, since correctness is inherited from the upstream model.
 
 ## How It Works
 
@@ -49,7 +49,7 @@ Always check the backbone's model card for required preprocessing (band order, n
 ## Instantiating the Model
 
 ```python
-from cdts.ai import GeoFoundationViT
+from zeit.ai import GeoFoundationViT
 
 model = GeoFoundationViT(
     model_id="ibm-nasa-geospatial/Prithvi-100M",
@@ -69,7 +69,7 @@ Because the backbone carries pretrained weights worth preserving, it's common to
 
 ```python
 import torch.optim as optim
-from cdts.ai.losses import FocalLoss
+from zeit.ai.losses import FocalLoss
 
 # Stage 1: freeze the backbone, train only the classifier head
 for param in model.backbone.parameters():
