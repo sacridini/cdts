@@ -649,7 +649,8 @@
 }
 
 .md-typeset .zeit-hero__logo {
-  width: 11rem;
+  width: 18rem;
+  max-width: 100%;
   margin-bottom: 1rem;
 }
 

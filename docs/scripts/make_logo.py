@@ -130,7 +130,9 @@ def doc(vb_x, vb_y, w, h, body):
 
 
 def build(theme):
-    body, (x0, y0, x1, y1) = mark(theme)
+    # The cube keeps its original (light) colours on every background; only
+    # the wordmark follows the theme.
+    body, (x0, y0, x1, y1) = mark(THEMES["light"])
     mw, mh = x1 - x0, y1 - y0
     files = {}
     # 1) mark only, square canvas
