@@ -12,7 +12,7 @@ def desawtooth(values: Union[np.ndarray, List[float]], stopat: float = 0.9) -> n
 
 def run_landtrendr(years: Union[np.ndarray, List[int]], values: Union[np.ndarray, List[float]], max_segments: int = 6, pval_threshold: float = 0.05,
                     recovery_threshold: float = 0.25, prevent_fast_recovery: bool = True,
-                    spike_threshold: float = 0.9, best_model_proportion: float = 1.25,
+                    spike_threshold: float = 0.9, best_model_proportion: float = 0.75,
                     vertex_count_overshoot: int = 3, min_observations_needed: int = 6,
                     modifier: float = 1.0) -> List[Dict[str, Union[int, float]]]:
     """
@@ -34,7 +34,10 @@ def run_landtrendr(years: Union[np.ndarray, List[int]], values: Union[np.ndarray
             recovery_threshold to effectively disable it).
         spike_threshold (float): Desawtooth dampening factor (1.0 = no dampening). LT-GEE's spikeThreshold.
         best_model_proportion (float): Prefer the most-vertex candidate model whose p-value is at
-            most this proportion of the lowest p-value found among candidates. LT-GEE's bestModelProportion.
+            most (2 - best_model_proportion) times the lowest p-value found among candidates, as in the
+            original's pick_best_model6. The default 0.75 accepts models within 1.25x of the best p;
+            values above 1 make the threshold stricter than the best model itself, so selection falls
+            through to a flat line unless several models tie at p = 0.
         vertex_count_overshoot (int): Extra vertices allowed in the initial candidate pool beyond
             max_segments + 1, pruned back down before model selection. LT-GEE's vertexCountOvershoot.
         min_observations_needed (int): Below this many (valid) observations, skip fitting entirely and
@@ -70,7 +73,7 @@ def run_landtrendr(years: Union[np.ndarray, List[int]], values: Union[np.ndarray
 
 def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: int = 6, pval_threshold: float = 0.05, no_data_value: float = -9999.0,
                           recovery_threshold: float = 0.25, prevent_fast_recovery: bool = True,
-                          spike_threshold: float = 0.9, best_model_proportion: float = 1.25,
+                          spike_threshold: float = 0.9, best_model_proportion: float = 0.75,
                           vertex_count_overshoot: int = 3, min_observations_needed: int = 6,
                           modifier: float = 1.0, n_jobs: int = -1):
     """
@@ -87,7 +90,10 @@ def run_landtrendr_batch(years: np.ndarray, values: np.ndarray, max_segments: in
         prevent_fast_recovery (bool): Kept for API compatibility; has no effect (see run_landtrendr).
         spike_threshold (float): Desawtooth dampening factor (1.0 = no dampening). LT-GEE's spikeThreshold.
         best_model_proportion (float): Prefer the most-vertex candidate model whose p-value is at
-            most this proportion of the lowest p-value found among candidates. LT-GEE's bestModelProportion.
+            most (2 - best_model_proportion) times the lowest p-value found among candidates, as in the
+            original's pick_best_model6. The default 0.75 accepts models within 1.25x of the best p;
+            values above 1 make the threshold stricter than the best model itself, so selection falls
+            through to a flat line unless several models tie at p = 0.
         vertex_count_overshoot (int): Extra vertices allowed in the initial candidate pool beyond
             max_segments + 1, pruned back down before model selection. LT-GEE's vertexCountOvershoot.
         min_observations_needed (int): Below this many (valid) observations, skip fitting entirely and

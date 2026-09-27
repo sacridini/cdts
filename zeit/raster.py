@@ -26,7 +26,7 @@ def _process_pixel_lt(args: Tuple[int, int, np.ndarray], years: Union[np.ndarray
 
 def run_landtrendr_array(years: "np.ndarray", raster_stack: "np.ndarray", max_segments: int = 6, pval_threshold: float = 0.05, n_jobs: int = -1,
                           recovery_threshold: float = 0.25, prevent_fast_recovery: bool = True,
-                          spike_threshold: float = 0.9, best_model_proportion: float = 1.25,
+                          spike_threshold: float = 0.9, best_model_proportion: float = 0.75,
                           vertex_count_overshoot: int = 3, min_observations_needed: int = 6,
                           no_data_value: float = 0.0, return_rmse: bool = False, modifier: float = 1.0):
     """
@@ -223,7 +223,7 @@ def run_landtrendr_image(input_path: str, output_dir: str, start_year: int = 200
                             min_dur: int = 1, pre_val_thresh: float = 0.0, prefix: str = "lt_event", pval_threshold: float = 0.05,
                             output_scale_factor: float = 1.0,
                             recovery_threshold: float = 0.25, prevent_fast_recovery: bool = True,
-                            spike_threshold: float = 0.9, best_model_proportion: float = 1.25,
+                            spike_threshold: float = 0.9, best_model_proportion: float = 0.75,
                             vertex_count_overshoot: int = 3, min_observations_needed: int = 6,
                             no_data_value: float = 0.0, modifier: Optional[float] = None) -> None:
     """

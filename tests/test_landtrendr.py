@@ -212,3 +212,25 @@ def test_run_landtrendr_batch_partial_no_data_is_skipped_not_fitted():
     np.testing.assert_allclose(verts[0, :counts[0], 1], [v["value"] for v in expected])
     assert expected[0]["year"] == 1990 and expected[-1]["year"] == 2019
     assert min(v["value"] for v in expected) > 0  # no -9999 leaking into the fit
+
+def test_run_landtrendr_default_best_model_proportion_matches_original():
+    # A real Landsat NDVI (x 10000) pixel from Rondonia: forest until 2005,
+    # cleared in 2006, then a noisy pasture/regrowth cycle. With the original's
+    # default bestmodelproportion = 0.75, pick_best_model6 accepts models within
+    # (2 - 0.75) = 1.25x of the lowest p-value, and the original IDL (run under
+    # GDL on exactly this input) returns the vertices below. A default above 1
+    # makes that threshold stricter than the best model itself, so no model is
+    # picked and the pixel collapses to a flat line (the 1.25 default of
+    # releases 0.18.0-0.23.0 did that for most pixels of this scene).
+    years = np.arange(1985, 2025)
+    values = np.array([7821, 7792, 7286, 7261, 8148, 7768, 7222, 7246, 7398, 8217,
+                       8064, 8090, 7630, 8260, 7615, 8377, 8530, 8648, 8374, 7862,
+                       7802, 4038, 4138, 6627, 7140, 7497, 5716, 7846, 6370, 7075,
+                       4525, 6459, 6953, 6931, 6497, 5450, 5855, 6092, 6260, 5590], dtype=float)
+    vertices = run_landtrendr(years, values, modifier=-1.0)
+    assert [v['year'] for v in vertices] == [1985, 2005, 2006, 2012, 2017, 2024]
+    idl_values = [-7492.0, -8201.0, -4038.0, -8510.0, -5513.0, -6136.0]
+    np.testing.assert_allclose([np.trunc(v['value'] * -1.0) for v in vertices], idl_values, atol=1.0)
+
+    flat = run_landtrendr(years, values, modifier=-1.0, best_model_proportion=1.25)
+    assert [v['year'] for v in flat] == [1985, 2024]

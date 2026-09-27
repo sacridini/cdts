@@ -13,9 +13,9 @@ struct LandTrendrParams {
     bool prevent_fast_recovery = true;     // Reject biologically impossible rapid recoveries
     double recovery_threshold = 0.25;      // Max recovery rate per year
     double spike_threshold = 0.9;          // Desawtooth dampening factor (1.0 = no dampening)
-    double best_model_proportion = 1.25;   // Prefer the most-vertex model whose p-value is
-                                            // at most this proportion of the lowest p-value
-                                            // found among candidate models (LT-GEE semantics)
+    double best_model_proportion = 0.75;   // Prefer the most-vertex model whose p-value is
+                                            // at most (2 - this) times the lowest p-value
+                                            // found among candidate models (pick_best_model6)
     int vertex_count_overshoot = 3;        // Extra vertices allowed in the initial candidate
                                             // pool beyond max_segments + 1, pruned back down
                                             // before model selection (LT-GEE's vertexCountOvershoot)

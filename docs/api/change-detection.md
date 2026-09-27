@@ -13,7 +13,7 @@ Tutorial: [LandTrendr](../tutorials/landtrendr.md).
 zeit.raster.run_landtrendr_array(
     years, raster_stack, max_segments=6, pval_threshold=0.05,
     n_jobs=-1, recovery_threshold=0.25, prevent_fast_recovery=True,
-    spike_threshold=0.9, best_model_proportion=1.25,
+    spike_threshold=0.9, best_model_proportion=0.75,
     vertex_count_overshoot=3, min_observations_needed=6,
     no_data_value=0.0, return_rmse=False, modifier=1.0,
 )
@@ -33,7 +33,7 @@ Segments every pixel of an in-memory stack in parallel (C++ / OpenMP). Also expo
 | `recovery_threshold` | `float` | `0.25` | Rejects recoveries faster than `1 / recovery_threshold` years. |
 | `prevent_fast_recovery` | `bool` | `True` | Kept for compatibility; has no effect (the recovery check always applies, as in the original). |
 | `spike_threshold` | `float` | `0.9` | Spike dampening (`desawtooth`). `1.0` disables it. |
-| `best_model_proportion` | `float` | `1.25` | Prefer the model with more vertices whose p-value is within this factor of the best. |
+| `best_model_proportion` | `float` | `0.75` | Prefer the model with more vertices whose p-value is at most `(2 - best_model_proportion)` times the best, as in the original. `0.75` accepts models within 1.25× of the best p-value. Values above `1` make the rule stricter than the best model itself, so most pixels end up as a flat line. |
 | `vertex_count_overshoot` | `int` | `3` | Extra candidate vertices before pruning. |
 | `min_observations_needed` | `int` | `6` | Pixels with fewer valid years are not segmented. |
 | `no_data_value` | `float` | `0.0` | Value treated as missing (NaN always is). |
@@ -92,7 +92,7 @@ zeit.raster.run_landtrendr_image(
     sort_by="greatest", min_mag=0.0, min_dur=1, pre_val_thresh=0.0,
     prefix="lt_event", pval_threshold=0.05, output_scale_factor=1.0,
     recovery_threshold=0.25, prevent_fast_recovery=True,
-    spike_threshold=0.9, best_model_proportion=1.25,
+    spike_threshold=0.9, best_model_proportion=0.75,
     vertex_count_overshoot=3, min_observations_needed=6,
     no_data_value=0.0, modifier=None,
 )
@@ -116,7 +116,7 @@ Runs LandTrendr and `extract_events` on a GeoTIFF (one band per year) block by b
 | `prefix` | `str` | `"lt_event"` | Output file prefix. |
 | `pval_threshold` | `float` | `0.05` | As in `run_landtrendr_array`. |
 | `output_scale_factor` | `float` | `1.0` | Multiplies value outputs, e.g. `0.0001` to write NDVI instead of NDVI × 10000. |
-| `recovery_threshold`, `prevent_fast_recovery`, `spike_threshold`, `best_model_proportion`, `vertex_count_overshoot`, `min_observations_needed`, `no_data_value` | | `0.25`, `True`, `0.9`, `1.25`, `3`, `6`, `0.0` | As in `run_landtrendr_array`. |
+| `recovery_threshold`, `prevent_fast_recovery`, `spike_threshold`, `best_model_proportion`, `vertex_count_overshoot`, `min_observations_needed`, `no_data_value` | | `0.25`, `True`, `0.9`, `0.75`, `3`, `6`, `0.0` | As in `run_landtrendr_array`. |
 | `modifier` | `float` | `None` | Defaults to `-1.0` for `event_type="loss"` and `1.0` for `"gain"`. |
 
 </div>
@@ -132,7 +132,7 @@ zeit.run_landtrendr_image("ndvi_1985_2024.tif", "results/", start_year=1985, min
 zeit.landtrendr.run_landtrendr(
     years, values, max_segments=6, pval_threshold=0.05,
     recovery_threshold=0.25, prevent_fast_recovery=True,
-    spike_threshold=0.9, best_model_proportion=1.25,
+    spike_threshold=0.9, best_model_proportion=0.75,
     vertex_count_overshoot=3, min_observations_needed=6, modifier=1.0,
 )
 ```
@@ -145,7 +145,7 @@ LandTrendr for a single series. Useful for exploring parameters and plotting. Al
 | :--- | :--- | :--- | :--- |
 | `years` | 1-D array | required | Years. |
 | `values` | 1-D array | required | Index values. `NaN` marks a missing year. |
-| `max_segments`, `pval_threshold`, `recovery_threshold`, `prevent_fast_recovery`, `spike_threshold`, `best_model_proportion`, `vertex_count_overshoot`, `min_observations_needed`, `modifier` | | `6`, `0.05`, `0.25`, `True`, `0.9`, `1.25`, `3`, `6`, `1.0` | As in `run_landtrendr_array`. |
+| `max_segments`, `pval_threshold`, `recovery_threshold`, `prevent_fast_recovery`, `spike_threshold`, `best_model_proportion`, `vertex_count_overshoot`, `min_observations_needed`, `modifier` | | `6`, `0.05`, `0.25`, `True`, `0.9`, `0.75`, `3`, `6`, `1.0` | As in `run_landtrendr_array`. |
 
 </div>
 
