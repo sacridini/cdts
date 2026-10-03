@@ -132,6 +132,33 @@ cube_16d = regularize_time_series(cube_clean, freq="16D", method="medoid")
 print(cube_16d.time)
 ```
 
+### Annual composites for LandTrendr
+
+LandTrendr needs one cloud-free value per pixel per year. `zeit.build_annual_composites` builds that stack directly: one masked median (or medoid) of a seasonal window per year, as reflectance, with the years without scenes left as NaN so the time axis has no gaps.
+
+```python
+comp = zeit.build_annual_composites(
+    source="planetary_computer",
+    collection="landsat-c2-l2",
+    bbox=[9.63, 50.92, 12.06, 52.43],   # one 150 km tile
+    start_year=1985,
+    end_year=2024,
+    season=("06-01", "09-30"),
+    bands=["nir08", "swir22"],          # only what NBR needs
+    epsg=3035,
+)
+nbr = (comp.sel(band="nir08") - comp.sel(band="swir22")) / (comp.sel(band="nir08") + comp.sel(band="swir22"))
+zeit.save_raster(nbr, "nbr_1985_2024.tif")
+```
+
+It reads the scenes as raw integers and reduces each spatial chunk as soon as all of its scenes have arrived, so memory stays bounded however many scenes a year has (in our test, a lazy `cube.median("time")` over a 150 km tile with 100 scenes exhausted 68 GB of RAM). See [STAC download throughput](../benchmarks/performance.md#stac-download-throughput-landsat-annual-composites) for timings.
+
+!!! tip "Download speed"
+    - **Read only what you need.** Download time grows with scenes × bands: each extra band adds about a third for an NBR stack (2 bands + QA).
+    - **Pick the provider close to you.** The same Landsat Collection 2 files are on Planetary Computer (Azure West Europe, free) and on Earth Search (AWS us-west-2, requester-pays bucket: needs AWS credentials and the requester pays about US$ 0.09/GB leaving AWS). Latency matters as much as bandwidth for COG range reads.
+    - **Run next to the data for many tiles.** From a VM in the provider's region, transfer is free and bandwidth is 10–100× a typical office link.
+    - **Don't push the thread count.** The defaults (2048 px chunks, Dask's default threads) are already close to a 200 Mbit/s link's limit. Well beyond about 64 threads in one process, GDAL can deadlock inside its HTTP layer.
+
 ## 5. Compute spectral indices
 
 If you wish to obtain only a specific spectral index like NDVI, there are two possible scenarios depending on the STAC catalog:
@@ -203,6 +230,6 @@ cube_local = build_local_cube(
 
 The cube is ready for any analysis. Common next steps:
 
-- one value per year for [LandTrendr](landtrendr.md) or [Mann-Kendall](mann_kendall.md): `cube.groupby("time.year").max()`;
+- one value per year for [LandTrendr](landtrendr.md) or [Mann-Kendall](mann_kendall.md): [`build_annual_composites`](#annual-composites-for-landtrendr);
 - regular 16-day composites for [BFAST](bfast_monitor.md), [phenology](phenology.md) and [TWDTW](twdtw.md);
 - every clear image, multi-band, for [CCDC](ccdc.md).

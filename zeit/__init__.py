@@ -23,7 +23,7 @@ except ImportError:
     pass
 
 try:
-    from .cube import build_time_series
+    from .cube import build_time_series, build_annual_composites
     from .local import build_local_cube
     from .regularize import regularize_time_series
 except ImportError:
@@ -55,6 +55,7 @@ __all__ = [
     "qc_modis_summary", "qc_modis_state", "qc_sentinel2_scl",
     "run_tmask_pixel", "apply_tmask_stack",
     "build_time_series",
+    "build_annual_composites",
     "build_local_cube",
     "regularize_time_series",
     "save_raster",

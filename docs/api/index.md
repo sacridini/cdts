@@ -65,6 +65,7 @@
 | :--- | :--- |
 | **Data & I/O** | |
 | [`build_time_series`](data.md#build_time_series) | Lazy cube from a STAC catalog |
+| [`build_annual_composites`](data.md#build_annual_composites) | Cloud-masked annual composites from a STAC catalog (LandTrendr input) |
 | [`build_local_cube`](data.md#build_local_cube) | Lazy cube from a folder of GeoTIFFs |
 | [`download_gee_timeseries`](data.md#download_gee_timeseries) | Harmonised Landsat composites from Earth Engine |
 | [`download_gee_image`](data.md#download_gee_image) / [`resolve_roi`](data.md#resolve_roi) | Download any `ee.Image`; turn tile ids, files or boxes into an area |

@@ -141,3 +141,36 @@ All successful outputs are **pixel-identical** across the three implementations 
     2. **Composites aren't recomputed per band.** geedim splits bands first, so a 6-band medoid is computed several times over the same area, which explains its 3.4× longer run. `zeit` splits space first.
     3. **Adaptive concurrency.** Throttled requests reduce concurrency instead of failing, so no run of the new downloader failed. geedim at its default concurrency failed in 2 of 3 cases.
     4. **No mosaic step.** Tiles go straight into their window of the output file, so peak memory is one tile instead of the whole image.
+
+---
+
+## STAC Download Throughput (Landsat annual composites)
+
+`build_time_series` reads cloud-optimized GeoTIFFs over HTTP, so a whole Landsat stack is bound by the network, not the CPU. We timed the input LandTrendr needs, one masked median per year of NBR bands, on a 150 km tile before and after the 0.25.0 changes.
+
+- **Area:** GLanCE EU tile `EU_150-X032-Y024` (central Germany), 5664 × 5689 px at 30 m in EPSG:3035.
+- **Data:** Landsat Collection 2 Level-2 from Planetary Computer, June–September scenes with < 30 % cloud cover, bands `nir08` + `swir22` + `qa_pixel`. The full 1984–2025 record has 1,396 such scenes.
+- **Work:** search, read, mask, per-year median, written to GeoTIFF. Each run in a fresh process.
+- **Machine:** 20-thread desktop with 68 GB RAM on a ~200 Mbit/s link (18–26 MB/s and 33 ms per request to Azure West Europe).
+
+| Year (scenes) | 0.24.0: `build_time_series` + `median` | 0.25.0: `build_annual_composites` |
+|:---|:---:|:---:|
+| 1990 (17) | 104 s, 0.57 GB | **20 s**, 0.38 GB |
+| 2016 (44) | 224 s, 2.10 GB | **64 s**, 1.41 GB |
+| 2023 (100) | 419 s, 5.39 GB | **160 s**, 3.39 GB |
+| **Full tile, 1984–2025** (fit on the three years) | ~2 h, ~63 GB | **~35 min**, ~41 GB |
+
+With the new defaults alone (`chunksize=2048`, `dtype="float32"`), `build_time_series` + `median` does 2016 in 74 s. The composites agree with the 0.24.0 ones on 96 % of the pixels; the rest sit on 512 px chunk edges, where the old nearest-neighbour reads picked a neighbouring source pixel.
+
+!!! success "What made the difference"
+    1. **Large chunks.** 2048 px chunks instead of 512 px mean fewer requests and fewer COG blocks read twice at chunk edges: 35 % fewer bytes for the same pixels. 1024 px chunks took twice as long as 2048 px.
+    2. **Half-size arrays.** Reads land as `float32` (or raw `uint16` for composites) instead of `float64`.
+    3. **Per-chunk reduction.** `build_annual_composites` gathers all scenes of one spatial chunk and reduces it in NumPy (mask, per-scene scale/offset, NaN median). Dask's own `median` re-splits the data into small pieces, and on the 100-scene year it exhausted 68 GB of RAM.
+    4. **The link is now the limit.** 20–22 MB/s of a measured 22–26 MB/s.
+
+!!! note "What did not help"
+    - **Downloading whole files** with 32 parallel streams saturated the link but moved 7.2 GB instead of 1.4 GB: 316 s for 2016.
+    - **One process per 2048 px block** (6–9 processes): ~135 s, because every process re-reads the headers of every file.
+    - **More threads.** 20 and 64 threads gave 84 s and 79 s. With 128 threads in one process (and with 64 threads on the 100-scene year before the per-chunk reduction) GDAL deadlocked inside its HTTP layer: no CPU, no traffic, no error.
+
+**AWS vs. Planetary Computer.** The same Landsat files are on Earth Search, in the requester-pays `s3://usgs-landsat` bucket (AWS us-west-2). Reading it needs AWS credentials and costs about US$ 0.09/GB leaving AWS, so ~US$ 4 per tile above. From this machine, AWS us-west-2 measured 11–18 MB/s and 226 ms per request against 18–26 MB/s and 33 ms for Planetary Computer, so the same tile would take an estimated 40–90 min there (not measured: no credentials). Inside the data's region (an Azure West Europe or AWS us-west-2 VM) transfer is free and much faster, which is the way to scale to many tiles.

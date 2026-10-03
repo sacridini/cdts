@@ -13,7 +13,8 @@ zeit.cube.build_time_series(
     vector_path=None, tiles=None, start_date="2020-01-01",
     end_date="2020-12-31", cloud_cover_max=30, bands=None,
     apply_cloud_mask=False, resolution=None, epsg=4326,
-    validate_items=False, access_token=None,
+    validate_items=False, access_token=None, chunksize=2048,
+    dtype="float32",
 )
 ```
 
@@ -36,10 +37,14 @@ Builds a lazy, Dask-backed `xarray.DataArray` from a STAC catalog. It searches t
 | `epsg` | `int` | `4326` | Output coordinate reference system. |
 | `validate_items` | `bool` | `False` | Test each asset URL first and drop broken ones. |
 | `access_token` | `str` | `None` | Token for catalogs that require one (e.g. Brazil Data Cube). |
+| `chunksize` | `int` | `2048` | Spatial chunk size, in pixels. Large chunks mean fewer HTTP requests and fewer COG blocks read twice at chunk edges. |
+| `dtype` | `str` | `"float32"` | Float types hold reflectance (scale and offset applied, NaN = nodata). Integer types (`"uint16"`) hold the raw digital numbers (0 = nodata) at half the memory, with per-scene `scale` and `offset` coordinates to recover reflectance; `apply_cloud_mask` must then stay `False`. |
 
 </div>
 
 **Returns** a lazy `xarray.DataArray` `(time, band, y, x)`.
+
+Missing files (HTTP 404) and corrupted blocks become nodata. Access errors raise: Landsat on Earth Search lives in the requester-pays `s3://usgs-landsat` bucket and needs AWS credentials (the requester pays the transfer), while Planetary Computer serves the same Landsat files for free.
 
 ```python
 import zeit
@@ -55,6 +60,60 @@ cube = zeit.build_time_series(
     resolution=10,
     epsg=32722,
 )
+```
+
+### `build_annual_composites` { .api }
+
+<!-- sig: zeit.cube.build_annual_composites -->
+```python
+zeit.cube.build_annual_composites(
+    source="planetary_computer", collection="landsat-c2-l2",
+    bbox=None, vector_path=None, start_year=1985, end_year=2024,
+    season=('06-01', '09-30'), bands=None, cloud_cover_max=30,
+    method="median", apply_cloud_mask=True, resolution=30, epsg=4326,
+    access_token=None, chunksize=2048,
+)
+```
+
+Builds one cloud-masked composite per year from a STAC catalog: the annual stack LandTrendr expects. Scenes are read as raw integers and reduced one spatial chunk at a time (QA mask, per-scene scale and offset, then median or medoid), so memory stays bounded by a few chunks however many scenes a year has, and every pixel is downloaded once. Also exported as `zeit.build_annual_composites`.
+
+<div class="params" markdown>
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `source` | `str` | `"planetary_computer"` | Catalog alias or STAC API URL, as in `build_time_series`. |
+| `collection` | `str` | `"landsat-c2-l2"` | Collection ID. The QA band is picked from it (`qa_pixel` for Landsat, `scl` for Sentinel-2). |
+| `bbox` | `list` | `None` | `[min_lon, min_lat, max_lon, max_lat]` in EPSG:4326. `bbox` or `vector_path` is required so every year shares one grid. |
+| `vector_path` | `str` | `None` | Vector file whose bounds define the area. |
+| `start_year`, `end_year` | `int` | `1985`, `2024` | Inclusive range of years. |
+| `season` | `tuple` | `("06-01", "09-30")` | `("MM-DD", "MM-DD")` window inside each year. A window that wraps the new year (`("12-01", "02-28")`) is labelled with its first year. |
+| `bands` | `list[str]` | `None` | Bands to composite, e.g. `["nir08", "swir22"]` for NBR. Required. |
+| `cloud_cover_max` | `int` | `30` | Maximum scene cloud cover, in percent. |
+| `method` | `str` | `"median"` | `"median"` (per band) or `"medoid"` (the real observation closest to the multi-band median). |
+| `apply_cloud_mask` | `bool` | `True` | Mask clouds and shadows with the collection's QA band. |
+| `resolution` | `float` | `30` | Output pixel size, in units of `epsg`. |
+| `epsg` | `int` | `4326` | Output coordinate reference system. |
+| `access_token` | `str` | `None` | Token for catalogs that require one. |
+| `chunksize` | `int` | `2048` | Spatial chunk size, in pixels. Memory per chunk in flight is about `scenes × bands × chunksize² × 2` bytes. |
+
+</div>
+
+**Returns** a lazy float32 `xarray.DataArray` `(time, band, y, x)` of reflectance, with `time` on January 1st of each year and a `year` coordinate. Years without scenes are NaN, so the time axis has no gaps.
+
+```python
+import zeit
+
+comp = zeit.build_annual_composites(
+    source="planetary_computer",
+    collection="landsat-c2-l2",
+    bbox=[9.63, 50.92, 12.06, 52.43],
+    start_year=1985,
+    end_year=2024,
+    bands=["nir08", "swir22"],
+    epsg=3035,
+)
+nbr = (comp.sel(band="nir08") - comp.sel(band="swir22")) / (comp.sel(band="nir08") + comp.sel(band="swir22"))
+zeit.save_raster(nbr, "nbr_1985_2024.tif")   # one band per year, ready for LandTrendr
 ```
 
 ### `build_local_cube` { .api }

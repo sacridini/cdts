@@ -40,7 +40,7 @@ LandTrendr needs **one value per pixel per year**, usually a cloud-free composit
 - **NDVI**: easy to interpret, good for agriculture and savanna, less sensitive to structural forest change.
 - **Tasseled Cap Wetness**: robust for forest structure.
 
-Store it as a GeoTIFF with one band per year. [Google Earth Engine](gee-downloads.md) (`composite_type="annual"`) and [STAC cubes](stac-downloads.md) with `regularize_time_series(freq="1YS")` both produce this. So does [LT-GEE](https://github.com/eMapR/LT-GEE): the stack used on this page is an NDVI composite collection exported from LT-GEE, so an existing LT-GEE workflow can move to local processing with Zeit unchanged.
+Store it as a GeoTIFF with one band per year. [Google Earth Engine](gee-downloads.md) (`composite_type="annual"`) and [STAC catalogs](stac-downloads.md#annual-composites-for-landtrendr) with `build_annual_composites` both produce this. So does [LT-GEE](https://github.com/eMapR/LT-GEE): the stack used on this page is an NDVI composite collection exported from LT-GEE, so an existing LT-GEE workflow can move to local processing with Zeit unchanged.
 
 ```python
 import numpy as np
