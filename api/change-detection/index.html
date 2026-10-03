@@ -1,0 +1,3797 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Change detection and time-series analysis for satellite imagery, in Python. Fast C++ ports of LandTrendr, CCDC, BFAST and more, from a single pixel to a Dask cluster.">
+      
+      
+      
+        <link rel="canonical" href="https://sacridini.github.io/zeit-cdts/api/change-detection/">
+      
+      
+        <link rel="prev" href="../preprocessing/">
+      
+      
+        <link rel="next" href="../time-series/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Change Detection - Zeit</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+  
+  
+    
+      
+      
+    
+  
+  
+  <style>:root{--md-admonition-icon--info:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M11%209h2V7h-2m1%2013c-4.41%200-8-3.59-8-8s3.59-8%208-8%208%203.59%208%208-3.59%208-8%208m0-18A10%2010%200%200%200%202%2012a10%2010%200%200%200%2010%2010%2010%2010%200%200%200%2010-10A10%2010%200%200%200%2012%202m-1%2015h2v-6h-2z%22/%3E%3C/svg%3E');}</style>
+
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/zeit.css">
+    
+      <link rel="stylesheet" href="../../assets/benchmarks.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#change-detection" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Zeit" class="md-header__button md-logo" aria-label="Zeit" data-md-component="logo">
+      
+  <img src="../../assets/logo/zeit-lockup-light.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Zeit
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Change Detection
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/sacridini/zeit-cdts" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    sacridini/zeit-cdts
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Get Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../cli/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  CLI
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../benchmarks/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Benchmarks
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Zeit" class="md-nav__button md-logo" aria-label="Zeit" data-md-component="logo">
+      
+  <img src="../../assets/logo/zeit-lockup-light.svg" alt="logo">
+
+    </a>
+    Zeit
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/sacridini/zeit-cdts" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    sacridini/zeit-cdts
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../getting-started/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Get Started
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Get Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/choosing-an-algorithm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Choosing an Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../tutorials/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/stac-downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    STAC Data Cubes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/gee-downloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Google Earth Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/tmask/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud Masking (Tmask)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Detection
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Change Detection
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/landtrendr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LandTrendr
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/ccdc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CCDC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/bfast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BFAST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/bfast_monitor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BFAST Monitor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/bfast_lite/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BFAST Lite
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Time-Series Analysis
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Time-Series Analysis
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/mann_kendall/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trend Analysis (Mann-Kendall)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/phenology/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phenology
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/twdtw/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pattern Matching (TWDTW)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/som/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clustering (SOM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/snic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Segmentation (SNIC)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Learning
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Deep Learning
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/ai/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Learning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/tempcnn/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TempCNN
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/ltae/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LTAE & LightTAE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/utae/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UTAE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/siamese/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Siamese Change Detector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/geo_foundation_vit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoFoundationViT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_6" id="__nav_3_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaling Up
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Scaling Up
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/parallel-cloud-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parallel & Cloud Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data & I/O
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pre-processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Detection
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Detection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#landtrendr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LandTrendr
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="LandTrendr">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run_landtrendr_array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_landtrendr_array
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extract_events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_events
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_landtrendr_image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_landtrendr_image
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_landtrendr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_landtrendr
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#apply_vertices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        apply_vertices
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ccdc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CCDC
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CCDC">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run_ccdc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_ccdc
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_ccdc_array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_ccdc_array
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_ccdc_image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_ccdc_image
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predict_synthetic_image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        predict_synthetic_image
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        predict
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bfast-family" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BFAST family
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BFAST family">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run_bfast_monitor_dask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_bfast_monitor_dask
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_bfast_lite_dask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_bfast_lite_dask
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_bfast_dask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_bfast_dask
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#geotiff-versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GeoTIFF versions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../time-series/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Time-Series Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../post-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Post-processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Learning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../xarray/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Xarray Accessor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../benchmarks/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Benchmarks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/fidelity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm Fidelity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#landtrendr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LandTrendr
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="LandTrendr">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run_landtrendr_array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_landtrendr_array
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extract_events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_events
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_landtrendr_image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_landtrendr_image
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_landtrendr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_landtrendr
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#apply_vertices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        apply_vertices
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ccdc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CCDC
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CCDC">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run_ccdc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_ccdc
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_ccdc_array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_ccdc_array
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_ccdc_image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_ccdc_image
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predict_synthetic_image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        predict_synthetic_image
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#predict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        predict
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bfast-family" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BFAST family
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BFAST family">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run_bfast_monitor_dask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_bfast_monitor_dask
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_bfast_lite_dask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_bfast_lite_dask
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_bfast_dask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_bfast_dask
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#geotiff-versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GeoTIFF versions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    API Reference
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/sacridini/zeit-cdts/edit/main/docs/api/change-detection.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="change-detection">Change Detection<a class="headerlink" href="#change-detection" title="Permanent link">&para;</a></h1>
+<p class="lead">LandTrendr, CCDC and the BFAST family, at every level: one pixel, an in-memory array, a GeoTIFF on disk, or a Dask array. The xarray accessor forms are listed in <a href="../xarray/">Xarray Accessor</a>.</p>
+
+<h2 id="landtrendr">LandTrendr<a class="headerlink" href="#landtrendr" title="Permanent link">&para;</a></h2>
+<p>Tutorial: <a href="../../tutorials/landtrendr/">LandTrendr</a>.</p>
+<h3 class="api" id="run_landtrendr_array"><code>run_landtrendr_array</code><a class="headerlink" href="#run_landtrendr_array" title="Permanent link">&para;</a></h3>
+<!-- sig: zeit.raster.run_landtrendr_array -->
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">raster</span><span class="o">.</span><span class="n">run_landtrendr_array</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">years</span><span class="p">,</span> <span class="n">raster_stack</span><span class="p">,</span> <span class="n">max_segments</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">pval_threshold</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">recovery_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">prevent_fast_recovery</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">spike_threshold</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">best_model_proportion</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">vertex_count_overshoot</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">min_observations_needed</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">no_data_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">return_rmse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">modifier</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Segments every pixel of an in-memory stack in parallel (C++ / OpenMP). Also exported as <code>zeit.run_landtrendr_array</code>.</p>
+<div class="params">
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>years</code></td>
+<td style="text-align: left;">1-D array</td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Year of each layer.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>raster_stack</code></td>
+<td style="text-align: left;"><code>np.ndarray</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;"><code>(time, rows, cols)</code> index values.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_segments</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>6</code></td>
+<td style="text-align: left;">Maximum segments per pixel.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>pval_threshold</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.05</code></td>
+<td style="text-align: left;">Maximum p-value of an accepted model.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_jobs</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>-1</code></td>
+<td style="text-align: left;">Threads. <code>-1</code> uses all cores but one.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>recovery_threshold</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.25</code></td>
+<td style="text-align: left;">Rejects recoveries faster than <code>1 / recovery_threshold</code> years.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>prevent_fast_recovery</code></td>
+<td style="text-align: left;"><code>bool</code></td>
+<td style="text-align: left;"><code>True</code></td>
+<td style="text-align: left;">Kept for compatibility; has no effect (the recovery check always applies, as in the original).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>spike_threshold</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.9</code></td>
+<td style="text-align: left;">Spike dampening (<code>desawtooth</code>). <code>1.0</code> disables it.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>best_model_proportion</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.75</code></td>
+<td style="text-align: left;">Prefer the model with more vertices whose p-value is at most <code>(2 - best_model_proportion)</code> times the best, as in the original. <code>0.75</code> accepts models within 1.25× of the best p-value. Values above <code>1</code> make the rule stricter than the best model itself, so most pixels end up as a flat line.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>vertex_count_overshoot</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>3</code></td>
+<td style="text-align: left;">Extra candidate vertices before pruning.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>min_observations_needed</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>6</code></td>
+<td style="text-align: left;">Pixels with fewer valid years are not segmented.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>no_data_value</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.0</code></td>
+<td style="text-align: left;">Value treated as missing (NaN always is).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>return_rmse</code></td>
+<td style="text-align: left;"><code>bool</code></td>
+<td style="text-align: left;"><code>False</code></td>
+<td style="text-align: left;">Also return each pixel's fit RMSE (for <code>dsnr</code> in <code>extract_events</code>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>modifier</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>1.0</code></td>
+<td style="text-align: left;"><code>-1.0</code> when disturbance makes the index <strong>fall</strong> (NDVI, NBR); <code>1.0</code> when it makes it rise.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Returns</strong> <code>vertices</code>, a <code>(2 × (max_segments + 1), rows, cols)</code> float32 array: vertex years in the first half, fitted values in the second (<code>0</code> for unused slots). With <code>return_rmse=True</code>, returns <code>(vertices, rmse)</code>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">vertices</span><span class="p">,</span> <span class="n">rmse</span> <span class="o">=</span> <span class="n">zeit</span><span class="o">.</span><span class="n">run_landtrendr_array</span><span class="p">(</span><span class="n">years</span><span class="p">,</span> <span class="n">stack</span><span class="p">,</span> <span class="n">modifier</span><span class="o">=-</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">return_rmse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 class="api" id="extract_events"><code>extract_events</code><a class="headerlink" href="#extract_events" title="Permanent link">&para;</a></h3>
+<!-- sig: zeit.metrics.extract_events -->
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">extract_events</span><span class="p">(</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">vertices_stack</span><span class="p">,</span> <span class="n">event_type</span><span class="o">=</span><span class="s2">"loss"</span><span class="p">,</span> <span class="n">sort_by</span><span class="o">=</span><span class="s2">"greatest"</span><span class="p">,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">min_magnitude</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">min_duration</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">pre_val_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">rmse_map</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Turns LandTrendr vertices into maps of one event per pixel. Also exported as <code>zeit.extract_events</code>.</p>
+<div class="params">
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>vertices_stack</code></td>
+<td style="text-align: left;"><code>np.ndarray</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Output of <code>run_landtrendr_array</code> (or the computed accessor output).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>event_type</code></td>
+<td style="text-align: left;"><code>str</code></td>
+<td style="text-align: left;"><code>"loss"</code></td>
+<td style="text-align: left;"><code>"loss"</code> (index fell) or <code>"gain"</code> (index rose).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>sort_by</code></td>
+<td style="text-align: left;"><code>str</code></td>
+<td style="text-align: left;"><code>"greatest"</code></td>
+<td style="text-align: left;">Which event to keep: <code>"greatest"</code>, <code>"newest"</code>, <code>"fastest"</code>, <code>"longest"</code> or <code>"dsnr"</code> (needs <code>rmse_map</code>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>min_magnitude</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.0</code></td>
+<td style="text-align: left;">Ignore events smaller than this, in data units.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>min_duration</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>1</code></td>
+<td style="text-align: left;">Ignore events shorter than this many years.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>pre_val_threshold</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.0</code></td>
+<td style="text-align: left;">For losses, ignore events starting below this value (for gains, above). <code>0</code> disables.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>rmse_map</code></td>
+<td style="text-align: left;"><code>np.ndarray</code></td>
+<td style="text-align: left;"><code>None</code></td>
+<td style="text-align: left;"><code>(rows, cols)</code> RMSE from <code>run_landtrendr_array(..., return_rmse=True)</code>. Adds the <code>dsnr</code> output.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Returns</strong> a dict of <code>(rows, cols)</code> arrays: <code>yod</code> (year of the vertex where the event starts, i.e. the last year before it; <code>0</code> = none), <code>magnitude</code>, <code>duration</code>, <code>pre_val</code>, <code>post_val</code>, <code>rate</code>, and <code>dsnr</code> when <code>rmse_map</code> is given.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">loss</span> <span class="o">=</span> <span class="n">zeit</span><span class="o">.</span><span class="n">extract_events</span><span class="p">(</span><span class="n">vertices</span><span class="p">,</span> <span class="n">event_type</span><span class="o">=</span><span class="s2">"loss"</span><span class="p">,</span> <span class="n">min_magnitude</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">rmse_map</span><span class="o">=</span><span class="n">rmse</span><span class="p">)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">first_year_of_loss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">loss</span><span class="p">[</span><span class="s2">"yod"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">loss</span><span class="p">[</span><span class="s2">"yod"</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 class="api" id="run_landtrendr_image"><code>run_landtrendr_image</code><a class="headerlink" href="#run_landtrendr_image" title="Permanent link">&para;</a></h3>
+<!-- sig: zeit.raster.run_landtrendr_image -->
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">raster</span><span class="o">.</span><span class="n">run_landtrendr_image</span><span class="p">(</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">input_path</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="n">start_year</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">max_segments</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">chunk_size</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">save_vertices</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">event_type</span><span class="o">=</span><span class="s2">"loss"</span><span class="p">,</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">sort_by</span><span class="o">=</span><span class="s2">"greatest"</span><span class="p">,</span> <span class="n">min_mag</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">min_dur</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">pre_val_thresh</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">prefix</span><span class="o">=</span><span class="s2">"lt_event"</span><span class="p">,</span> <span class="n">pval_threshold</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">output_scale_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">recovery_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">prevent_fast_recovery</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">spike_threshold</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">best_model_proportion</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">vertex_count_overshoot</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">min_observations_needed</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">no_data_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">modifier</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Runs LandTrendr and <code>extract_events</code> on a GeoTIFF (one band per year) block by block, so the file can be larger than memory. Writes <code>&lt;prefix&gt;_yod.tif</code>, <code>_magnitude</code>, <code>_duration</code>, <code>_pre_val</code>, <code>_post_val</code>, <code>_rate</code>, <code>_dsnr</code> and, optionally, <code>lt_vertices.tif</code>. Also exported as <code>zeit.run_landtrendr_image</code>; CLI: <code>zeit landtrendr</code>.</p>
+<div class="params">
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>input_path</code></td>
+<td style="text-align: left;"><code>str</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Input GeoTIFF, one band per year.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>output_dir</code></td>
+<td style="text-align: left;"><code>str</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Output folder.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>start_year</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>2000</code></td>
+<td style="text-align: left;">Year of the first band.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_segments</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>6</code></td>
+<td style="text-align: left;">As in <code>run_landtrendr_array</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>chunk_size</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>512</code></td>
+<td style="text-align: left;">Block size in pixels.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_jobs</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>-1</code></td>
+<td style="text-align: left;">Threads.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>save_vertices</code></td>
+<td style="text-align: left;"><code>bool</code></td>
+<td style="text-align: left;"><code>False</code></td>
+<td style="text-align: left;">Also write the vertex stack.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>event_type</code>, <code>sort_by</code></td>
+<td style="text-align: left;"><code>str</code></td>
+<td style="text-align: left;"><code>"loss"</code>, <code>"greatest"</code></td>
+<td style="text-align: left;">As in <code>extract_events</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>min_mag</code>, <code>min_dur</code>, <code>pre_val_thresh</code></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"><code>0.0</code>, <code>1</code>, <code>0.0</code></td>
+<td style="text-align: left;"><code>extract_events</code>' <code>min_magnitude</code>, <code>min_duration</code>, <code>pre_val_threshold</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>prefix</code></td>
+<td style="text-align: left;"><code>str</code></td>
+<td style="text-align: left;"><code>"lt_event"</code></td>
+<td style="text-align: left;">Output file prefix.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>pval_threshold</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.05</code></td>
+<td style="text-align: left;">As in <code>run_landtrendr_array</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>output_scale_factor</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>1.0</code></td>
+<td style="text-align: left;">Multiplies value outputs, e.g. <code>0.0001</code> to write NDVI instead of NDVI × 10000.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>recovery_threshold</code>, <code>prevent_fast_recovery</code>, <code>spike_threshold</code>, <code>best_model_proportion</code>, <code>vertex_count_overshoot</code>, <code>min_observations_needed</code>, <code>no_data_value</code></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"><code>0.25</code>, <code>True</code>, <code>0.9</code>, <code>0.75</code>, <code>3</code>, <code>6</code>, <code>0.0</code></td>
+<td style="text-align: left;">As in <code>run_landtrendr_array</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>modifier</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>None</code></td>
+<td style="text-align: left;">Defaults to <code>-1.0</code> for <code>event_type="loss"</code> and <code>1.0</code> for <code>"gain"</code>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">run_landtrendr_image</span><span class="p">(</span><span class="s2">"ndvi_1985_2024.tif"</span><span class="p">,</span> <span class="s2">"results/"</span><span class="p">,</span> <span class="n">start_year</span><span class="o">=</span><span class="mi">1985</span><span class="p">,</span> <span class="n">min_mag</span><span class="o">=</span><span class="mi">2000</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 class="api" id="run_landtrendr"><code>run_landtrendr</code><a class="headerlink" href="#run_landtrendr" title="Permanent link">&para;</a></h3>
+<!-- sig: zeit.landtrendr.run_landtrendr -->
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">landtrendr</span><span class="o">.</span><span class="n">run_landtrendr</span><span class="p">(</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">years</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">max_segments</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">pval_threshold</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">recovery_threshold</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">prevent_fast_recovery</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">spike_threshold</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">best_model_proportion</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">vertex_count_overshoot</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">min_observations_needed</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">modifier</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>LandTrendr for a single series. Useful for exploring parameters and plotting. Also exported as <code>zeit.run_landtrendr</code>.</p>
+<div class="params">
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>years</code></td>
+<td style="text-align: left;">1-D array</td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Years.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>values</code></td>
+<td style="text-align: left;">1-D array</td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Index values. <code>NaN</code> marks a missing year.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_segments</code>, <code>pval_threshold</code>, <code>recovery_threshold</code>, <code>prevent_fast_recovery</code>, <code>spike_threshold</code>, <code>best_model_proportion</code>, <code>vertex_count_overshoot</code>, <code>min_observations_needed</code>, <code>modifier</code></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"><code>6</code>, <code>0.05</code>, <code>0.25</code>, <code>True</code>, <code>0.9</code>, <code>0.75</code>, <code>3</code>, <code>6</code>, <code>1.0</code></td>
+<td style="text-align: left;">As in <code>run_landtrendr_array</code>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Returns</strong> a list of vertices, <code>[{"year": 1985, "value": 7972.0}, ...]</code>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">zeit.landtrendr</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_landtrendr</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">run_landtrendr</span><span class="p">(</span><span class="n">years</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">modifier</span><span class="o">=-</span><span class="mf">1.0</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 class="api" id="apply_vertices"><code>apply_vertices</code><a class="headerlink" href="#apply_vertices" title="Permanent link">&para;</a></h3>
+<!-- sig: zeit.landtrendr.apply_vertices -->
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">landtrendr</span><span class="o">.</span><span class="n">apply_vertices</span><span class="p">(</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">vertex_years</span><span class="p">,</span> <span class="n">other_band_years</span><span class="p">,</span> <span class="n">other_band_values</span><span class="p">,</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>"Fit to vertices": describes another band with the vertex years found on the primary index, by interpolating that band at those years. Also exported as <code>zeit.apply_vertices</code>.</p>
+<div class="params">
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>vertex_years</code></td>
+<td style="text-align: left;">1-D array</td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Vertex years from the primary index.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>other_band_years</code></td>
+<td style="text-align: left;">1-D array</td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Years of the other band's series.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>other_band_values</code></td>
+<td style="text-align: left;">1-D array</td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">The other band's values.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">vertices</span> <span class="o">=</span> <span class="n">run_landtrendr</span><span class="p">(</span><span class="n">years</span><span class="p">,</span> <span class="n">nbr</span><span class="p">,</span> <span class="n">modifier</span><span class="o">=-</span><span class="mf">1.0</span><span class="p">)</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">ftv</span> <span class="o">=</span> <span class="n">zeit</span><span class="o">.</span><span class="n">apply_vertices</span><span class="p">([</span><span class="n">v</span><span class="p">[</span><span class="s2">"year"</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">],</span> <span class="n">years</span><span class="p">,</span> <span class="n">swir1</span><span class="p">)</span>
+</span></code></pre></div>
+<h2 id="ccdc">CCDC<a class="headerlink" href="#ccdc" title="Permanent link">&para;</a></h2>
+<p>Tutorial: <a href="../../tutorials/ccdc/">CCDC</a>. All CCDC functions expect <strong>surface reflectance × 10,000</strong>, <strong>Python ordinal days</strong>, and <strong>Fmask QA codes</strong> (<code>0</code> clear, <code>1</code> water, <code>2</code> shadow, <code>3</code> snow, <code>4</code> cloud, <code>255</code> fill).</p>
+<h3 class="api" id="run_ccdc"><code>run_ccdc</code><a class="headerlink" href="#run_ccdc" title="Permanent link">&para;</a></h3>
+<!-- sig: zeit.ccdc.run_ccdc -->
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">ccdc</span><span class="o">.</span><span class="n">run_ccdc</span><span class="p">(</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">dates</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">qa</span><span class="p">,</span> <span class="n">min_obs</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">conseq_anom</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">chi2_prob_threshold</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">tmax_cg_prob_threshold</span><span class="o">=</span><span class="mf">0.999999</span><span class="p">,</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">detection_bands</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_c</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">tmask_bands</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">thermal_band</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">valid_range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">10000.0</span><span class="p">),</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">thermal_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">9320.0</span><span class="p">,</span> <span class="mf">7070.0</span><span class="p">),</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>CCDC for a single pixel.</p>
+<div class="params">
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>dates</code></td>
+<td style="text-align: left;">1-D array</td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Ordinal days.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>values</code></td>
+<td style="text-align: left;">array</td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;"><code>(bands, dates)</code>: Blue, Green, Red, NIR, SWIR1, SWIR2 [, thermal].</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>qa</code></td>
+<td style="text-align: left;">1-D array</td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Fmask codes per date.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>min_obs</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>12</code></td>
+<td style="text-align: left;">Kept for compatibility; the original fixes it at 12.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>conseq_anom</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>6</code></td>
+<td style="text-align: left;">Consecutive anomalies that confirm a break.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>chi2_prob_threshold</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.99</code></td>
+<td style="text-align: left;">Change probability for the chi-squared threshold.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>tmax_cg_prob_threshold</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.999999</code></td>
+<td style="text-align: left;">Outlier probability.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>detection_bands</code></td>
+<td style="text-align: left;"><code>list[int]</code></td>
+<td style="text-align: left;"><code>None</code></td>
+<td style="text-align: left;">Bands used for detection. Default: Green to SWIR2 (<code>[1, 2, 3, 4, 5]</code>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>num_c</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>8</code></td>
+<td style="text-align: left;">Maximum coefficients (4, 6 or 8).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>tmask_bands</code></td>
+<td style="text-align: left;"><code>list[int]</code></td>
+<td style="text-align: left;"><code>None</code></td>
+<td style="text-align: left;">Bands for the internal Tmask screen. Default <code>[1, 4]</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>thermal_band</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>None</code></td>
+<td style="text-align: left;">Index of a brightness-temperature band (°C × 100).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>valid_range</code></td>
+<td style="text-align: left;"><code>tuple</code></td>
+<td style="text-align: left;"><code>(0.0, 10000.0)</code></td>
+<td style="text-align: left;">Valid range of the optical bands.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>thermal_range</code></td>
+<td style="text-align: left;"><code>tuple</code></td>
+<td style="text-align: left;"><code>(-9320.0, 7070.0)</code></td>
+<td style="text-align: left;">Valid range of the thermal band.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Returns</strong> a list of models, one dict each: <code>t_start</code>, <code>t_end</code>, <code>t_break</code> (<code>0</code> if none), <code>coefs</code> (bands × 8), <code>rmse</code>, <code>magnitude</code>, <code>change_prob</code>, <code>category</code>, <code>num_obs</code>.</p>
+<h3 class="api" id="run_ccdc_array"><code>run_ccdc_array</code><a class="headerlink" href="#run_ccdc_array" title="Permanent link">&para;</a></h3>
+<!-- sig: zeit.raster.run_ccdc_array -->
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">raster</span><span class="o">.</span><span class="n">run_ccdc_array</span><span class="p">(</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">dates</span><span class="p">,</span> <span class="n">raster_stack</span><span class="p">,</span> <span class="n">qa_stack</span><span class="p">,</span> <span class="n">max_segments</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="n">return_coefs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">conseq_anom</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="o">**</span><span class="n">ccdc_kwargs</span><span class="p">,</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>CCDC for every pixel of an in-memory stack, in parallel. Also exported as <code>zeit.run_ccdc_array</code>.</p>
+<div class="params">
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>dates</code></td>
+<td style="text-align: left;">1-D array</td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Ordinal days.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>raster_stack</code></td>
+<td style="text-align: left;"><code>np.ndarray</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;"><code>(bands, time, rows, cols)</code> reflectance × 10,000.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>qa_stack</code></td>
+<td style="text-align: left;"><code>np.ndarray</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;"><code>(time, rows, cols)</code> Fmask codes.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_segments</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>6</code></td>
+<td style="text-align: left;">Model slots in the output.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_jobs</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>-1</code></td>
+<td style="text-align: left;">Threads.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>return_coefs</code></td>
+<td style="text-align: left;"><code>bool</code></td>
+<td style="text-align: left;"><code>True</code></td>
+<td style="text-align: left;">Return full models; <code>False</code> returns only break dates.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>conseq_anom</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>6</code></td>
+<td style="text-align: left;">As in <code>run_ccdc</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>chi2_prob_threshold</code>, <code>tmax_cg_prob_threshold</code>, <code>detection_bands</code>, <code>num_c</code>, <code>tmask_bands</code>, <code>thermal_band</code>, <code>valid_range</code>, <code>thermal_range</code></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">Passed through (<code>**ccdc_kwargs</code>), as in <code>run_ccdc</code>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Returns</strong> <code>(max_segments, 3 + 9 × bands, rows, cols)</code>: per model <code>t_start</code>, <code>t_end</code>, <code>t_break</code>, then for each band its RMSE and 8 coefficients.</p>
+<h3 class="api" id="run_ccdc_image"><code>run_ccdc_image</code><a class="headerlink" href="#run_ccdc_image" title="Permanent link">&para;</a></h3>
+<!-- sig: zeit.raster.run_ccdc_image -->
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">raster</span><span class="o">.</span><span class="n">run_ccdc_image</span><span class="p">(</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="n">input_path</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">num_bands</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">qa_band_idx</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="n">max_segments</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">chunk_size</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s2">"ccdc_break"</span><span class="p">,</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="n">return_coefs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">conseq_anom</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>CCDC on a date-interleaved GeoTIFF (all bands of date 1, then of date 2, …), block by block. Writes <code>&lt;prefix&gt;_coefs.tif</code> with <code>max_segments × (3 + 9 × num_bands)</code> bands. Also exported as <code>zeit.run_ccdc_image</code>; CLI: <code>zeit ccdc</code>.</p>
+<div class="params">
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>input_path</code></td>
+<td style="text-align: left;"><code>str</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Date-interleaved GeoTIFF.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>output_dir</code></td>
+<td style="text-align: left;"><code>str</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Output folder.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>dates</code></td>
+<td style="text-align: left;">1-D array</td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Ordinal days, one per date in the file.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>num_bands</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>6</code></td>
+<td style="text-align: left;">Bands per date in the file (including the QA band, if any).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>qa_band_idx</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>-1</code></td>
+<td style="text-align: left;">Position of the QA band (Fmask codes) within each date. <code>-1</code>: no QA band, everything clear.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_segments</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>6</code></td>
+<td style="text-align: left;">Model slots.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>chunk_size</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>512</code></td>
+<td style="text-align: left;">Block size in pixels.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_jobs</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>-1</code></td>
+<td style="text-align: left;">Threads.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>prefix</code></td>
+<td style="text-align: left;"><code>str</code></td>
+<td style="text-align: left;"><code>"ccdc_break"</code></td>
+<td style="text-align: left;">Output file prefix.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>return_coefs</code></td>
+<td style="text-align: left;"><code>bool</code></td>
+<td style="text-align: left;"><code>True</code></td>
+<td style="text-align: left;">As in <code>run_ccdc_array</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>conseq_anom</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>6</code></td>
+<td style="text-align: left;">As in <code>run_ccdc</code>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 class="api" id="predict_synthetic_image"><code>predict_synthetic_image</code><a class="headerlink" href="#predict_synthetic_image" title="Permanent link">&para;</a></h3>
+<!-- sig: zeit.ccdc.predict_synthetic_image -->
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">ccdc</span><span class="o">.</span><span class="n">predict_synthetic_image</span><span class="p">(</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="n">ccdc_coefs_stack</span><span class="p">,</span> <span class="n">target_julian_day</span><span class="p">,</span> <span class="n">num_bands</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Evaluates the CCDC model active on a given date for every pixel, giving a cloud-free image for any day. Also exported as <code>zeit.predict_synthetic_image</code>.</p>
+<div class="params">
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>ccdc_coefs_stack</code></td>
+<td style="text-align: left;"><code>np.ndarray</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Output of <code>run_ccdc_array</code> (or the <code>_coefs.tif</code> reshaped to <code>(segments, params, rows, cols)</code>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>target_julian_day</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Ordinal day to predict.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>num_bands</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>6</code></td>
+<td style="text-align: left;">Bands to predict.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Returns</strong> <code>(num_bands, rows, cols)</code> float32.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">img</span> <span class="o">=</span> <span class="n">zeit</span><span class="o">.</span><span class="n">predict_synthetic_image</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">date</span><span class="p">(</span><span class="mi">2019</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span><span class="o">.</span><span class="n">toordinal</span><span class="p">())</span>
+</span></code></pre></div>
+<h3 class="api" id="predict"><code>predict</code><a class="headerlink" href="#predict" title="Permanent link">&para;</a></h3>
+<!-- sig: zeit.ccdc.predict -->
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">ccdc</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">coefs</span><span class="p">,</span> <span class="n">dates</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Evaluates one band's 8 coefficients (from <code>run_ccdc</code>'s <code>coefs</code>) at any ordinal day or days.</p>
+<div class="params">
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>coefs</code></td>
+<td style="text-align: left;">array</td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">8 coefficients of one band.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>dates</code></td>
+<td style="text-align: left;"><code>int</code> or array</td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Ordinal day(s).</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="bfast-family">BFAST family<a class="headerlink" href="#bfast-family" title="Permanent link">&para;</a></h2>
+<p>All three take a regular series: observation <code>i</code> is at <code>start_time + i / frequency</code>. Tutorials: <a href="../../tutorials/bfast/">BFAST</a>, <a href="../../tutorials/bfast_monitor/">BFAST Monitor</a>, <a href="../../tutorials/bfast_lite/">BFAST Lite</a>.</p>
+<h3 class="api" id="run_bfast_monitor_dask"><code>run_bfast_monitor_dask</code><a class="headerlink" href="#run_bfast_monitor_dask" title="Permanent link">&para;</a></h3>
+<!-- sig: zeit.bfast.run_bfast_monitor_dask -->
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">bfast</span><span class="o">.</span><span class="n">run_bfast_monitor_dask</span><span class="p">(</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="n">arr</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span> <span class="n">monitor_start_time</span><span class="p">,</span> <span class="n">frequency</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">period</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">min_valid</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Near-real-time monitoring (<code>bfastmonitor</code>, OLS-MOSUM, <code>history="all"</code>) for each pixel of a <code>(time, y, x)</code> Dask array.</p>
+<div class="params">
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>arr</code></td>
+<td style="text-align: left;"><code>dask.array.Array</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;"><code>(time, y, x)</code>; NaN for gaps.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>start_time</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Time of the first observation (a whole year, e.g. <code>2010.0</code>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>monitor_start_time</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Start of the monitoring period.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>frequency</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Observations per year.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>order</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>3</code></td>
+<td style="text-align: left;">Seasonal harmonics.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>h</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.25</code></td>
+<td style="text-align: left;">MOSUM window: <code>0.25</code>, <code>0.5</code> or <code>1.0</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>period</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>10</code></td>
+<td style="text-align: left;">Boundary horizon: <code>2</code>, <code>4</code>, <code>6</code>, <code>8</code> or <code>10</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>alpha</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.05</code></td>
+<td style="text-align: left;">Significance level.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>min_valid</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>10</code></td>
+<td style="text-align: left;">Minimum valid history observations.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_jobs</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>-1</code></td>
+<td style="text-align: left;">Threads.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Returns</strong> <code>(7, y, x)</code>: <code>breakpoint</code>, <code>breakpoint_idx</code>, <code>magnitude</code>, <code>sigma</code>, <code>n_history</code>, <code>has_break</code>, <code>valid</code> (<code>zeit.bfast.BFM_METRIC_NAMES</code>).</p>
+<h3 class="api" id="run_bfast_lite_dask"><code>run_bfast_lite_dask</code><a class="headerlink" href="#run_bfast_lite_dask" title="Permanent link">&para;</a></h3>
+<!-- sig: zeit.bfast.run_bfast_lite_dask -->
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">bfast</span><span class="o">.</span><span class="n">run_bfast_lite_dask</span><span class="p">(</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>    <span class="n">arr</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span> <span class="n">frequency</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span> <span class="n">max_breaks_output</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    <span class="n">min_valid</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Optimal multiple breakpoints (<code>bfastlite</code>, LWZ criterion) for each pixel.</p>
+<div class="params">
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>arr</code></td>
+<td style="text-align: left;"><code>dask.array.Array</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;"><code>(time, y, x)</code>; NaN for gaps.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>start_time</code>, <code>frequency</code></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Regular time axis.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>order</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>3</code></td>
+<td style="text-align: left;">Seasonal harmonics.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>h</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.15</code></td>
+<td style="text-align: left;">Minimum segment size, fraction of the observations.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_breaks_output</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>5</code></td>
+<td style="text-align: left;">Break slots in the output.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>min_valid</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>20</code></td>
+<td style="text-align: left;">Minimum valid observations.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_jobs</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>-1</code></td>
+<td style="text-align: left;">Threads.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Returns</strong> <code>(5 + max_breaks_output, y, x)</code>: <code>n_breaks</code>, <code>rss</code>, <code>lwz</code>, <code>n_valid</code>, <code>valid</code>, <code>breakpoint_idx_1…</code> (<code>zeit.bfast.bfl_metric_names(max_breaks_output)</code>).</p>
+<h3 class="api" id="run_bfast_dask"><code>run_bfast_dask</code><a class="headerlink" href="#run_bfast_dask" title="Permanent link">&para;</a></h3>
+<!-- sig: zeit.bfast.run_bfast_dask -->
+<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">bfast</span><span class="o">.</span><span class="n">run_bfast_dask</span><span class="p">(</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>    <span class="n">arr</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span> <span class="n">frequency</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span> <span class="n">max_breaks_trend</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>    <span class="n">max_breaks_season</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">min_valid</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>    <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Classic iterative BFAST (trend and seasonal breaks) for each pixel.</p>
+<div class="params">
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Default</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>arr</code></td>
+<td style="text-align: left;"><code>dask.array.Array</code></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;"><code>(time, y, x)</code>; NaN for gaps.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>start_time</code>, <code>frequency</code></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">required</td>
+<td style="text-align: left;">Regular time axis.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>order</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>3</code></td>
+<td style="text-align: left;">Seasonal harmonics.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>h</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.15</code></td>
+<td style="text-align: left;">Minimum segment size.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_breaks_trend</code>, <code>max_breaks_season</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>5</code>, <code>5</code></td>
+<td style="text-align: left;">Break slots in the output.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>max_iter</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>10</code></td>
+<td style="text-align: left;">Maximum trend/season iterations.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>level</code></td>
+<td style="text-align: left;"><code>float</code></td>
+<td style="text-align: left;"><code>0.05</code></td>
+<td style="text-align: left;">Significance of the stability pre-test (<code>1.0</code> always searches).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>min_valid</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>20</code></td>
+<td style="text-align: left;">Minimum valid observations.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>n_jobs</code></td>
+<td style="text-align: left;"><code>int</code></td>
+<td style="text-align: left;"><code>-1</code></td>
+<td style="text-align: left;">Threads.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Returns</strong> <code>n_trend_breaks</code>, <code>n_season_breaks</code>, <code>magnitude</code>, <code>time</code>, <code>n_iter</code>, <code>n_valid</code>, <code>valid</code>, then the trend and season break indices (<code>zeit.bfast.bf_metric_names(max_breaks_trend, max_breaks_season)</code>).</p>
+<h3 id="geotiff-versions">GeoTIFF versions<a class="headerlink" href="#geotiff-versions" title="Permanent link">&para;</a></h3>
+<p><code>run_bfast_monitor_image</code>, <code>run_bfast_lite_image</code> and <code>run_bfast_image</code> take the same parameters as their Dask counterparts, with <code>input_path</code>, <code>output_dir</code>, <code>chunk_size</code> and <code>prefix</code> instead of <code>arr</code>. The input has one band per time step; the output is <code>&lt;output_dir&gt;/&lt;prefix&gt;.tif</code> with one band per metric (band descriptions set to the metric names). All three are exported at the top level and available in the <a href="../../cli/">CLI</a>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">zeit</span><span class="o">.</span><span class="n">run_bfast_monitor_image</span><span class="p">(</span><span class="s2">"ndvi_16d.tif"</span><span class="p">,</span> <span class="s2">"results/"</span><span class="p">,</span> <span class="n">start_time</span><span class="o">=</span><span class="mf">2010.0</span><span class="p">,</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>                             <span class="n">monitor_start_time</span><span class="o">=</span><span class="mf">2022.0</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="mi">23</span><span class="p">)</span>
+</span></code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../preprocessing/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Pre-processing">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Pre-processing
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../time-series/" class="md-footer__link md-footer__link--next" aria-label="Next: Time-Series Analysis">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Time-Series Analysis
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Zeit is free software released under the GPL-2.0-or-later license.
+    </div>
+  
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/sacridini/zeit-cdts" target="_blank" rel="noopener" title="Zeit on GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://pypi.org/project/zeit-cdts/" target="_blank" rel="noopener" title="Zeit on PyPI" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.footer", "navigation.instant", "navigation.instant.progress", "navigation.path", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.tooltips", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
